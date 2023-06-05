@@ -23,12 +23,4 @@ contract Wallet {
 
     receive() external payable {
     }
-
-    function getBalance() external view returns(uint) {
-        return address(this).balance;
-    }
-
-    function getBalanceOf(address addr) external view returns(uint) {
-        return addr.balance;
-    }
 }

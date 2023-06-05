@@ -11,14 +11,14 @@ contract EntryPoint is IEntryPoint {
         if (!_verifyOp(op)) {
             revert("verification failed");
         }
-        return executeOp(op);
+        return _executeOp(op);
     }
 
     function _verifyOp(UserOperation memory op) private view returns(bool) {
         return op.sender.balance > op.amount;
     }
 
-    function executeOp(UserOperation memory op) public returns (uint) {
+    function _executeOp(UserOperation memory op) private returns (uint) {
 
         bytes memory data = abi.encodeWithSignature("executeUserOp(address,uint256)", op.receiver, op.amount);
 

@@ -2,9 +2,9 @@
 
 pragma solidity 0.8.20.0;
 
-    struct UserOperation {
-        address sender;
-        address receiver;
-        uint256 nonce;
-        uint256 amount;
-    }
+struct UserOperation {
+    address sender;
+    address receiver;
+    uint256 nonce;
+    uint256 amount;
+}
