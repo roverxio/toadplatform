@@ -4,7 +4,6 @@ pragma solidity 0.8.20.0;
 
 import "./IEntryPoint.sol";
 import "./UserOperation.sol";
-import "hardhat/console.sol";
 
 contract EntryPoint is IEntryPoint {
 
