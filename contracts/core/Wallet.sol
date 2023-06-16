@@ -5,7 +5,6 @@ pragma solidity 0.8.18.0;
 import "./interface/UserOperation.sol";
 import "./interface/IAccount.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
-import "hardhat/console.sol";
 
 contract Wallet2 is IAccount {
 
@@ -56,8 +55,6 @@ contract Wallet2 is IAccount {
         }
         bytes32 hash = userOpHash.toEthSignedMessageHash();
         address signer = hash.recover(userOp.signature);
-        console.log("hash -> ", string(abi.encodePacked(hash)));
-        console.log("signer -> ", signer);
         if (signer != _owner) {
             return SIG_VALIDATION_FAILED;
         }
@@ -72,7 +69,7 @@ contract Wallet2 is IAccount {
 
     function execute(address destination, uint value, bytes calldata data) external {
         _requireFromEntryPoint();
-        (bool success, bytes memory result) = destination.call{value : value}(data);
+        (bool success, bytes memory result) = destination.call{value: value}(data);
         if (!success) {
             revert(string(result));
         }
