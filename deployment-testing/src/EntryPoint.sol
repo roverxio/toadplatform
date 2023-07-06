@@ -13,10 +13,10 @@ import "./interfaces/IPaymaster.sol";
 import "./interfaces/IEntryPoint.sol";
 
 import "./utils/Exec.sol";
-import "./StakeManager.sol";
-import "./SenderCreator.sol";
+import "./core/StakeManager.sol";
+import "./core/SenderCreator.sol";
 import "./core/Helpers.sol";
-import "./NonceManager.sol";
+import "./core/NonceManager.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 contract EntryPoint is IEntryPoint, StakeManager, NonceManager, ReentrancyGuard {
