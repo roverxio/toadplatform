@@ -14,7 +14,7 @@ contract SimpleAccountFactoryScript is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        address payable epAddress = payable(0x3537eD464423B7Fbf509dF88da78Dc86f113A465);
+        address payable epAddress = payable(0xB9b7Aa6cE769Ce26867Dac898d1d37737176532E);
         EntryPoint ep = EntryPoint(epAddress);
 
         new SimpleAccountFactory{salt: bytes32(uint256(3))}(ep);
