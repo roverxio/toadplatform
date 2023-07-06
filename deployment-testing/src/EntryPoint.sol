@@ -8,14 +8,14 @@ pragma solidity ^0.8.12;
 /* solhint-disable avoid-low-level-calls */
 /* solhint-disable no-inline-assembly */
 
-import "../interfaces/IAccount.sol";
-import "../interfaces/IPaymaster.sol";
-import "../interfaces/IEntryPoint.sol";
+import "./interfaces/IAccount.sol";
+import "./interfaces/IPaymaster.sol";
+import "./interfaces/IEntryPoint.sol";
 
-import "../utils/Exec.sol";
+import "./utils/Exec.sol";
 import "./StakeManager.sol";
 import "./SenderCreator.sol";
-import "./Helpers.sol";
+import "./core/Helpers.sol";
 import "./NonceManager.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
