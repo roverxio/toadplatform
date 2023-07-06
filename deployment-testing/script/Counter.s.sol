@@ -11,7 +11,7 @@ contract CounterScript is Script {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        Counter nft = new Counter();
+        new Counter{salt: bytes32(uint256(1))}();
 
         vm.stopBroadcast();
     }
