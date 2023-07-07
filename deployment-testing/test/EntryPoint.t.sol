@@ -11,11 +11,12 @@ contract EntryPointTest is Test {
     SimpleAccountFactory public factory;
     SimpleAccount public wallet;
     address payable public walletAddress;
+    address public owner = 0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC;
 
     function setUp() public {
         ep = new EntryPoint();
         factory = new SimpleAccountFactory(ep);
-        wallet = factory.createAccount(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC, 1);
+        wallet = factory.createAccount(owner, 1);
 
         walletAddress = payable(wallet);
 
@@ -80,7 +81,7 @@ contract EntryPointTest is Test {
         assertEq(walletAddress.balance, 0);
         assertEq(wallet.getDeposit(), 1 ether);
 
-        vm.prank(0x3C44CdDdB6a900fa2b585dd299e03d12FA4293BC);
+        vm.prank(owner);
         wallet.withdrawDepositTo(walletAddress, 1 ether);
 
         assertEq(address(wallet).balance, 1 ether);
