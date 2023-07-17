@@ -11,15 +11,14 @@ contract SimpleAccountTest is Test {
     SimpleAccountFactory private factory;
     SimpleAccount private wallet;
     address payable private walletAddress;
-    address private owner = 0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266;
-    uint256 private ownerPrivateKey = 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80;
+    Account private owner = makeAccount("owner");
     address private epAddress;
     uint256 private chainId = vm.envOr('FOUNDRY_CHAIN_ID', uint256(31337));
 
     function setUp() public {
         entryPoint = new EntryPoint();
         factory = new SimpleAccountFactory(entryPoint);
-        wallet = factory.createAccount(owner, 1);
+        wallet = factory.createAccount(owner.addr, 1);
 
         walletAddress = payable(wallet);
         epAddress = payable(entryPoint);
@@ -30,7 +29,7 @@ contract SimpleAccountTest is Test {
         // add balance to scw
         vm.deal(walletAddress, 3 ether);
         // set msg.sender to owner address
-        vm.prank(owner);
+        vm.prank(owner.addr);
         wallet.execute(receiver, 1 ether, '0x');
         assertEq(walletAddress.balance, 2 ether);
     }
@@ -112,7 +111,7 @@ contract SimpleAccountTest is Test {
     function signUserOp(UserOperation memory op, address ep, uint256 id) internal view returns (UserOperation memory) {
         bytes32 message = getUserOpHash(op, ep, id);
         bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(ownerPrivateKey, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner.key, digest);
         op.signature = abi.encodePacked(r, s, v);
         return op;
     }
