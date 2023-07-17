@@ -5,7 +5,6 @@ import { ethers } from 'hardhat'
 const deployLegacyTokenPaymaster: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const provider = ethers.provider
   const from = await provider.getSigner().getAddress()
-  console.log('from -> ', from)
 
   const network = await provider.getNetwork()
   // only deploy on local test network.

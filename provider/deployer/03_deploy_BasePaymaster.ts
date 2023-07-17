@@ -10,7 +10,6 @@ const deployBasePaymaster: DeployFunction = async function (hre: HardhatRuntimeE
   if (network.chainId !== 31337 && network.chainId !== 1337) {
     return
   }
-  console.log('from -> ', from)
 
   // const entrypoint = await hre.deployments.get('EntryPoint')
   const ret = await hre.deployments.deploy(
