@@ -13,7 +13,7 @@ contract SimpleAccountTest is Test {
     address payable private walletAddress;
     Account private owner = makeAccount("owner");
     address private epAddress;
-    uint256 private chainId = vm.envOr('FOUNDRY_CHAIN_ID', uint256(31337));
+    uint256 private chainId = vm.envUint('FOUNDRY_CHAIN_ID');
 
     function setUp() public {
         entryPoint = new EntryPoint();
