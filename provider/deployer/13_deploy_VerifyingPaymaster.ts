@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types'
 import { DeployFunction } from 'hardhat-deploy/types'
 import { ethers } from 'hardhat'
 
-const deployBasePaymaster: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
+const deploySimpleAccountFactory: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const provider = ethers.provider
   const from = await provider.getSigner().getAddress()
   const network = await provider.getNetwork()
@@ -10,18 +10,17 @@ const deployBasePaymaster: DeployFunction = async function (hre: HardhatRuntimeE
   if (network.chainId !== 31337 && network.chainId !== 1337) {
     return
   }
-  console.log('from -> ', from)
 
-  // const entrypoint = await hre.deployments.get('EntryPoint')
+  const entrypoint = await hre.deployments.get('EntryPoint')
   const ret = await hre.deployments.deploy(
-    'BasePaymaster', {
+    'VerifyingPaymaster', {
       from,
-      // args: [entrypoint.address],
+      args: [entrypoint.address, from],
       gasLimit: 6e6,
       log: true,
       deterministicDeployment: true
     })
-  console.log('==BasePaymaster addr=', ret.address)
+  console.log('==VerifyingPaymaster addr=', ret.address)
 }
 
-export default deployBasePaymaster
+export default deploySimpleAccountFactory
