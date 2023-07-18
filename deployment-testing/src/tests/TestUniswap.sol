@@ -8,7 +8,7 @@ import "./TestWrappedNativeToken.sol";
 
 /// @notice Very basic simulation of what Uniswap does with the swaps for the unit tests on the TokenPaymaster
 /// @dev Do not use to test any actual Uniswap interaction logic as this is way too simplistic
-contract TestUniswap {
+contract TestUniswap is ISwapRouter {
     TestWrappedNativeToken public weth;
 
     constructor(TestWrappedNativeToken _weth){
@@ -17,7 +17,7 @@ contract TestUniswap {
 
     event StubUniswapExchangeEvent(uint256 amountIn, uint256 amountOut, address tokenIn, address tokenOut);
 
-    function exactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata params) external returns (uint256) {
+    function exactOutputSingle(ISwapRouter.ExactOutputSingleParams calldata params) external payable returns (uint256) {
         uint256 amountIn = params.amountInMaximum - 5;
         emit StubUniswapExchangeEvent(
             amountIn,
@@ -30,7 +30,7 @@ contract TestUniswap {
         return amountIn;
     }
 
-    function exactInputSingle(ISwapRouter.ExactInputSingleParams calldata params) external returns (uint256) {
+    function exactInputSingle(ISwapRouter.ExactInputSingleParams calldata params) external payable returns (uint256) {
         uint256 amountOut = params.amountOutMinimum + 5;
         emit StubUniswapExchangeEvent(
             params.amountIn,
@@ -57,4 +57,18 @@ contract TestUniswap {
 
     // solhint-disable-next-line no-empty-blocks
     receive() external payable {}
+
+    function exactInput(ExactInputParams calldata params) external payable returns (uint256 amountOut) {
+        return params.amountIn;
+    }
+
+    function exactOutput(ExactOutputParams calldata params) external payable returns (uint256 amountIn) {
+        return params.amountOut;
+    }
+
+    function uniswapV3SwapCallback(
+        int256 amount0Delta,
+        int256 amount1Delta,
+        bytes calldata data
+    ) external {}
 }
