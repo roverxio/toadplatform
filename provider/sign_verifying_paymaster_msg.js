@@ -1,7 +1,7 @@
 const {ethers, utils} = require("ethers");
 const {arrayify, keccak256, hexConcat, defaultAbiCoder} = require("ethers/lib/utils");
 
-const privateKey = '0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80';
+const privateKey = '<private_key>';
 const providerUrl = 'http://localhost:8545';
 const provider = new ethers.providers.JsonRpcProvider(providerUrl);
 const wallet = new ethers.Wallet(privateKey, provider);
@@ -9,12 +9,15 @@ const wallet = new ethers.Wallet(privateKey, provider);
 const userOpType = ['address', 'uint256', 'bytes32', 'bytes32',
     'uint256', 'uint256', 'uint256', 'uint256', 'uint256',
     'bytes32']
+const MOCK_VALID_UNTIL = '0x00000000deadbeef'
+const MOCK_VALID_AFTER = '0x0000000000001234'
 
 wallet.signMessage(arrayify("<msg_hash>")).then((sig) => {
-    const paymaster = hexConcat(["<verify_paymaster>", defaultAbiCoder.encode(['uint48', 'uint48'], ['0x00000000deadbeef', '0x0000000000001234']), sig])
+    const paymaster = hexConcat(["<verify_paymaster_address>", defaultAbiCoder.encode(['uint48', 'uint48'], [MOCK_VALID_UNTIL, MOCK_VALID_AFTER]), sig])
 
     let userOperation = {
-        //user operation payload
+        paymaster: paymaster,
+        //rest of user operation payload
     }
     const message = arrayify(getUserOpHash(userOperation, '<entry_point_address>', 31337))
 
