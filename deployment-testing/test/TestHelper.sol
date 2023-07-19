@@ -109,4 +109,12 @@ contract TestHelper is Test {
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner.key, digest);
         return abi.encodePacked(r, s, v);
     }
+
+    function getEntryPointBalance() internal returns (uint256) {
+        return entryPointAddress.balance;
+    }
+
+    function getAccountBalance() internal returns (uint256) {
+        return accountAddress.balance;
+    }
 }

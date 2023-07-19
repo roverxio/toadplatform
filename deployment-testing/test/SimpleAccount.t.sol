@@ -22,7 +22,7 @@ contract SimpleAccountTest is TestHelper {
         // set msg.sender to owner address
         vm.prank(owner.addr);
         account.execute(receiver, 1 ether, defaultBytes);
-        assertEq(accountAddress.balance, 2 ether);
+        assertEq(getAccountBalance(), 2 ether);
     }
 
     // Other account should not be able to call transfer
@@ -41,13 +41,13 @@ contract SimpleAccountTest is TestHelper {
         UserOperation memory userOp = fillAndSign(chainId, 0);
         uint256 expectedPay = gasPrice * (userOp.callGasLimit + userOp.verificationGasLimit);
         bytes32 userOpHash = getUserOpHash(userOp, entryPointAddress, chainId);
-        uint256 preBalance = accountAddress.balance;
+        uint256 preBalance = getAccountBalance();
 
         // set msg.sender to entry point address
         vm.prank(entryPointAddress);
         account.validateUserOp{gas: gasPrice}(userOp, userOpHash, expectedPay);
 
-        uint256 postBalance = accountAddress.balance;
+        uint256 postBalance = getAccountBalance();
         assertEq(preBalance - postBalance, expectedPay);
     }
 
