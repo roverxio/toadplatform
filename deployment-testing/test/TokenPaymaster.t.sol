@@ -43,6 +43,7 @@ contract TokenPaymasterTest is Test {
         walletAddress = payable(wallet);
 
         vm.deal(walletAddress, 1 ether);
+        vm.deal(owner.addr, 1 ether);
         // Check for geth
 
         vm.startPrank(owner.addr);
@@ -57,7 +58,7 @@ contract TokenPaymasterTest is Test {
         vm.stopPrank();
 
         TokenPaymaster.TokenPaymasterConfig memory paymasterConfig = TokenPaymaster.TokenPaymasterConfig({
-            priceMarkup: 1e24 * 15 / 10,
+            priceMarkup: 1e26 * 15 / 10,
             minEntryPointBalance: 0.1 ether,
             refundPostopCost: 40000,
             priceMaxAge: 86400
