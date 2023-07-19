@@ -37,14 +37,6 @@ contract InitCodeScript is Script {
         return size > 0;
     }
 
-    function _toEthSignedMessageHash(bytes32 hash) internal pure returns(bytes32 message) {
-        assembly {
-            mstore(0x00, "\x19Ethereum Signed Message:\n32")
-            mstore(0x1c, hash)
-            message := keccak256(0x00, 0x3c)
-        }
-    }
-
     function run() external {
         uint256 privateKey = vm.envUint("PRIVATE_KEY");
         address payable beneficiary = payable(vm.envAddress("BENEFICIARY"));
@@ -76,7 +68,7 @@ contract InitCodeScript is Script {
         vm.deal(userOp.sender, 20 ether);
 
         bytes32 msgHash = entryPoint.getUserOpHash(userOp);
-        bytes32 hash = _toEthSignedMessageHash(msgHash);
+        bytes32 hash = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", msgHash));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, hash);
 
         userOp.signature = abi.encodePacked(r, s, v);
