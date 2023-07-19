@@ -96,4 +96,6 @@ contract TokenPaymasterTest is Test {
         paymaster.addStake{value: 2 ether}(1);
         vm.stopPrank();
     }
+
+    function test() public {}
 }
