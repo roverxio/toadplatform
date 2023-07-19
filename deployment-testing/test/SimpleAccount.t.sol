@@ -62,4 +62,14 @@ contract SimpleAccountTest is TestHelper {
 
         assertEq(deadline, 1);
     }
+
+    // SimpleAccountFactory
+    // Sanity: check deployer
+    function testDeployer() public {
+        Account memory newOwner = makeAccount("new_owner");
+        address testAccount = accountFactory.getAddress(newOwner.addr, 123471);
+        assertEq(isDeployed(testAccount), false);
+        accountFactory.createAccount(newOwner.addr, 123471);
+        assertEq(isDeployed(testAccount), true);
+    }
 }

@@ -117,4 +117,12 @@ contract TestHelper is Test {
     function getAccountBalance() internal view returns (uint256) {
         return accountAddress.balance;
     }
+
+    function isDeployed(address addr) public view returns(bool) {
+        uint size;
+        assembly {
+            size := extcodesize(addr)
+        }
+        return size > 0;
+    }
 }
