@@ -8,15 +8,22 @@ import "../src/interfaces/UserOperation.sol";
 
 contract InitCodeScript is Script {
 
+    uint256 private privateKey = vm.envUint("PRIVATE_KEY");
+    address payable private beneficiary = payable(vm.envAddress("BENEFICIARY"));
+    address private receiver = vm.envAddress("RECEIVER");
+    address private owner = vm.envAddress("OWNER");
+    uint256 private amount = vm.envUint("AMOUNT");
+    uint256 private salt = vm.envUint("SALT");
+
     UserOperation internal userOp;
 
-    function prepareInitCode(address simpleAccountFactory, address owner, uint256 salt) public pure returns(bytes memory) {
+    function prepareInitCode(address simpleAccountFactory) public view returns(bytes memory) {
         bytes memory _func = abi.encodeWithSignature("createAccount(address,uint256)", owner, salt);
         bytes memory _addr = abi.encodePacked(simpleAccountFactory);
         return bytes.concat(_addr, _func);
     }
 
-    function prepareCallData(address receiver, uint256 amount) public pure returns(bytes memory) {
+    function prepareCallData() public view returns(bytes memory) {
         bytes memory callData = abi.encodeWithSignature("execute(address,uint256,bytes)", receiver, amount, '0x');
         return callData;
     }
@@ -38,13 +45,6 @@ contract InitCodeScript is Script {
     }
 
     function run() external {
-        uint256 privateKey = vm.envUint("PRIVATE_KEY");
-        address payable beneficiary = payable(vm.envAddress("BENEFICIARY"));
-        address receiver = vm.envAddress("RECEIVER");
-        address owner = vm.envAddress("OWNER");
-        uint256 amount = vm.envUint("AMOUNT");
-        uint256 salt = vm.envUint("SALT");
-
         vm.startBroadcast(privateKey);
 
         EntryPoint entryPoint = new EntryPoint();
@@ -56,11 +56,11 @@ contract InitCodeScript is Script {
         if (isDeployed(userOp.sender)) {
             userOp.initCode = '';
         } else {
-            userOp.initCode = _prepareInitCode(address(simpleAccountFactory), owner, salt);
+            userOp.initCode = prepareInitCode(address(simpleAccountFactory));
         }
-        userOp.callData = _prepareCallData(receiver, amount);
+        userOp.callData = prepareCallData();
 
-        _prepareGasPayload();
+        prepareGasPayload();
 
         userOp.paymasterAndData = '';
 
