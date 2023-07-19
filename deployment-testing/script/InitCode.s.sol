@@ -10,18 +10,18 @@ contract InitCodeScript is Script {
 
     UserOperation internal userOp;
 
-    function _prepareInitCode(address simpleAccountFactory, address owner, uint256 salt) public pure returns(bytes memory) {
+    function prepareInitCode(address simpleAccountFactory, address owner, uint256 salt) public pure returns(bytes memory) {
         bytes memory _func = abi.encodeWithSignature("createAccount(address,uint256)", owner, salt);
         bytes memory _addr = abi.encodePacked(simpleAccountFactory);
         return bytes.concat(_addr, _func);
     }
 
-    function _prepareCallData(address receiver, uint256 amount) public pure returns(bytes memory) {
+    function prepareCallData(address receiver, uint256 amount) public pure returns(bytes memory) {
         bytes memory callData = abi.encodeWithSignature("execute(address,uint256,bytes)", receiver, amount, '0x');
         return callData;
     }
 
-    function _prepareGasPayload() public {
+    function prepareGasPayload() public {
         userOp.callGasLimit = 10000000;
         userOp.maxFeePerGas = 5;
         userOp.maxPriorityFeePerGas = 1000000000;
