@@ -110,11 +110,11 @@ contract TestHelper is Test {
         return abi.encodePacked(r, s, v);
     }
 
-    function getEntryPointBalance() internal returns (uint256) {
+    function getEntryPointBalance() internal view returns (uint256) {
         return entryPointAddress.balance;
     }
 
-    function getAccountBalance() internal returns (uint256) {
+    function getAccountBalance() internal view returns (uint256) {
         return accountAddress.balance;
     }
 }
