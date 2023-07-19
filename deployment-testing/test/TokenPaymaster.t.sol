@@ -90,6 +90,7 @@ contract TokenPaymasterTest is Test {
 
         vm.startPrank(owner.addr);
         token.transfer(address(paymaster), 100);
+        vm.warp(1680509051);
         paymaster.updateCachedPrice(true);
         entryPoint.depositTo{value: 1000 ether}(address(paymaster));
         paymaster.addStake{value: 2 ether}(1);
