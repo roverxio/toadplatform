@@ -43,7 +43,7 @@ contract TokenPaymasterTest is Test {
         walletAddress = payable(wallet);
 
         vm.deal(walletAddress, 1 ether);
-        vm.deal(owner.addr, 1 ether);
+        vm.deal(owner.addr, 1003 ether);
         // Check for geth
 
         vm.startPrank(owner.addr);
