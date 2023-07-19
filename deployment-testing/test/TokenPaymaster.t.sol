@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
+import "./TestHelper.sol";
 import "../src/TokenPaymaster.sol";
 import "../src/SimpleAccount.sol";
 import "../src/EntryPoint.sol";
@@ -12,37 +12,27 @@ import "../src/tests/TestOracle2.sol";
 import "../src/tests/TestWrappedNativeToken.sol";
 
 
-contract TokenPaymasterTest is Test {
-    Account private owner = makeAccount("owner");
+contract TokenPaymasterTest is TestHelper {
     TestERC20 private token;
-    EntryPoint private entryPoint;
     TestUniswap private uniswap;
     TestOracle2 private tokenOracle;
-    TestOracle2 private nativeAssetOracle;
-    SimpleAccount private wallet;
     TokenPaymaster private paymaster;
-    SimpleAccountFactory private factory;
     TestWrappedNativeToken private weth;
+    TestOracle2 private nativeAssetOracle;
 
-    uint256 private chainId = vm.envUint('FOUNDRY_CHAIN_ID');
     int256 private initialPriceEther = 500000000;
     int256 private initialPriceToken = 100000000;
-    address payable private walletAddress;
     address private tokenAddress;
-    address private epAddress;
 
     function setUp() public {
-        entryPoint = new EntryPoint();
-        epAddress = payable(entryPoint);
+        createAddress("owner_paymaster");
+        deployEntryPoint(123461);
+        createAccount(123462, 123463);
 
         weth = new TestWrappedNativeToken();
         uniswap = new TestUniswap(weth);
 
-        factory = new SimpleAccountFactory(entryPoint);
-        wallet = factory.createAccount(owner.addr, 1);
-        walletAddress = payable(wallet);
-
-        vm.deal(walletAddress, 1 ether);
+        vm.deal(accountAddress, 1 ether);
         vm.deal(owner.addr, 1003 ether);
         // Check for geth
 
