@@ -39,10 +39,9 @@ contract TestHelper is Test {
         owner = makeAccount(_name);
     }
 
-    function deployEntryPoint(uint256 _salt) internal returns (EntryPoint) {
+    function deployEntryPoint(uint256 _salt) internal {
         entryPoint = new EntryPoint{salt: bytes32(_salt)}();
         entryPointAddress = address(entryPoint);
-        return entryPoint;
     }
 
     function createAccount(uint256 _factorySalt, uint256 _accountSalt) internal {
