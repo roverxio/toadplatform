@@ -7,7 +7,7 @@ import "../src/EntryPoint.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract SimpleAccountTest is TestHelper {
-    uint256 internal constant _GAS_PRICE = 1000000000;
+    uint256 internal constant gasPrice = 1000000000;
 
     function setUp() public {
         createAddress("owner");
@@ -39,13 +39,13 @@ contract SimpleAccountTest is TestHelper {
         vm.deal(accountAddress, 0.2 ether);
 
         UserOperation memory userOp = fillAndSign(chainId, 0);
-        uint256 expectedPay = _GAS_PRICE * (userOp.callGasLimit + userOp.verificationGasLimit);
+        uint256 expectedPay = gasPrice * (userOp.callGasLimit + userOp.verificationGasLimit);
         bytes32 userOpHash = getUserOpHash(userOp, entryPointAddress, chainId);
         uint256 preBalance = getAccountBalance();
 
         // set msg.sender to entry point address
         vm.prank(entryPointAddress);
-        account.validateUserOp{gas: _GAS_PRICE}(userOp, userOpHash, expectedPay);
+        account.validateUserOp{gas: gasPrice}(userOp, userOpHash, expectedPay);
 
         uint256 postBalance = getAccountBalance();
         assertEq(preBalance - postBalance, expectedPay);
