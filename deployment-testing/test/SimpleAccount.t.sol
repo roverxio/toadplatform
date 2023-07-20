@@ -1,118 +1,75 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import "forge-std/Test.sol";
+import "./TestHelper.sol";
 import "../src/SimpleAccount.sol";
 import "../src/EntryPoint.sol";
 import "../src/SimpleAccountFactory.sol";
 
-contract SimpleAccountTest is Test {
-    EntryPoint private entryPoint;
-    SimpleAccountFactory private factory;
-    SimpleAccount private wallet;
-    address payable private walletAddress;
-    Account private owner = makeAccount("owner");
-    address private epAddress;
-    uint256 private chainId = vm.envUint('FOUNDRY_CHAIN_ID');
+contract SimpleAccountTest is TestHelper {
+    uint256 internal constant gasPrice = 1000000000;
 
     function setUp() public {
-        entryPoint = new EntryPoint();
-        factory = new SimpleAccountFactory(entryPoint);
-        wallet = factory.createAccount(owner.addr, 1);
-
-        walletAddress = payable(wallet);
-        epAddress = payable(entryPoint);
+        createAddress("owner");
+        deployEntryPoint(123456);
+        createAccount(123457, 123458);
     }
 
     // Owner should be able to call transfer
     function testTransferByOwner(address receiver) public {
         // add balance to scw
-        vm.deal(walletAddress, 3 ether);
+        vm.deal(accountAddress, 3 ether);
         // set msg.sender to owner address
         vm.prank(owner.addr);
-        wallet.execute(receiver, 1 ether, '0x');
-        assertEq(walletAddress.balance, 2 ether);
+        account.execute(receiver, 1 ether, defaultBytes);
+        assertEq(getAccountBalance(), 2 ether);
     }
 
     // Other account should not be able to call transfer
     function testTransferByNonOwner(address receiver) public {
         // add balance to scw
-        vm.deal(walletAddress, 3 ether);
+        vm.deal(accountAddress, 3 ether);
         vm.expectRevert(bytes('account: not Owner or EntryPoint'));
-        wallet.execute(receiver, 1 ether, '0x');
+        account.execute(receiver, 1 ether, defaultBytes);
     }
 
     // #validateUserOp
     // Should pay
     function testPayment() public {
-        vm.deal(walletAddress, 0.2 ether);
+        vm.deal(accountAddress, 0.2 ether);
 
-        UserOperation memory userOp = getUserOp(epAddress, chainId, 0);
-        uint256 expectedPay = 1000000000 * (userOp.callGasLimit + userOp.verificationGasLimit);
-        bytes32 userOpHash = getUserOpHash(userOp, epAddress, chainId);
-        uint256 preBalance =  walletAddress.balance;
+        UserOperation memory userOp = fillAndSign(chainId, 0);
+        uint256 expectedPay = gasPrice * (userOp.callGasLimit + userOp.verificationGasLimit);
+        bytes32 userOpHash = getUserOpHash(userOp, entryPointAddress, chainId);
+        uint256 preBalance = getAccountBalance();
 
         // set msg.sender to entry point address
-        vm.prank(epAddress);
-        wallet.validateUserOp{gas: 1000000000}(userOp, userOpHash, expectedPay);
+        vm.prank(entryPointAddress);
+        account.validateUserOp{gas: gasPrice}(userOp, userOpHash, expectedPay);
 
-        uint256 postBalance = address(wallet).balance;
+        uint256 postBalance = getAccountBalance();
         assertEq(preBalance - postBalance, expectedPay);
     }
 
+    // Should return NO_SIG_VALIDATION on wrong signature
     function testWrongSignature() public {
         bytes32 zeroHash = 0x0000000000000000000000000000000000000000000000000000000000000000;
-        UserOperation memory op = getUserOp(epAddress, chainId, 1);
+        UserOperation memory op = fillAndSign(chainId, 1);
 
         // set msg.sender to entry point address
-        vm.prank(epAddress);
-        uint256 deadline = wallet.validateUserOp(op, zeroHash, 0);
+        vm.prank(entryPointAddress);
+        uint256 deadline = account.validateUserOp(op, zeroHash, 0);
 
         assertEq(deadline, 1);
     }
 
-    function getUserOp(address entryPointAddress, uint256 id, uint256 nonce) internal view returns (UserOperation memory) {
-        UserOperation memory op;
-        op.sender = walletAddress;
-        op.nonce = nonce;
-        op.callData = '0x';
-        op.initCode = '0x';
-        op.callGasLimit = 200000;
-        op.verificationGasLimit = 100000;
-        op.preVerificationGas = 21000;
-        op.maxFeePerGas = 3000000000;
-        op.maxPriorityFeePerGas = 1000000000;
-        op.paymasterAndData = '0x';
-        op.signature = '0x';
-
-        UserOperation memory userOp = signUserOp(op, entryPointAddress, id);
-        return userOp;
-    }
-
-    function packUserOp(UserOperation memory op, bool signature) internal pure returns (bytes memory) {
-        if (signature) {
-            return abi.encode(
-                op.sender, op.nonce, keccak256(op.initCode), keccak256(op.callData), op.callGasLimit,
-                op.verificationGasLimit, op.preVerificationGas, op.maxFeePerGas, op.maxPriorityFeePerGas,
-                keccak256(op.paymasterAndData));
-        } else {
-            return abi.encode(
-                op.sender, op.nonce, op.initCode, op.callData, op.callGasLimit, op.verificationGasLimit,
-                op.preVerificationGas, op.maxFeePerGas, op.maxPriorityFeePerGas, op.paymasterAndData, op.signature);
-        }
-    }
-
-    function getUserOpHash(UserOperation memory op, address ep, uint256 id) internal pure returns (bytes32) {
-        bytes32 userOpHash = keccak256(packUserOp(op, true));
-        bytes memory encoded = abi.encode(userOpHash, ep, id);
-        return bytes32(keccak256(encoded));
-    }
-
-    function signUserOp(UserOperation memory op, address ep, uint256 id) internal view returns (UserOperation memory) {
-        bytes32 message = getUserOpHash(op, ep, id);
-        bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner.key, digest);
-        op.signature = abi.encodePacked(r, s, v);
-        return op;
+    // SimpleAccountFactory
+    // Sanity: check deployer
+    function testDeployer() public {
+        Account memory newOwner = makeAccount("new_owner");
+        address testAccount = accountFactory.getAddress(newOwner.addr, 123471);
+        assertEq(isDeployed(testAccount), false);
+        accountFactory.createAccount(newOwner.addr, 123471);
+        assertEq(isDeployed(testAccount), true);
     }
 }
