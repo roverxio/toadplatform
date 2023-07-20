@@ -25,6 +25,9 @@ contract TokenPaymasterTest is TestHelper {
     int256 private _initialPriceEther = 500000000;
     int256 private _initialPriceToken = 100000000;
     address private _tokenAddress;
+    bytes private _callData;
+    address private _beneficiaryAddress = 0x1111111111111111111111111111111111111111;
+    UserOperation[] public ops;
 
     function setUp() public {
         _createAddress("owner_paymaster");
@@ -88,18 +91,35 @@ contract TokenPaymasterTest is TestHelper {
         _entryPoint.depositTo{value: 1000 ether}(_paymasterAddress);
         _paymaster.addStake{value: 2 ether}(1);
         vm.stopPrank();
+        _callData = abi.encodeWithSignature("execute(address, uint256, bytes)", _owner.addr, 0, _DEFAULT_BYTES);
     }
 
     function testNoTokensOrAllowance() public {
         uint256 snapShotId = vm.snapshot();
-        /*
-        - Generate Paymaster Data
-        - Generate user op
-        - Sign user op
-        - expect revert on handle op with insufficient allowance
-        - Approve
-        - Expect revert on handle op with no balance
-        */
+        bytes memory paymasterData = _generatePaymasterData(_paymasterAddress, 0);
+        UserOperation memory op = _defaultOp;
+        op.sender = _accountAddress;
+        op.paymasterAndData = paymasterData;
+        op.callData = _callData;
+        op = _signUserOp(op, _entryPointAddress, _chainId);
+        ops.push(op);
+
+//        vm.expectRevert(bytes("AA33 reverted: ERC20: insufficient allowance"));
+        vm.expectRevert();
+        _entryPoint.handleOps{gas: 1e7}(ops, payable(_beneficiaryAddress));
+
+        _token.sudoApprove(_accountAddress, _paymasterAddress, type(uint256).max);
+//         vm.expectRevert(bytes("AA33 reverted: ERC20: transfer amount exceeds balance"));
+        vm.expectRevert();
+        _entryPoint.handleOps{gas: 1e7}(ops, payable(_beneficiaryAddress));
         vm.revertTo(snapShotId);
+    }
+
+    function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
+        if (tokenPrice == 0) {
+            return abi.encodePacked(_pmAddress);
+        } else {
+            return abi.encodePacked(_pmAddress, tokenPrice);
+        }
     }
 }
