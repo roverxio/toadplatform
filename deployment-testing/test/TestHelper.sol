@@ -7,87 +7,87 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract TestHelper is Test {
-    Account internal _owner;
-    EntryPoint internal _entryPoint;
-    SimpleAccount internal _account;
-    SimpleAccount internal _implementation;
-    SimpleAccountFactory internal _accountFactory;
+    Account internal owner;
+    EntryPoint internal entryPoint;
+    SimpleAccount internal account;
+    SimpleAccount internal implementation;
+    SimpleAccountFactory internal accountFactory;
 
-    address internal _accountAddress;
-    address internal _entryPointAddress;
+    address internal accountAddress;
+    address internal entryPointAddress;
 
-    uint256 internal _chainId = vm.envOr("FOUNDRY_CHAIN_ID", uint256(31337));
-    uint256 constant internal _GLOBAL_UNSTAKE_DELAY_SEC = 2;
-    uint256 constant internal _PAYMASTER_STAKE = 2 ether;
-    bytes constant internal _DEFAULT_BYTES = bytes("");
+    uint256 internal chainId = vm.envOr("FOUNDRY_CHAIN_ID", uint256(31337));
+    uint256 constant internal globalUnstakeDelaySec = 2;
+    uint256 constant internal paymasterStake = 2 ether;
+    bytes constant internal defaultBytes = bytes("");
 
     UserOperation internal _defaultOp = UserOperation({
-        sender: _accountAddress,
+        sender: accountAddress,
         nonce: 0,
-        initCode: _DEFAULT_BYTES,
-        callData: _DEFAULT_BYTES,
+        initCode: defaultBytes,
+        callData: defaultBytes,
         callGasLimit: 200000,
         verificationGasLimit: 100000,
         preVerificationGas: 21000,
         maxFeePerGas: 3000000000,
         maxPriorityFeePerGas: 1,
-        paymasterAndData: _DEFAULT_BYTES,
-        signature: _DEFAULT_BYTES
+        paymasterAndData: defaultBytes,
+        signature: defaultBytes
         });
 
-    function _createAddress(string memory _name) internal {
-        _owner = makeAccount(_name);
+    function createAddress(string memory _name) internal {
+        owner = makeAccount(_name);
     }
 
-    function _deployEntryPoint(uint256 _salt) internal returns (EntryPoint) {
-        _entryPoint = new EntryPoint{salt: bytes32(_salt)}();
-        _entryPointAddress = address(_entryPoint);
-        return _entryPoint;
+    function deployEntryPoint(uint256 _salt) internal returns (EntryPoint) {
+        entryPoint = new EntryPoint{salt: bytes32(_salt)}();
+        entryPointAddress = address(entryPoint);
+        return entryPoint;
     }
 
-    function _createAccount(uint256 _factorySalt, uint256 _accountSalt) internal {
+    function createAccount(uint256 _factorySalt, uint256 _accountSalt) internal {
         vm.startBroadcast();
-        _accountFactory = new SimpleAccountFactory{salt: bytes32(_factorySalt)}(_entryPoint);
-        _implementation = _accountFactory.accountImplementation();
-        _accountFactory.createAccount(_owner.addr, _accountSalt);
-        _accountAddress = _accountFactory.getAddress(_owner.addr, _accountSalt);
+        accountFactory = new SimpleAccountFactory{salt: bytes32(_factorySalt)}(entryPoint);
+        implementation = accountFactory.accountImplementation();
+        accountFactory.createAccount(owner.addr, _accountSalt);
+        accountAddress = accountFactory.getAddress(owner.addr, _accountSalt);
         vm.stopBroadcast();
-        _account = SimpleAccount(payable(_accountAddress));
+        account = SimpleAccount(payable(accountAddress));
     }
 
-    function _fillAndSign(uint256 _id, uint256 _nonce) internal view returns (UserOperation memory) {
+    function fillAndSign(uint256 _chainId, uint256 _nonce) internal view returns (UserOperation memory) {
         UserOperation memory op;
-        op.sender = _accountAddress;
+        op.sender = accountAddress;
         op.nonce = _nonce;
-        op.callData = _DEFAULT_BYTES;
-        op.initCode = _DEFAULT_BYTES;
+        op.callData = defaultBytes;
+        op.initCode = defaultBytes;
         op.callGasLimit = 200000;
         op.verificationGasLimit = 100000;
         op.preVerificationGas = 21000;
         op.maxFeePerGas = 3000000000;
-        op.paymasterAndData = _DEFAULT_BYTES;
-        op.signature = _DEFAULT_BYTES;
+        op.paymasterAndData = defaultBytes;
+        op.signature = defaultBytes;
 
-        return _signUserOp(op, _entryPointAddress, _id);
+        return signUserOp(op, entryPointAddress, _chainId);
     }
 
-    function _signUserOp(UserOperation memory op, address _epAddress, uint256 _id)
+    function signUserOp(UserOperation memory op, address _entryPoint, uint256 _chainId)
     internal
     view
     returns (UserOperation memory)
     {
-        bytes32 message = _getUserOpHash(op, _epAddress, _id);
-        op.signature = _signMessage(message);
+        bytes32 message = getUserOpHash(op, _entryPoint, _chainId);
+        op.signature = signMessage(message);
         return op;
     }
 
-    function _getUserOpHash(UserOperation memory op, address _epAddress, uint256 _id) internal pure returns (bytes32) {
-        bytes32 userOpHash = keccak256(_packUserOp(op, true));
-        bytes memory encoded = abi.encode(userOpHash, _epAddress, _id);
+    function getUserOpHash(UserOperation memory op, address _entryPoint, uint256 _chainId) internal pure returns (bytes32) {
+        bytes32 userOpHash = keccak256(packUserOp(op, true));
+        bytes memory encoded = abi.encode(userOpHash, _entryPoint, _chainId);
         return bytes32(keccak256(encoded));
     }
 
-    function _packUserOp(UserOperation memory op, bool signature) internal pure returns (bytes memory) {
+    function packUserOp(UserOperation memory op, bool signature) internal pure returns (bytes memory) {
         if (signature) {
             return abi.encode(
                 op.sender,
@@ -118,17 +118,17 @@ contract TestHelper is Test {
         }
     }
 
-    function _signMessage(bytes32 message) internal view returns (bytes memory) {
+    function signMessage(bytes32 message) internal view returns (bytes memory) {
         bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(_owner.key, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner.key, digest);
         return abi.encodePacked(r, s, v);
     }
 
-    function _getEntryPointBalance() internal view returns (uint256) {
-        return _entryPointAddress.balance;
+    function getEntryPointBalance() internal view returns (uint256) {
+        return entryPointAddress.balance;
     }
 
-    function _getAccountBalance() internal view returns (uint256) {
-        return _accountAddress.balance;
+    function getAccountBalance() internal view returns (uint256) {
+        return accountAddress.balance;
     }
 }
