@@ -88,8 +88,8 @@ contract TokenPaymasterTest is TestHelper {
     }
 
     function testNoTokensOrAllowance() public {
+        uint256 snapShotId = vm.snapshot();
         /*
-        - create a snapshot
         - Generate Paymaster Data
         - Generate user op
         - Sign user op
@@ -97,5 +97,6 @@ contract TokenPaymasterTest is TestHelper {
         - Approve
         - Expect revert on handle op with no balance
         */
+        vm.revertTo(snapShotId);
     }
 }
