@@ -13,38 +13,40 @@ import "../src/tests/TestWrappedNativeToken.sol";
 
 
 contract TokenPaymasterTest is TestHelper {
-    TestERC20 private token;
-    TestUniswap private uniswap;
-    TestOracle2 private tokenOracle;
-    TokenPaymaster private paymaster;
-    TestWrappedNativeToken private weth;
-    TestOracle2 private nativeAssetOracle;
+    TestERC20 private _token;
+    TestUniswap private _uniswap;
+    TestOracle2 private _tokenOracle;
+    TokenPaymaster private _paymaster;
+    TestWrappedNativeToken private _weth;
+    TestOracle2 private _nativeAssetOracle;
 
-    int256 private initialPriceEther = 500000000;
-    int256 private initialPriceToken = 100000000;
-    address private tokenAddress;
+    address internal _paymasterAddress;
+
+    int256 private _initialPriceEther = 500000000;
+    int256 private _initialPriceToken = 100000000;
+    address private _tokenAddress;
 
     function setUp() public {
-        createAddress("owner_paymaster");
-        deployEntryPoint(123461);
-        createAccount(123462, 123463);
+        _createAddress("owner_paymaster");
+        _deployEntryPoint(123461);
+        _createAccount(123462, 123463);
 
-        weth = new TestWrappedNativeToken();
-        uniswap = new TestUniswap(weth);
+        _weth = new TestWrappedNativeToken();
+        _uniswap = new TestUniswap(_weth);
 
-        vm.deal(accountAddress, 1 ether);
-        vm.deal(owner.addr, 1003 ether);
+        vm.deal(_accountAddress, 1 ether);
+        vm.deal(_owner.addr, 1003 ether);
         // Check for geth
 
-        vm.startPrank(owner.addr);
+        vm.startPrank(_owner.addr);
 
-        token = new TestERC20(6);
-        tokenAddress = address(token);
-        nativeAssetOracle = new TestOracle2(initialPriceEther, 8);
-        tokenOracle = new TestOracle2(initialPriceToken, 8);
+        _token = new TestERC20(6);
+        _tokenAddress = address(_token);
+        _nativeAssetOracle = new TestOracle2(_initialPriceEther, 8);
+        _tokenOracle = new TestOracle2(_initialPriceToken, 8);
 
-        weth.deposit{value: 1 ether}();
-        weth.transfer(address(uniswap), 1 ether);
+        _weth.deposit{value: 1 ether}();
+        _weth.transfer(address(_uniswap), 1 ether);
         vm.stopPrank();
 
         TokenPaymaster.TokenPaymasterConfig memory paymasterConfig = TokenPaymaster.TokenPaymasterConfig({
@@ -54,8 +56,8 @@ contract TokenPaymasterTest is TestHelper {
             priceMaxAge: 86400
         });
         OracleHelper.OracleHelperConfig memory oracleConfig = OracleHelper.OracleHelperConfig({
-            tokenOracle: tokenOracle,
-            nativeOracle: nativeAssetOracle,
+            tokenOracle: _tokenOracle,
+            nativeOracle: _nativeAssetOracle,
             tokenToNativeOracle: false,
             tokenOracleReverse: false,
             nativeOracleReverse: false,
@@ -68,22 +70,23 @@ contract TokenPaymasterTest is TestHelper {
             slippage: 5
         });
 
-        paymaster = new TokenPaymaster(
-            token,
-            entryPoint,
-            weth,
-            uniswap,
+        _paymaster = new TokenPaymaster(
+            _token,
+            _entryPoint,
+            _weth,
+            _uniswap,
             paymasterConfig,
             oracleConfig,
             uniswapConfig,
-            owner.addr);
+            _owner.addr);
+        _paymasterAddress = address(_paymaster);
 
-        vm.startPrank(owner.addr);
-        token.transfer(address(paymaster), 100);
+        vm.startPrank(_owner.addr);
+        _token.transfer(_paymasterAddress, 100);
         vm.warp(1680509051);
-        paymaster.updateCachedPrice(true);
-        entryPoint.depositTo{value: 1000 ether}(address(paymaster));
-        paymaster.addStake{value: 2 ether}(1);
+        _paymaster.updateCachedPrice(true);
+        _entryPoint.depositTo{value: 1000 ether}(_paymasterAddress);
+        _paymaster.addStake{value: 2 ether}(1);
         vm.stopPrank();
     }
 
