@@ -104,13 +104,11 @@ contract TokenPaymasterTest is TestHelper {
         op = signUserOp(op, entryPointAddress, chainId);
         ops.push(op);
 
-//        vm.expectRevert(bytes("AA33 reverted: ERC20: insufficient allowance"));
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: insufficient allowance"));
         entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
 
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
-//         vm.expectRevert(bytes("AA33 reverted: ERC20: transfer amount exceeds balance"));
-        vm.expectRevert();
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: transfer amount exceeds balance"));
         entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
         vm.revertTo(snapShotId);
     }
