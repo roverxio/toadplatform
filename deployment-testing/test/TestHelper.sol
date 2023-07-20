@@ -11,15 +11,15 @@ contract TestHelper is Test {
     EntryPoint internal entryPoint;
     SimpleAccount internal account;
     SimpleAccount internal implementation;
-    SimpleAccountFactory internal accountFactory;
+    SimpleAccountFactory internal simpleAccountFactory;
 
     address internal accountAddress;
     address internal entryPointAddress;
 
     uint256 internal chainId = vm.envOr("FOUNDRY_CHAIN_ID", uint256(31337));
-    uint256 constant internal globalUnstakeDelaySec = 2;
-    uint256 constant internal paymasterStake = 2 ether;
-    bytes constant internal defaultBytes = bytes("");
+    uint256 internal constant globalUnstakeDelaySec = 2;
+    uint256 internal constant paymasterStake = 2 ether;
+    bytes internal constant defaultBytes = bytes("");
 
     function createAddress(string memory _name) internal {
         owner = makeAccount(_name);
@@ -33,10 +33,10 @@ contract TestHelper is Test {
 
     function createAccount(uint256 _factorySalt, uint256 _accountSalt) internal {
         vm.startBroadcast();
-        accountFactory = new SimpleAccountFactory{salt: bytes32(_factorySalt)}(entryPoint);
-        implementation = accountFactory.accountImplementation();
-        accountFactory.createAccount(owner.addr, _accountSalt);
-        accountAddress = accountFactory.getAddress(owner.addr, _accountSalt);
+        simpleAccountFactory = new SimpleAccountFactory{salt: bytes32(_factorySalt)}(entryPoint);
+        implementation = simpleAccountFactory.accountImplementation();
+        simpleAccountFactory.createAccount(owner.addr, _accountSalt);
+        accountAddress = simpleAccountFactory.getAddress(owner.addr, _accountSalt);
         vm.stopBroadcast();
         account = SimpleAccount(payable(accountAddress));
     }
@@ -58,16 +58,20 @@ contract TestHelper is Test {
     }
 
     function signUserOp(UserOperation memory op, address _entryPoint, uint256 _chainId)
-    internal
-    view
-    returns (UserOperation memory)
+        internal
+        view
+        returns (UserOperation memory)
     {
         bytes32 message = getUserOpHash(op, _entryPoint, _chainId);
         op.signature = signMessage(message);
         return op;
     }
 
-    function getUserOpHash(UserOperation memory op, address _entryPoint, uint256 _chainId) internal pure returns (bytes32) {
+    function getUserOpHash(UserOperation memory op, address _entryPoint, uint256 _chainId)
+        internal
+        pure
+        returns (bytes32)
+    {
         bytes32 userOpHash = keccak256(packUserOp(op, true));
         bytes memory encoded = abi.encode(userOpHash, _entryPoint, _chainId);
         return bytes32(keccak256(encoded));
@@ -118,8 +122,8 @@ contract TestHelper is Test {
         return accountAddress.balance;
     }
 
-    function isDeployed(address addr) public view returns(bool) {
-        uint size;
+    function isDeployed(address addr) public view returns (bool) {
+        uint256 size;
         assembly {
             size := extcodesize(addr)
         }

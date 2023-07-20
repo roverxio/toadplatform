@@ -29,7 +29,7 @@ contract SimpleAccountTest is TestHelper {
     function testTransferByNonOwner(address receiver) public {
         // add balance to scw
         vm.deal(accountAddress, 3 ether);
-        vm.expectRevert(bytes('account: not Owner or EntryPoint'));
+        vm.expectRevert(bytes("account: not Owner or EntryPoint"));
         account.execute(receiver, 1 ether, defaultBytes);
     }
 
@@ -67,9 +67,9 @@ contract SimpleAccountTest is TestHelper {
     // Sanity: check deployer
     function testDeployer() public {
         Account memory newOwner = makeAccount("new_owner");
-        address testAccount = accountFactory.getAddress(newOwner.addr, 123471);
+        address testAccount = simpleAccountFactory.getAddress(newOwner.addr, 123471);
         assertEq(isDeployed(testAccount), false);
-        accountFactory.createAccount(newOwner.addr, 123471);
+        simpleAccountFactory.createAccount(newOwner.addr, 123471);
         assertEq(isDeployed(testAccount), true);
     }
 }
