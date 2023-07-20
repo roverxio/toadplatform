@@ -21,14 +21,27 @@ contract TestHelper is Test {
     uint256 constant internal paymasterStake = 2 ether;
     bytes constant internal defaultBytes = bytes("");
 
+    UserOperation internal _defaultOp = UserOperation({
+        sender: accountAddress,
+        nonce: 0,
+        initCode: defaultBytes,
+        callData: defaultBytes,
+        callGasLimit: 200000,
+        verificationGasLimit: 100000,
+        preVerificationGas: 21000,
+        maxFeePerGas: 3000000000,
+        maxPriorityFeePerGas: 1,
+        paymasterAndData: defaultBytes,
+        signature: defaultBytes
+        });
+
     function createAddress(string memory _name) internal {
         owner = makeAccount(_name);
     }
 
-    function deployEntryPoint(uint256 _salt) internal returns (EntryPoint) {
+    function deployEntryPoint(uint256 _salt) internal {
         entryPoint = new EntryPoint{salt: bytes32(_salt)}();
         entryPointAddress = address(entryPoint);
-        return entryPoint;
     }
 
     function createAccount(uint256 _factorySalt, uint256 _accountSalt) internal {
@@ -108,10 +121,6 @@ contract TestHelper is Test {
         bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner.key, digest);
         return abi.encodePacked(r, s, v);
-    }
-
-    function getEntryPointBalance() internal view returns (uint256) {
-        return entryPointAddress.balance;
     }
 
     function getAccountBalance() internal view returns (uint256) {

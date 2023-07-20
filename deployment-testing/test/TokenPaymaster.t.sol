@@ -20,9 +20,14 @@ contract TokenPaymasterTest is TestHelper {
     TestWrappedNativeToken private weth;
     TestOracle2 private nativeAssetOracle;
 
+    address internal paymasterAddress;
+    address private tokenAddress;
+
     int256 private initialPriceEther = 500000000;
     int256 private initialPriceToken = 100000000;
-    address private tokenAddress;
+    bytes private callData;
+    address private beneficiaryAddress = 0x1111111111111111111111111111111111111111;
+    UserOperation[] public ops;
 
     function setUp() public {
         createAddress("owner_paymaster");
@@ -77,15 +82,42 @@ contract TokenPaymasterTest is TestHelper {
             oracleConfig,
             uniswapConfig,
             owner.addr);
+        paymasterAddress = address(paymaster);
 
         vm.startPrank(owner.addr);
-        token.transfer(address(paymaster), 100);
+        token.transfer(paymasterAddress, 100);
         vm.warp(1680509051);
         paymaster.updateCachedPrice(true);
-        entryPoint.depositTo{value: 1000 ether}(address(paymaster));
+        entryPoint.depositTo{value: 1000 ether}(paymasterAddress);
         paymaster.addStake{value: 2 ether}(1);
         vm.stopPrank();
+        callData = abi.encodeWithSignature("execute(address, uint256, bytes)", owner.addr, 0, defaultBytes);
     }
 
-    function test() public {}
+    function testNoTokensOrAllowance() public {
+        uint256 snapShotId = vm.snapshot();
+        bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = paymasterData;
+        op.callData = callData;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: insufficient allowance"));
+        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: transfer amount exceeds balance"));
+        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        vm.revertTo(snapShotId);
+    }
+
+    function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
+        if (tokenPrice == 0) {
+            return abi.encodePacked(_pmAddress);
+        } else {
+            return abi.encodePacked(_pmAddress, tokenPrice);
+        }
+    }
 }
