@@ -87,5 +87,15 @@ contract TokenPaymasterTest is TestHelper {
         vm.stopPrank();
     }
 
-    function test() public {}
+    function testNoTokensOrAllowance() public {
+        /*
+        - create a snapshot
+        - Generate Paymaster Data
+        - Generate user op
+        - Sign user op
+        - expect revert on handle op with insufficient allowance
+        - Approve
+        - Expect revert on handle op with no balance
+        */
+    }
 }
