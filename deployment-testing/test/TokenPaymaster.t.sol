@@ -11,7 +11,6 @@ import "../src/tests/TestUniswap.sol";
 import "../src/tests/TestOracle2.sol";
 import "../src/tests/TestWrappedNativeToken.sol";
 
-
 contract TokenPaymasterTest is TestHelper {
     TestERC20 private token;
     TestUniswap private uniswap;
@@ -67,11 +66,8 @@ contract TokenPaymasterTest is TestHelper {
             priceUpdateThreshold: 200_000,
             cacheTimeToLive: 0
         });
-        UniswapHelper.UniswapHelperConfig memory uniswapConfig = UniswapHelper.UniswapHelperConfig({
-            minSwapAmount: 1,
-            uniswapPoolFee: 3,
-            slippage: 5
-        });
+        UniswapHelper.UniswapHelperConfig memory uniswapConfig =
+            UniswapHelper.UniswapHelperConfig({minSwapAmount: 1, uniswapPoolFee: 3, slippage: 5});
 
         paymaster = new TokenPaymaster(
             token,
@@ -104,11 +100,17 @@ contract TokenPaymasterTest is TestHelper {
         op = signUserOp(op, entryPointAddress, chainId);
         ops.push(op);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: insufficient allowance"));
+        vm.expectRevert(
+            abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: insufficient allowance")
+        );
         entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
 
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: transfer amount exceeds balance"));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: transfer amount exceeds balance"
+            )
+        );
         entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
         vm.revertTo(snapShotId);
     }
