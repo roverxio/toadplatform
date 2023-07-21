@@ -27,6 +27,14 @@ contract TokenPaymasterTest is TestHelper {
     bytes private callData;
     address private beneficiaryAddress = 0x1111111111111111111111111111111111111111;
     UserOperation[] public ops;
+    uint256 private priceDenominator = 1e26;
+    uint256 private minEntryPointBalance = 1e17;
+    uint256 private blockTime = 1680509051;
+
+    event TokenPriceUpdated(uint256 currentPrice, uint256 previousPrice, uint256 cachedPriceTimestamp);
+    event UserOperationSponsored(
+        address indexed user, uint256 actualTokenCharge, uint256 actualGasCost, uint256 actualTokenPrice
+    );
 
     function setUp() public {
         createAddress("owner_paymaster");
@@ -52,8 +60,8 @@ contract TokenPaymasterTest is TestHelper {
         vm.stopPrank();
 
         TokenPaymaster.TokenPaymasterConfig memory paymasterConfig = TokenPaymaster.TokenPaymasterConfig({
-            priceMarkup: 1e26 * 15 / 10,
-            minEntryPointBalance: 0.1 ether,
+            priceMarkup: priceDenominator * 15 / 10,
+            minEntryPointBalance: minEntryPointBalance,
             refundPostopCost: 40000,
             priceMaxAge: 86400
         });
@@ -82,7 +90,7 @@ contract TokenPaymasterTest is TestHelper {
 
         vm.startPrank(owner.addr);
         token.transfer(paymasterAddress, 100);
-        vm.warp(1680509051);
+        vm.warp(blockTime);
         paymaster.updateCachedPrice(true);
         entryPoint.depositTo{value: 1000 ether}(paymasterAddress);
         paymaster.addStake{value: 2 ether}(1);
@@ -113,6 +121,36 @@ contract TokenPaymasterTest is TestHelper {
         );
         entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
         vm.revertTo(snapShotId);
+    }
+
+    function test_UpdateCachedTokenPrice() public {
+        vm.startPrank(owner.addr);
+        vm.warp(blockTime + 10);
+        token.transfer(accountAddress, 1 ether);
+        token.sudoApprove(accountAddress, address(paymaster), type(uint256).max);
+        tokenOracle.setPrice(initialPriceToken * 5);
+        nativeAssetOracle.setPrice(initialPriceEther * 10);
+
+        bytes memory paymasterAndData = _generatePaymasterData(paymasterAddress, 0);
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = paymasterAndData;
+        op.callData = callData;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        uint256 oldExpectedPrice = uint256(int256(priceDenominator) * initialPriceToken / initialPriceEther);
+        uint256 newExpectedPrice = uint256(oldExpectedPrice / 2);
+
+        vm.expectEmit(false, false, false, false);
+        emit TokenPriceUpdated(newExpectedPrice, oldExpectedPrice, block.timestamp);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        (,, uint256 actualTokenPrice) = abi.decode(logs[4].data, (uint256, uint256, uint256));
+        assertEq(actualTokenPrice, newExpectedPrice);
     }
 
     function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
