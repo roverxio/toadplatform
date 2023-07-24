@@ -239,6 +239,44 @@ contract TokenPaymasterTest is TestHelper {
         vm.revertTo(snapshotId);
     }
 
+    function test_UseCachedPriceIfItsBetter() public {
+        uint256 snapshotId = vm.snapshot();
+        vm.startPrank(owner.addr);
+        token.transfer(accountAddress, 1 ether);
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+
+        uint256 currentCachedPrice = paymaster.cachedPrice();
+        assertEq((currentCachedPrice * 10) / priceDenominator, 2);
+        uint256 overrideTokenPrice = (priceDenominator * 50);
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = _generatePaymasterData(paymasterAddress, overrideTokenPrice);
+        op.callData = callData;
+
+        op.callGasLimit = 30754;
+        op.verificationGasLimit = 150000;
+        op.maxFeePerGas = 1000000007;
+        op.maxPriorityFeePerGas = 1000000000;
+
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        // TODO: figure out the syntax to set base fee per gas for the next block
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        uint256 preChargeTokens = abi.decode(logs[0].data, (uint256)); // log[0] is a transfer event
+        uint256 requiredGas = op.callGasLimit + (op.verificationGasLimit * 3) + op.preVerificationGas + 40000;
+        uint256 requeiredPrefund = requiredGas * op.maxFeePerGas;
+        uint256 preChargeTokenPrice = requeiredPrefund * priceDenominator / preChargeTokens;
+
+        assertEq(preChargeTokenPrice, (currentCachedPrice * 10) / 15);
+        vm.stopPrank();
+        vm.revertTo(snapshotId);
+    }
+
     function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
         if (tokenPrice == 0) {
             return abi.encodePacked(_pmAddress);
