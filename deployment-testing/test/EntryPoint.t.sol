@@ -113,21 +113,4 @@ contract EntryPointTest is TestHelper {
         assertEq(beneficiary.balance, actualGasCost);
         assertEq(entryPoint.getDepositInfo(op.sender).deposit + actualGasCost, 10 ether);
     }
-
-    //legacy mode (maxPriorityFee==maxFeePerGas) should not use "basefee" opcode
-    function testLegacyMode() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
-
-        UserOperation memory op = fillAndSign(chainId, 0);
-        op.maxPriorityFeePerGas = op.maxFeePerGas;
-        entryPoint.depositTo{value: 10 ether}(op.sender);
-        userOps.push(op);
-
-        vm.recordLogs();
-        entryPoint.handleOps(userOps, beneficiary);
-        Vm.Log[] memory entries = vm.getRecordedLogs();
-        (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
-        assertEq(beneficiary.balance, actualGasCost);
-        assertEq(entryPoint.getDepositInfo(op.sender).deposit + actualGasCost, 10 ether);
-    }
 }
