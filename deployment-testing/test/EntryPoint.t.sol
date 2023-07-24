@@ -137,7 +137,7 @@ contract EntryPointTest is TestHelper {
         address payable beneficiary = payable(makeAddr("beneficiary"));
 
         UserOperation memory op = fillOp(0);
-        op.callData = '0xdeadface';
+        op.callData = "0xdeadface";
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
         entryPoint.depositTo{value: 10 ether}(op.sender);
@@ -147,6 +147,22 @@ contract EntryPointTest is TestHelper {
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (, bool success, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         assertFalse(success);
+        assertEq(beneficiary.balance, actualGasCost);
+    }
+
+    //#handleOp (single)
+    function testSingleOp() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        UserOperation[] memory userOperations = new UserOperation[](1);
+
+        UserOperation memory op = fillAndSign(chainId, 0);
+        entryPoint.depositTo{value: 10 ether}(op.sender);
+        userOperations[0] = op;
+
+        vm.recordLogs();
+        entryPoint.handleOps(userOperations, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
     }
 }
