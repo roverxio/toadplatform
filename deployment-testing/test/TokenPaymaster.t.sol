@@ -124,6 +124,7 @@ contract TokenPaymasterTest is TestHelper {
     }
 
     function test_UpdateCachedTokenPrice() public {
+        uint256 snapShotId = vm.snapshot();
         vm.startPrank(owner.addr);
         vm.warp(blockTime + 10);
         token.transfer(accountAddress, 1 ether);
@@ -142,15 +143,16 @@ contract TokenPaymasterTest is TestHelper {
         uint256 oldExpectedPrice = uint256(int256(priceDenominator) * initialPriceToken / initialPriceEther);
         uint256 newExpectedPrice = uint256(oldExpectedPrice / 2);
 
-        vm.expectEmit(false, false, false, false);
+        vm.expectEmit(false, false, false, true);
         emit TokenPriceUpdated(newExpectedPrice, oldExpectedPrice, block.timestamp);
 
         vm.recordLogs();
         entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
-        (,, uint256 actualTokenPrice) = abi.decode(logs[4].data, (uint256, uint256, uint256));
+        (,, uint256 actualTokenPrice) = abi.decode(logs[4].data, (uint256, uint256, uint256)); //Expected event is UserOperationSponsored
         assertEq(actualTokenPrice, newExpectedPrice);
+        vm.revertTo(snapShotId);
     }
 
     function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
