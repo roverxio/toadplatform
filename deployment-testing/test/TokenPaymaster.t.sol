@@ -181,11 +181,12 @@ contract TokenPaymasterTest is TestHelper {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         uint256 actualTokenChargeEvents = abi.decode(logs[0].data, (uint256)) - abi.decode(logs[2].data, (uint256));
         (uint256 actualTokenCharge, uint256 actualGasCostPaymaster, uint256 actualTokenPrice) =
-                            abi.decode(logs[3].data, (uint256, uint256, uint256));
+            abi.decode(logs[3].data, (uint256, uint256, uint256));
         (, bool status, uint256 actualGasCostEntryPoint,) = abi.decode(logs[4].data, (uint256, bool, uint256, uint256));
-        int256 expectedTokenPriceWithMarkup = (((1e26 * initialPriceToken) / initialPriceEther) * 10) / 15;
-        uint256 expectedTokenCharge =
-            ((actualGasCostPaymaster + (op.maxFeePerGas * 40000)) * 1e26) / uint256(expectedTokenPriceWithMarkup);
+        int256 expectedTokenPriceWithMarkup =
+            (((int256(priceDenominator) * initialPriceToken) / initialPriceEther) * 10) / 15;
+        uint256 expectedTokenCharge = ((actualGasCostPaymaster + (op.maxFeePerGas * 40000)) * priceDenominator)
+            / uint256(expectedTokenPriceWithMarkup);
         uint256 postOpGasCost = actualGasCostEntryPoint - actualGasCostPaymaster;
 
         assertEq(logs.length, 5);
@@ -193,7 +194,7 @@ contract TokenPaymasterTest is TestHelper {
         assertEq(actualTokenChargeEvents, actualTokenCharge);
         assertEq(actualTokenChargeEvents, expectedTokenCharge);
         assertEq((int256(actualTokenPrice) / 1e26), (initialPriceToken / initialPriceEther));
-        // assert.closeTo(postOpGasCost.div(tx.effectiveGasPrice).toNumber(), 40000, 20000)
+        // TODO: Assert (postOpGasCost/tx.effectiveGasPrice) close to 40000 with 20000 delta
 
         vm.stopPrank();
         vm.revertTo(snapShotId);
