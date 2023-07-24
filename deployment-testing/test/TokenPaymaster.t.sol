@@ -95,7 +95,7 @@ contract TokenPaymasterTest is TestHelper {
         entryPoint.depositTo{value: 1000 ether}(paymasterAddress);
         paymaster.addStake{value: 2 ether}(1);
         vm.stopPrank();
-        callData = abi.encodeWithSignature("execute(address, uint256, bytes)", owner.addr, 0, defaultBytes);
+        callData = abi.encodeWithSignature("execute(address,uint256,bytes)", owner.addr, 0, defaultBytes);
     }
 
     function testNoTokensOrAllowance() public {
@@ -152,6 +152,52 @@ contract TokenPaymasterTest is TestHelper {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         (,, uint256 actualTokenPrice) = abi.decode(logs[4].data, (uint256, uint256, uint256)); //Expected event is UserOperationSponsored
         assertEq(actualTokenPrice, newExpectedPrice);
+        vm.revertTo(snapShotId);
+    }
+
+    // Should be able to sponsor the UserOp while charging correct amount of ERC-20 tokens
+    function test_SponsorErc20() public {
+        uint256 snapShotId = vm.snapshot();
+        vm.startPrank(owner.addr);
+
+        token.transfer(accountAddress, 1 ether);
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+        bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callGasLimit = 30754;
+        op.verificationGasLimit = 150000;
+        op.preVerificationGas = 21000;
+        op.maxFeePerGas = 1000000000;
+        op.maxPriorityFeePerGas = 1000000000;
+        op.paymasterAndData = paymasterData;
+        op.callData = callData;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        // Gas price calculation
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        uint256 actualTokenChargeEvents = abi.decode(logs[0].data, (uint256)) - abi.decode(logs[2].data, (uint256));
+        (uint256 actualTokenCharge, uint256 actualGasCostPaymaster, uint256 actualTokenPrice) =
+            abi.decode(logs[3].data, (uint256, uint256, uint256));
+        (, bool status, uint256 actualGasCostEntryPoint,) = abi.decode(logs[4].data, (uint256, bool, uint256, uint256));
+        int256 expectedTokenPriceWithMarkup =
+            (((int256(priceDenominator) * initialPriceToken) / initialPriceEther) * 10) / 15;
+        uint256 expectedTokenCharge = ((actualGasCostPaymaster + (op.maxFeePerGas * 40000)) * priceDenominator)
+            / uint256(expectedTokenPriceWithMarkup);
+        uint256 postOpGasCost = actualGasCostEntryPoint - actualGasCostPaymaster;
+        console.logUint(postOpGasCost);
+
+        assertEq(logs.length, 5);
+        assertEq(status, true);
+        assertEq(actualTokenChargeEvents, actualTokenCharge);
+        assertEq(actualTokenChargeEvents, expectedTokenCharge);
+        assertEq((int256(actualTokenPrice) / 1e26), (initialPriceToken / initialPriceEther));
+        // TODO: Assert (postOpGasCost/tx.effectiveGasPrice) close to 40000 with 20000 delta
+
+        vm.stopPrank();
         vm.revertTo(snapShotId);
     }
 
