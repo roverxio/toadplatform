@@ -116,7 +116,7 @@ contract TokenPaymasterTest is TestHelper {
     }
 
     // Should be able to sponsor the UserOp while charging correct amount of ERC-20 tokens
-    function testSponsorErc20() public {
+    function test_SponsorErc20() public {
         uint256 snapShotId = vm.snapshot();
         vm.startPrank(owner.addr);
 
