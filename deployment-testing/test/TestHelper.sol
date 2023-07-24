@@ -42,6 +42,11 @@ contract TestHelper is Test {
     }
 
     function fillAndSign(uint256 _chainId, uint256 _nonce) internal view returns (UserOperation memory) {
+        UserOperation memory op = fillOp(_nonce);
+        return signUserOp(op, entryPointAddress, _chainId);
+    }
+
+    function fillOp(uint256 _nonce) internal view returns (UserOperation memory) {
         UserOperation memory op;
         op.sender = accountAddress;
         op.nonce = _nonce;
@@ -50,11 +55,12 @@ contract TestHelper is Test {
         op.callGasLimit = 200000;
         op.verificationGasLimit = 100000;
         op.preVerificationGas = 21000;
-        op.maxFeePerGas = 3000000000;
+        op.maxFeePerGas = 300000;
+        op.maxPriorityFeePerGas = 300000;
         op.paymasterAndData = defaultBytes;
         op.signature = defaultBytes;
 
-        return signUserOp(op, entryPointAddress, _chainId);
+        return op;
     }
 
     function signUserOp(UserOperation memory op, address _entryPoint, uint256 _chainId)
