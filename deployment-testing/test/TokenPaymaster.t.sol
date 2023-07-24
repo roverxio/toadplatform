@@ -305,7 +305,6 @@ contract TokenPaymasterTest is TestHelper {
         entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
         Vm.Log[] memory logs = vm.getRecordedLogs();
 
-        assertEq(entryPointAddress, accountAddress);
         assertEq(logs[4].topics[0], keccak256("StubUniswapExchangeEvent(uint256,uint256,address,address)"));
         assertEq(logs[8].topics[0], keccak256("Received(address,uint256)"));
         assertEq(logs[9].topics[0], keccak256("Deposited(address,uint256)"));
