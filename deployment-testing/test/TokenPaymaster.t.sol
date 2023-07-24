@@ -25,7 +25,7 @@ contract TokenPaymasterTest is TestHelper {
     int256 private initialPriceEther = 500000000;
     int256 private initialPriceToken = 100000000;
     bytes private callData;
-    address private beneficiaryAddress = 0x1111111111111111111111111111111111111111;
+    address payable private beneficiaryAddress = payable(0x1111111111111111111111111111111111111111);
     UserOperation[] public ops;
     uint256 private priceDenominator = 1e26;
     uint256 private minEntryPointBalance = 1e17;
@@ -111,7 +111,7 @@ contract TokenPaymasterTest is TestHelper {
         vm.expectRevert(
             abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: insufficient allowance")
         );
-        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
 
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
         vm.expectRevert(
@@ -119,7 +119,7 @@ contract TokenPaymasterTest is TestHelper {
                 "FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: transfer amount exceeds balance"
             )
         );
-        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
         vm.revertTo(snapShotId);
     }
 
@@ -147,11 +147,12 @@ contract TokenPaymasterTest is TestHelper {
         emit TokenPriceUpdated(newExpectedPrice, oldExpectedPrice, block.timestamp);
 
         vm.recordLogs();
-        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
         (,, uint256 actualTokenPrice) = abi.decode(logs[4].data, (uint256, uint256, uint256)); //Expected event is UserOperationSponsored
         assertEq(actualTokenPrice, newExpectedPrice);
+        vm.stopPrank();
         vm.revertTo(snapShotId);
     }
 
@@ -188,6 +189,7 @@ contract TokenPaymasterTest is TestHelper {
         uint256 expectedTokenCharge = ((actualGasCostPaymaster + (op.maxFeePerGas * 40000)) * priceDenominator)
             / uint256(expectedTokenPriceWithMarkup);
         uint256 postOpGasCost = actualGasCostEntryPoint - actualGasCostPaymaster;
+        console.logUint(postOpGasCost);
 
         assertEq(logs.length, 5);
         assertEq(status, true);
@@ -198,6 +200,43 @@ contract TokenPaymasterTest is TestHelper {
 
         vm.stopPrank();
         vm.revertTo(snapShotId);
+    }
+
+    function test_UseSuppliedPriceIfItsBetter() public {
+        uint256 snapshotId = vm.snapshot();
+        vm.startPrank(owner.addr);
+        token.transfer(accountAddress, 1 ether);
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+
+        uint256 currentCachedPrice = paymaster.cachedPrice();
+        assertEq((currentCachedPrice * 10) / priceDenominator, 2);
+        uint256 overrideTokenPrice = (priceDenominator * 132) / 1000;
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = _generatePaymasterData(paymasterAddress, overrideTokenPrice);
+        op.callData = callData;
+
+        op.callGasLimit = 30754;
+        op.verificationGasLimit = 150000;
+        op.maxFeePerGas = 1000000007;
+        op.maxPriorityFeePerGas = 1000000000;
+
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        // TODO: figure out the syntax to set base fee per gas for the next block
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        uint256 preChargeTokens = abi.decode(logs[0].data, (uint256)); // log[0] is a transfer event
+        uint256 requiredGas = op.callGasLimit + (op.verificationGasLimit * 3) + op.preVerificationGas + 40000;
+        uint256 requeiredPrefund = requiredGas * op.maxFeePerGas;
+        uint256 preChargeTokenPrice = requeiredPrefund * priceDenominator / preChargeTokens;
+
+        assertEq(preChargeTokenPrice / 1e10, overrideTokenPrice / 1e10);
+        vm.stopPrank();
+        vm.revertTo(snapshotId);
     }
 
     function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
