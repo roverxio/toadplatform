@@ -17,12 +17,12 @@ contract TestHelper is Test {
     address internal entryPointAddress;
 
     uint256 internal chainId = vm.envOr("FOUNDRY_CHAIN_ID", uint256(31337));
-    uint256 constant internal globalUnstakeDelaySec = 2;
-    uint256 constant internal paymasterStake = 2 ether;
-    bytes constant internal defaultBytes = bytes("");
+    uint256 internal constant globalUnstakeDelaySec = 2;
+    uint256 internal constant paymasterStake = 2 ether;
+    bytes internal constant defaultBytes = bytes("");
 
-    function createAddress(string memory _name) internal {
-        owner = makeAccount(_name);
+    function createAddress(string memory _name) internal returns (Account memory) {
+        return makeAccount(_name);
     }
 
     function deployEntryPoint(uint256 _salt) internal returns (EntryPoint) {
@@ -64,16 +64,20 @@ contract TestHelper is Test {
     }
 
     function signUserOp(UserOperation memory op, address _entryPoint, uint256 _chainId)
-    internal
-    view
-    returns (UserOperation memory)
+        internal
+        view
+        returns (UserOperation memory)
     {
         bytes32 message = getUserOpHash(op, _entryPoint, _chainId);
         op.signature = signMessage(message);
         return op;
     }
 
-    function getUserOpHash(UserOperation memory op, address _entryPoint, uint256 _chainId) internal pure returns (bytes32) {
+    function getUserOpHash(UserOperation memory op, address _entryPoint, uint256 _chainId)
+        internal
+        pure
+        returns (bytes32)
+    {
         bytes32 userOpHash = keccak256(packUserOp(op, true));
         bytes memory encoded = abi.encode(userOpHash, _entryPoint, _chainId);
         return bytes32(keccak256(encoded));
@@ -124,8 +128,8 @@ contract TestHelper is Test {
         return accountAddress.balance;
     }
 
-    function isDeployed(address addr) public view returns(bool) {
-        uint size;
+    function isDeployed(address addr) public view returns (bool) {
+        uint256 size;
         assembly {
             size := extcodesize(addr)
         }

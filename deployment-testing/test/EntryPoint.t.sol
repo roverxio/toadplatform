@@ -8,7 +8,7 @@ import "../src/SimpleAccountFactory.sol";
 
 contract EntryPointTest is TestHelper {
     function setUp() public {
-        createAddress("owner_entrypoint");
+        owner = createAddress("owner_entrypoint");
         deployEntryPoint(123441);
         createAccount(123442, 123443);
     }
@@ -88,7 +88,7 @@ contract EntryPointTest is TestHelper {
         address payable beneficiary = payable(makeAddr("beneficiary"));
 
         // assign a new owner to sign the User Op
-        createAddress("new_owner");
+        owner = createAddress("new_owner");
         UserOperation memory op = fillAndSign(chainId, 0);
         entryPoint.depositTo{value: 1 ether}(op.sender);
         userOps.push(op);
@@ -103,6 +103,23 @@ contract EntryPointTest is TestHelper {
         address payable beneficiary = payable(makeAddr("beneficiary"));
 
         UserOperation memory op = fillAndSign(chainId, 0);
+        entryPoint.depositTo{value: 10 ether}(op.sender);
+        userOps.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps(userOps, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+        assertEq(entryPoint.getDepositInfo(op.sender).deposit + actualGasCost, 10 ether);
+    }
+
+    //legacy mode (maxPriorityFee==maxFeePerGas) should not use "basefee" opcode
+    function testLegacyMode() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation memory op = fillAndSign(chainId, 0);
+        op.maxPriorityFeePerGas = op.maxFeePerGas;
         entryPoint.depositTo{value: 10 ether}(op.sender);
         userOps.push(op);
 
