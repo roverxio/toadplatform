@@ -7,7 +7,6 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract EntryPointTest is TestHelper {
-
     function setUp() public {
         createAddress("owner_entrypoint");
         deployEntryPoint(123441);
@@ -78,5 +77,39 @@ contract EntryPointTest is TestHelper {
 
         assertEq(getAccountBalance(), 1 ether);
         assertEq(account.getDeposit(), 0);
+    }
+
+    //without paymaster (account pays in eth)
+    //#handleOps
+    UserOperation[] internal userOps;
+
+    //should revert on signature failure
+    function testRevertOnSignatureFailure() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        // assign a new owner to sign the User Op
+        createAddress("new_owner");
+        UserOperation memory op = fillAndSign(chainId, 0);
+        entryPoint.depositTo{value: 1 ether}(op.sender);
+        userOps.push(op);
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA24 signature error")
+        );
+        entryPoint.handleOps(userOps, beneficiary);
+    }
+
+    //account should pay for transaction
+    function testPayForTransaction() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation memory op = fillAndSign(chainId, 0);
+        entryPoint.depositTo{value: 10 ether}(op.sender);
+        userOps.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps(userOps, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
     }
 }
