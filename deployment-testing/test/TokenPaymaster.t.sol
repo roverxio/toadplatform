@@ -202,21 +202,45 @@ contract TokenPaymasterTest is TestHelper {
 
     // Should revert in the first postOp run if the pre-charge ended up lower than the final transaction cost but the client has no tokens to cover the overdraft
     function test_RevertOnNoTokens() public {
-        /**
-        * Create snapshot
-        * Transfer 0.01 ether tokens to account address
-        * Approve paymaster to withdraw amount from account
-        * Set Ether price in oracle config
-        * Set Native price in oracle config
-        * Increase evm time
-        * Create call data for token tranfer
-        * Create call data for account using previous data
-        * Generate paymaster data
-        * Prepate and sign userOp
-        * Record logs
-        * validate logs
-        * Revert to snapshot
-        */
+        uint256 snapShotId = vm.snapshot();
+        vm.startPrank(owner.addr);
+
+        token.transfer(accountAddress, 0.01 ether);
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+
+        tokenOracle.setPrice(initialPriceToken);
+        nativeAssetOracle.setPrice(initialPriceEther * 100);
+
+        vm.warp(blockTime + 200);
+
+        bytes memory withdrawTokens = abi.encodeWithSignature("transfer(address,uint256)", tokenAddress, 0.009 ether);
+        bytes memory _callData =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", tokenAddress, 0, withdrawTokens);
+
+        bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = paymasterData;
+        op.callData = _callData;
+        op.callGasLimit = 62283;
+        op.verificationGasLimit = 150000;
+        op.preVerificationGas = 21000;
+        op.maxFeePerGas = 1000000007;
+        op.maxPriorityFeePerGas = 1000000000;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        (, bool status,,) = abi.decode(logs[5].data, (uint256, bool, uint256, uint256));
+        assertEq(status, false);
+        assertEq(logs.length, 6);
+        assertEq(logs[4].topics[0], keccak256("PostOpReverted(address,uint256)"));
+
+        vm.stopPrank();
+        vm.revertTo(snapShotId);
     }
 
     function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
