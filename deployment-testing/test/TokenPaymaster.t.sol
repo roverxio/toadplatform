@@ -200,6 +200,25 @@ contract TokenPaymasterTest is TestHelper {
         vm.revertTo(snapShotId);
     }
 
+    // Should revert in the first postOp run if the pre-charge ended up lower than the final transaction cost but the client has no tokens to cover the overdraft
+    function test_RevertOnNoTokens() public {
+        /**
+        * Create snapshot
+        * Transfer 0.01 ether tokens to account address
+        * Approve paymaster to withdraw amount from account
+        * Set Ether price in oracle config
+        * Set Native price in oracle config
+        * Increase evm time
+        * Create call data for token tranfer
+        * Create call data for account using previous data
+        * Generate paymaster data
+        * Prepate and sign userOp
+        * Record logs
+        * validate logs
+        * Revert to snapshot
+        */
+    }
+
     function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
         if (tokenPrice == 0) {
             return abi.encodePacked(_pmAddress);
