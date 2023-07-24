@@ -167,15 +167,3 @@ contract TokenPaymasterTest is TestHelper {
         }
     }
 }
-
-// emit Transfer(from: ERC1967Proxy: [0x8e1A239c2C2238dD277A360f20eE8520F9Ff6e81], to: TokenPaymaster: [0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9], value: 12622500000000000 [1.262e16])
-// emit BeforeExecution()
-// emit Transfer(from: TokenPaymaster: [0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9], to: ERC1967Proxy: [0x8e1A239c2C2238dD277A360f20eE8520F9Ff6e81], value: 12622499998957133 [1.262e16])
-// emit UserOperationSponsored(user: ERC1967Proxy: [0x8e1A239c2C2238dD277A360f20eE8520F9Ff6e81], actualTokenCharge: 1042867 [1.042e6], actualGasCost: 99049 [9.904e4], actualTokenPrice: 20000000000000000000000000 [2e25])
-// emit UserOperationEvent(userOpHash: 0xbe0467ddf1355d76635cdaa220bf62b50ef5287b754c1af2992a55495077f442, sender: ERC1967Proxy: [0x8e1A239c2C2238dD277A360f20eE8520F9Ff6e81], paymaster: TokenPaymaster: [0x5991A2dF15A8F6A256D3Ec51E99254Cd3fb576A9], nonce: 0, success: false, actualGasCost: 114473 [1.144e5], actualGasUsed: 114473 [1.144e5])
-
-// event Transfer(address indexed from, address indexed to, uint256 value);
-// event BeforeExecution();
-// event Transfer(address indexed from, address indexed to, uint256 value);
-// event UserOperationSponsored(address indexed user, uint256 actualTokenCharge, uint256 actualGasCost, uint256 actualTokenPrice);
-// event UserOperationEvent(bytes32 indexed userOpHash, address indexed sender, address indexed paymaster, uint256 nonce, bool success, uint256 actualGasCost, uint256 actualGasUsed);
