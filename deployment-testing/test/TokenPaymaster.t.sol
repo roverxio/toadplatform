@@ -134,30 +134,25 @@ contract TokenPaymasterTest is TestHelper {
         op.callData = callData;
         op = signUserOp(op, entryPointAddress, chainId);
         ops.push(op);
-        vm.txGasPrice(op.maxFeePerGas);
+        
         // Gas price calculation
         vm.recordLogs();
         entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
         Vm.Log[] memory logs = vm.getRecordedLogs();
-        uint256 preChargeTokens = abi.decode(logs[0].data, (uint256));
-        uint256 refundTokens = abi.decode(logs[2].data, (uint256));
-        uint256 actualTokenChargeEvents = preChargeTokens - refundTokens;
+        uint256 actualTokenChargeEvents = abi.decode(logs[0].data, (uint256)) - abi.decode(logs[2].data, (uint256));
         (uint256 actualTokenCharge, uint256 actualGasCostPaymaster, uint256 actualTokenPrice) =
             abi.decode(logs[3].data, (uint256, uint256, uint256));
         (, bool status, uint256 actualGasCostEntryPoint,) = abi.decode(logs[4].data, (uint256, bool, uint256, uint256));
-        int256 expectedTokenPrice = initialPriceToken / initialPriceEther;
-        uint256 addedPostOpCost = op.maxFeePerGas * 40000;
         int256 expectedTokenPriceWithMarkup = (((1e26 * initialPriceToken) / initialPriceEther) * 10) / 15;
         uint256 expectedTokenCharge =
-            ((actualGasCostPaymaster + addedPostOpCost) * 1e26) / uint256(expectedTokenPriceWithMarkup);
+            ((actualGasCostPaymaster + (op.maxFeePerGas * 40000)) * 1e26) / uint256(expectedTokenPriceWithMarkup);
         uint256 postOpGasCost = actualGasCostEntryPoint - actualGasCostPaymaster;
-        int256 calculatedTokenPrice = int256(actualTokenPrice) / 1e26;
 
         assertEq(logs.length, 5);
         assertEq(status, true);
         assertEq(actualTokenChargeEvents, actualTokenCharge);
         assertEq(actualTokenChargeEvents, expectedTokenCharge);
-        assertEq(calculatedTokenPrice, expectedTokenPrice);
+        assertEq((int256(actualTokenPrice) / 1e26), (initialPriceToken / initialPriceEther));
         // assert.closeTo(postOpGasCost.div(tx.effectiveGasPrice).toNumber(), 40000, 20000)
 
         vm.stopPrank();
