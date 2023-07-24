@@ -100,11 +100,17 @@ contract TokenPaymasterTest is TestHelper {
         op = signUserOp(op, entryPointAddress, chainId);
         ops.push(op);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: insufficient allowance"));
+        vm.expectRevert(
+            abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: insufficient allowance")
+        );
         entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
 
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: transfer amount exceeds balance"));
+        vm.expectRevert(
+            abi.encodeWithSignature(
+                "FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: transfer amount exceeds balance"
+            )
+        );
         entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
         vm.revertTo(snapShotId);
     }
@@ -122,7 +128,7 @@ contract TokenPaymasterTest is TestHelper {
         op.callGasLimit = 30754;
         op.verificationGasLimit = 150000;
         op.preVerificationGas = 21000;
-        op.maxFeePerGas = 1000000007;
+        op.maxFeePerGas = 1000000000;
         op.maxPriorityFeePerGas = 1000000000;
         op.paymasterAndData = paymasterData;
         op.callData = callData;
@@ -138,17 +144,17 @@ contract TokenPaymasterTest is TestHelper {
         uint256 actualTokenChargeEvents = preChargeTokens - refundTokens;
         (uint256 actualTokenCharge, uint256 actualGasCostPaymaster, uint256 actualTokenPrice) =
             abi.decode(logs[3].data, (uint256, uint256, uint256));
-        (,bool status,uint256 actualGasCostEntryPoint,) = abi.decode(logs[4].data, (uint256,bool,uint256,uint256));
+        (, bool status, uint256 actualGasCostEntryPoint,) = abi.decode(logs[4].data, (uint256, bool, uint256, uint256));
         int256 expectedTokenPrice = initialPriceToken / initialPriceEther;
         uint256 addedPostOpCost = op.maxFeePerGas * 40000;
         int256 expectedTokenPriceWithMarkup = (((1e26 * initialPriceToken) / initialPriceEther) * 10) / 15;
         uint256 expectedTokenCharge =
             ((actualGasCostPaymaster + addedPostOpCost) * 1e26) / uint256(expectedTokenPriceWithMarkup);
         // uint256 postOpGasCost = actualGasCostEntryPoint - actualGasCostPaymaster;
-        int256 x = int(actualTokenPrice) / 1e26;
+        int256 x = int256(actualTokenPrice) / 1e26;
 
         assertEq(logs.length, 5);
-        // assertEq(status, true);
+        assertEq(status, true);
         assertEq(actualTokenChargeEvents, actualTokenCharge);
         assertEq(actualTokenChargeEvents, expectedTokenCharge);
         assertEq(x, expectedTokenPrice);
