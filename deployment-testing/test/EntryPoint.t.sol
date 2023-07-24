@@ -111,5 +111,6 @@ contract EntryPointTest is TestHelper {
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
+        assertEq(entryPoint.getDepositInfo(op.sender).deposit + actualGasCost, 10 ether);
     }
 }
