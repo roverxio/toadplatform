@@ -121,7 +121,7 @@ contract EntryPointTest is TestHelper {
 
         entryPoint.depositTo{value: 10 ether}(op.sender);
         (bool _sent,) = op.sender.call{value: 10 ether}("");
-        require(_sent, 'Could not pay op.sender');
+        require(_sent, "Could not pay op.sender");
 
         vm.recordLogs();
         entryPoint.handleOps(userOps, beneficiary);
@@ -130,5 +130,23 @@ contract EntryPointTest is TestHelper {
         assertEq(beneficiary.balance, actualGasCost);
         assertEq(op.sender.balance, 10 ether);
         assertEq(entryPoint.getDepositInfo(op.sender).deposit + actualGasCost, 10 ether);
+    }
+
+    //should pay for reverted tx
+    function testPayForRevertedTx() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation memory op = fillOp(0);
+        op.callData = '0xdeadface';
+        op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
+        entryPoint.depositTo{value: 10 ether}(op.sender);
+
+        vm.recordLogs();
+        entryPoint.handleOps(userOps, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (, bool success, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
+        assertFalse(success);
+        assertEq(beneficiary.balance, actualGasCost);
     }
 }
