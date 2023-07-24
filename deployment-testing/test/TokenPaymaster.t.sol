@@ -152,6 +152,7 @@ contract TokenPaymasterTest is TestHelper {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         (,, uint256 actualTokenPrice) = abi.decode(logs[4].data, (uint256, uint256, uint256)); //Expected event is UserOperationSponsored
         assertEq(actualTokenPrice, newExpectedPrice);
+        vm.stopPrank();
         vm.revertTo(snapShotId);
     }
 
@@ -234,6 +235,7 @@ contract TokenPaymasterTest is TestHelper {
         uint256 preChargeTokenPrice = requeiredPrefund * priceDenominator / preChargeTokens;
 
         assertEq(preChargeTokenPrice / 1e10, overrideTokenPrice / 1e10);
+        vm.stopPrank();
         vm.revertTo(snapshotId);
     }
 
