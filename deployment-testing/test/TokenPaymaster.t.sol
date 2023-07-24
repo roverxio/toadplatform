@@ -150,14 +150,14 @@ contract TokenPaymasterTest is TestHelper {
         int256 expectedTokenPriceWithMarkup = (((1e26 * initialPriceToken) / initialPriceEther) * 10) / 15;
         uint256 expectedTokenCharge =
             ((actualGasCostPaymaster + addedPostOpCost) * 1e26) / uint256(expectedTokenPriceWithMarkup);
-        // uint256 postOpGasCost = actualGasCostEntryPoint - actualGasCostPaymaster;
-        int256 x = int256(actualTokenPrice) / 1e26;
+        uint256 postOpGasCost = actualGasCostEntryPoint - actualGasCostPaymaster;
+        int256 calculatedTokenPrice = int256(actualTokenPrice) / 1e26;
 
         assertEq(logs.length, 5);
         assertEq(status, true);
         assertEq(actualTokenChargeEvents, actualTokenCharge);
         assertEq(actualTokenChargeEvents, expectedTokenCharge);
-        assertEq(x, expectedTokenPrice);
+        assertEq(calculatedTokenPrice, expectedTokenPrice);
         // assert.closeTo(postOpGasCost.div(tx.effectiveGasPrice).toNumber(), 40000, 20000)
 
         vm.stopPrank();
