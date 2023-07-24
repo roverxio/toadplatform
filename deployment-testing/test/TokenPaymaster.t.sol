@@ -277,6 +277,22 @@ contract TokenPaymasterTest is TestHelper {
         vm.revertTo(snapshotId);
     }
 
+    // should swap tokens for ether if it falls below configured value and deposit it
+    function test_SwapEtherTokens() public {
+        /**
+         * Transfer complete token balance of owner to account
+         * Approve paymaster to withdraw from account
+         * Get paymaster deposit info from entry point
+         * Withdraw deposits to account
+         * Deposit minEntryPointBalance to paymaster
+         * Generate paymaster data
+         * Fill and sign userOp
+         * Execute handle ops
+         * Record logs
+         * Validate logs
+         */
+    }
+
     function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
         if (tokenPrice == 0) {
             return abi.encodePacked(_pmAddress);
