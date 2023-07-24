@@ -11,7 +11,6 @@ import "../src/tests/TestUniswap.sol";
 import "../src/tests/TestOracle2.sol";
 import "../src/tests/TestWrappedNativeToken.sol";
 
-
 contract TokenPaymasterTest is TestHelper {
     TestERC20 private token;
     TestUniswap private uniswap;
@@ -67,11 +66,8 @@ contract TokenPaymasterTest is TestHelper {
             priceUpdateThreshold: 200_000,
             cacheTimeToLive: 0
         });
-        UniswapHelper.UniswapHelperConfig memory uniswapConfig = UniswapHelper.UniswapHelperConfig({
-            minSwapAmount: 1,
-            uniswapPoolFee: 3,
-            slippage: 5
-        });
+        UniswapHelper.UniswapHelperConfig memory uniswapConfig =
+            UniswapHelper.UniswapHelperConfig({minSwapAmount: 1, uniswapPoolFee: 3, slippage: 5});
 
         paymaster = new TokenPaymaster(
             token,
@@ -91,7 +87,7 @@ contract TokenPaymasterTest is TestHelper {
         entryPoint.depositTo{value: 1000 ether}(paymasterAddress);
         paymaster.addStake{value: 2 ether}(1);
         vm.stopPrank();
-        callData = abi.encodeWithSignature("execute(address, uint256, bytes)", owner.addr, 0, defaultBytes);
+        callData = abi.encodeWithSignature("execute(address,uint256,bytes)", owner.addr, 0, defaultBytes);
     }
 
     function testNoTokensOrAllowance() public {
