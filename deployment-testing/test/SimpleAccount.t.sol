@@ -16,7 +16,7 @@ contract SimpleAccountTest is TestHelper {
     }
 
     // Owner should be able to call transfer
-    function testTransferByOwner() public {
+    function test_TransferByOwner() public {
         // add balance to scw
         vm.deal(accountAddress, 3 ether);
         Account memory receiver = makeAccount("receiver");
@@ -27,7 +27,7 @@ contract SimpleAccountTest is TestHelper {
     }
 
     // Other account should not be able to call transfer
-    function testTransferByNonOwner(address receiver) public {
+    function test_TransferByNonOwner(address receiver) public {
         // add balance to scw
         vm.deal(accountAddress, 3 ether);
         vm.expectRevert(bytes('account: not Owner or EntryPoint'));
@@ -36,7 +36,7 @@ contract SimpleAccountTest is TestHelper {
 
     // #validateUserOp
     // Should pay
-    function testPayment() public {
+    function test_Payment() public {
         vm.deal(accountAddress, 0.2 ether);
 
         UserOperation memory userOp = fillAndSign(chainId, 0);
@@ -53,7 +53,7 @@ contract SimpleAccountTest is TestHelper {
     }
 
     // Should return NO_SIG_VALIDATION on wrong signature
-    function testWrongSignature() public {
+    function test_WrongSignature() public {
         bytes32 zeroHash = 0x0000000000000000000000000000000000000000000000000000000000000000;
         UserOperation memory op = fillAndSign(chainId, 1);
 
@@ -66,7 +66,7 @@ contract SimpleAccountTest is TestHelper {
 
     // SimpleAccountFactory
     // Sanity: check deployer
-    function testDeployer() public {
+    function test_Deployer() public {
         Account memory newOwner = makeAccount("new_owner");
         address testAccount = accountFactory.getAddress(newOwner.addr, 123471);
         assertEq(isDeployed(testAccount), false);
