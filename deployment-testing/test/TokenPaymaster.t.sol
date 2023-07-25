@@ -150,7 +150,7 @@ contract TokenPaymasterTest is TestHelper {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         uint256 actualTokenChargeEvents = abi.decode(logs[0].data, (uint256)) - abi.decode(logs[2].data, (uint256));
         (uint256 actualTokenCharge, uint256 actualGasCostPaymaster, uint256 actualTokenPrice) =
-                            abi.decode(logs[3].data, (uint256, uint256, uint256));
+            abi.decode(logs[3].data, (uint256, uint256, uint256));
         (, bool status, uint256 actualGasCostEntryPoint,) = abi.decode(logs[4].data, (uint256, bool, uint256, uint256));
         int256 expectedTokenPriceWithMarkup =
             (((int256(priceDenominator) * initialPriceToken) / initialPriceEther) * 10) / 15;
@@ -337,7 +337,7 @@ contract TokenPaymasterTest is TestHelper {
 
         bytes memory withdrawTokens = abi.encodeWithSignature("transfer(address,uint256)", tokenAddress, 0.009 ether);
         bytes memory _callData =
-                            abi.encodeWithSignature("execute(address,uint256,bytes)", tokenAddress, 0, withdrawTokens);
+            abi.encodeWithSignature("execute(address,uint256,bytes)", tokenAddress, 0, withdrawTokens);
 
         bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
         UserOperation memory op = _defaultOp;
