@@ -180,9 +180,9 @@ contract EntryPointTest is TestHelper {
             dummyUserOperations,
             beneficiary
         );
-        console.logAddress(address(entryPoint));
         bytes memory executeCalldata =
             abi.encodeWithSignature("execute(address,uint256,bytes)", address(entryPoint), 0, handleOpsCalldata);
+        
         op.callData = executeCalldata;
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
@@ -195,5 +195,39 @@ contract EntryPointTest is TestHelper {
         assertEq(
             revertReason, abi.encodeWithSelector(bytes4(keccak256("Error(string)")), "ReentrancyGuard: reentrant call")
         );
+    }
+
+    //should report failure on insufficient verificationGas after creation
+    function testInsufficientVerificationGas() public {
+        UserOperation memory op0 = fillOp(0);
+        op0.verificationGasLimit = 100e5;
+        op0 = signUserOp(op0, entryPointAddress, chainId);
+        entryPoint.depositTo{value: 1 ether}(op0.sender);
+
+        vm.expectRevert();
+        try entryPoint.simulateValidation(op0) {}
+        catch (bytes memory revertReason) {
+            bytes4 reason;
+            assembly {
+                reason := mload(add(revertReason, 32))
+            }
+            assertEq(
+                bytes4(
+                    keccak256(
+                        "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
+                    )
+                ),
+                reason
+            );
+        }
+
+        UserOperation memory op1 = fillOp(0);
+        op1.verificationGasLimit = 10000;
+        op1 = signUserOp(op1, entryPointAddress, chainId);
+        entryPoint.depositTo{value: 1 ether}(op1.sender);
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA23 reverted (or OOG)")
+        );
+        entryPoint.simulateValidation(op1);
     }
 }
