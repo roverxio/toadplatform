@@ -277,6 +277,42 @@ contract TokenPaymasterTest is TestHelper {
         vm.revertTo(snapshotId);
     }
 
+    // should swap tokens for ether if it falls below configured value and deposit it
+    function test_SwapEtherTokens() public {
+        vm.startPrank(owner.addr);
+        vm.deal(owner.addr, 1 ether);
+
+        token.transfer(accountAddress, token.balanceOf(owner.addr));
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+
+        (uint112 deposit,,,,) = entryPoint.deposits(paymasterAddress);
+        paymaster.withdrawTo(payable(accountAddress), deposit);
+        entryPoint.depositTo{value: minEntryPointBalance}(paymasterAddress);
+
+        bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = paymasterData;
+        op.callData = callData;
+        op.callGasLimit = 30754;
+        op.verificationGasLimit = 150000;
+        op.maxFeePerGas = 1000000007;
+        op.maxPriorityFeePerGas = 1000000000;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        assertEq(logs[4].topics[0], keccak256("StubUniswapExchangeEvent(uint256,uint256,address,address)"));
+        assertEq(logs[8].topics[0], keccak256("Received(address,uint256)"));
+        assertEq(logs[9].topics[0], keccak256("Deposited(address,uint256)"));
+        // TODO: validate deFactoExchangeRate with expectedPrice
+
+        vm.stopPrank();
+    }
+
     function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
         if (tokenPrice == 0) {
             return abi.encodePacked(_pmAddress);
