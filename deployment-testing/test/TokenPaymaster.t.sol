@@ -313,6 +313,46 @@ contract TokenPaymasterTest is TestHelper {
         vm.stopPrank();
     }
 
+    function test_chargeOverdraftIfPrechargeIsLowerThanTxnCost() public {
+        uint256 snapshotId = vm.snapshot();
+        vm.startPrank(owner.addr);
+        token.transfer(accountAddress, token.balanceOf(owner.addr));
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+
+        tokenOracle.setPrice(initialPriceToken);
+        nativeAssetOracle.setPrice(initialPriceEther * 100);
+
+        vm.warp(blockTime + 200);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = _generatePaymasterData(paymasterAddress, 0);
+        op.callData = callData;
+        op.callGasLimit = 30754;
+        op.verificationGasLimit = 150000;
+        op.maxFeePerGas = 1000000007;
+        op.maxPriorityFeePerGas = 1000000000;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        uint256 preChargeTokens = abi.decode(logs[0].data, (uint256)); // 0 is transfer event
+        uint256 overdraftTokens = abi.decode(logs[3].data, (uint256)); // 3 is transfer event
+        (uint256 actualTokenCharge,,) = abi.decode(logs[4].data, (uint256, uint256, uint256)); // 4 is UserOperationSponsored event
+        (, bool success,,) = abi.decode(logs[5].data, (uint256, bool, uint256, uint256)); // 5 is UserOperationEvent event
+
+        assertEq(logs[0].topics[1], logs[3].topics[1]);
+        assertEq(logs[0].topics[2], logs[3].topics[2]);
+
+        assertEq(preChargeTokens + overdraftTokens, actualTokenCharge);
+        assertEq(success, true);
+
+        vm.stopPrank();
+        vm.revertTo(snapshotId);
+    }
+
     function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
         if (tokenPrice == 0) {
             return abi.encodePacked(_pmAddress);
