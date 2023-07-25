@@ -98,7 +98,8 @@ contract TokenPaymasterTest is TestHelper {
         callData = abi.encodeWithSignature("execute(address,uint256,bytes)", owner.addr, 0, defaultBytes);
     }
 
-    function testNoTokensOrAllowance() public {
+    // Paymaster should reject if account does not have enough tokens or allowance
+    function test_NoTokensOrAllowance() public {
         uint256 snapShotId = vm.snapshot();
         bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
         UserOperation memory op = _defaultOp;
@@ -120,39 +121,6 @@ contract TokenPaymasterTest is TestHelper {
             )
         );
         entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
-        vm.revertTo(snapShotId);
-    }
-
-    function test_UpdateCachedTokenPrice() public {
-        uint256 snapShotId = vm.snapshot();
-        vm.startPrank(owner.addr);
-        vm.warp(blockTime + 10);
-        token.transfer(accountAddress, 1 ether);
-        token.sudoApprove(accountAddress, address(paymaster), type(uint256).max);
-        tokenOracle.setPrice(initialPriceToken * 5);
-        nativeAssetOracle.setPrice(initialPriceEther * 10);
-
-        bytes memory paymasterAndData = _generatePaymasterData(paymasterAddress, 0);
-        UserOperation memory op = _defaultOp;
-        op.sender = accountAddress;
-        op.paymasterAndData = paymasterAndData;
-        op.callData = callData;
-        op = signUserOp(op, entryPointAddress, chainId);
-        ops.push(op);
-
-        uint256 oldExpectedPrice = uint256(int256(priceDenominator) * initialPriceToken / initialPriceEther);
-        uint256 newExpectedPrice = uint256(oldExpectedPrice / 2);
-
-        vm.expectEmit(false, false, false, true);
-        emit TokenPriceUpdated(newExpectedPrice, oldExpectedPrice, block.timestamp);
-
-        vm.recordLogs();
-        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
-
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-        (,, uint256 actualTokenPrice) = abi.decode(logs[4].data, (uint256, uint256, uint256)); //Expected event is UserOperationSponsored
-        assertEq(actualTokenPrice, newExpectedPrice);
-        vm.stopPrank();
         vm.revertTo(snapShotId);
     }
 
@@ -202,6 +170,41 @@ contract TokenPaymasterTest is TestHelper {
         vm.revertTo(snapShotId);
     }
 
+    // Should update cached token price if the change is above configured percentage
+    function test_UpdateCachedTokenPrice() public {
+        uint256 snapShotId = vm.snapshot();
+        vm.startPrank(owner.addr);
+        vm.warp(blockTime + 10);
+        token.transfer(accountAddress, 1 ether);
+        token.sudoApprove(accountAddress, address(paymaster), type(uint256).max);
+        tokenOracle.setPrice(initialPriceToken * 5);
+        nativeAssetOracle.setPrice(initialPriceEther * 10);
+
+        bytes memory paymasterAndData = _generatePaymasterData(paymasterAddress, 0);
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = paymasterAndData;
+        op.callData = callData;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        uint256 oldExpectedPrice = uint256(int256(priceDenominator) * initialPriceToken / initialPriceEther);
+        uint256 newExpectedPrice = uint256(oldExpectedPrice / 2);
+
+        vm.expectEmit(false, false, false, true);
+        emit TokenPriceUpdated(newExpectedPrice, oldExpectedPrice, block.timestamp);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
+
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        (,, uint256 actualTokenPrice) = abi.decode(logs[4].data, (uint256, uint256, uint256)); //Expected event is UserOperationSponsored
+        assertEq(actualTokenPrice, newExpectedPrice);
+        vm.stopPrank();
+        vm.revertTo(snapShotId);
+    }
+
+    // Should use token price supplied by the client if it is better than cached
     function test_UseSuppliedPriceIfItsBetter() public {
         uint256 snapshotId = vm.snapshot();
         vm.startPrank(owner.addr);
@@ -239,6 +242,7 @@ contract TokenPaymasterTest is TestHelper {
         vm.revertTo(snapshotId);
     }
 
+    // Should use cached token price if the one supplied by the client if it is worse
     function test_UseCachedPriceIfItsBetter() public {
         uint256 snapshotId = vm.snapshot();
         vm.startPrank(owner.addr);
@@ -277,42 +281,7 @@ contract TokenPaymasterTest is TestHelper {
         vm.revertTo(snapshotId);
     }
 
-    // should swap tokens for ether if it falls below configured value and deposit it
-    function test_SwapEtherTokens() public {
-        vm.startPrank(owner.addr);
-        vm.deal(owner.addr, 1 ether);
-
-        token.transfer(accountAddress, token.balanceOf(owner.addr));
-        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
-
-        (uint112 deposit,,,,) = entryPoint.deposits(paymasterAddress);
-        paymaster.withdrawTo(payable(accountAddress), deposit);
-        entryPoint.depositTo{value: minEntryPointBalance}(paymasterAddress);
-
-        bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
-        UserOperation memory op = _defaultOp;
-        op.sender = accountAddress;
-        op.paymasterAndData = paymasterData;
-        op.callData = callData;
-        op.callGasLimit = 30754;
-        op.verificationGasLimit = 150000;
-        op.maxFeePerGas = 1000000007;
-        op.maxPriorityFeePerGas = 1000000000;
-        op = signUserOp(op, entryPointAddress, chainId);
-        ops.push(op);
-
-        vm.recordLogs();
-        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
-        Vm.Log[] memory logs = vm.getRecordedLogs();
-
-        assertEq(logs[4].topics[0], keccak256("StubUniswapExchangeEvent(uint256,uint256,address,address)"));
-        assertEq(logs[8].topics[0], keccak256("Received(address,uint256)"));
-        assertEq(logs[9].topics[0], keccak256("Deposited(address,uint256)"));
-        // TODO: validate deFactoExchangeRate with expectedPrice
-
-        vm.stopPrank();
-    }
-
+    // Should charge the overdraft tokens if the pre-charge ended up lower than the final transaction cost
     function test_chargeOverdraftIfPrechargeIsLowerThanTxnCost() public {
         uint256 snapshotId = vm.snapshot();
         vm.startPrank(owner.addr);
@@ -351,6 +320,85 @@ contract TokenPaymasterTest is TestHelper {
 
         vm.stopPrank();
         vm.revertTo(snapshotId);
+    }
+
+    // Should revert in the first postOp run if the pre-charge ended up lower than the final transaction cost but the client has no tokens to cover the overdraft
+    function test_RevertOnNoTokens() public {
+        uint256 snapShotId = vm.snapshot();
+        vm.startPrank(owner.addr);
+
+        token.transfer(accountAddress, 0.01 ether);
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+
+        tokenOracle.setPrice(initialPriceToken);
+        nativeAssetOracle.setPrice(initialPriceEther * 100);
+
+        vm.warp(blockTime + 200);
+
+        bytes memory withdrawTokens = abi.encodeWithSignature("transfer(address,uint256)", tokenAddress, 0.009 ether);
+        bytes memory _callData =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", tokenAddress, 0, withdrawTokens);
+
+        bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = paymasterData;
+        op.callData = _callData;
+        op.callGasLimit = 62283;
+        op.verificationGasLimit = 150000;
+        op.preVerificationGas = 21000;
+        op.maxFeePerGas = 1000000007;
+        op.maxPriorityFeePerGas = 1000000000;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        (, bool status,,) = abi.decode(logs[5].data, (uint256, bool, uint256, uint256));
+        assertEq(status, false);
+        assertEq(logs.length, 6);
+        assertEq(logs[4].topics[0], keccak256("PostOpReverted(address,uint256)"));
+
+        vm.stopPrank();
+        vm.revertTo(snapShotId);
+    }
+
+    // should swap tokens for ether if it falls below configured value and deposit it
+    function test_SwapEtherTokens() public {
+        vm.startPrank(owner.addr);
+        vm.deal(owner.addr, 1 ether);
+
+        token.transfer(accountAddress, token.balanceOf(owner.addr));
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+
+        (uint112 deposit,,,,) = entryPoint.deposits(paymasterAddress);
+        paymaster.withdrawTo(payable(accountAddress), deposit);
+        entryPoint.depositTo{value: minEntryPointBalance}(paymasterAddress);
+
+        bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = paymasterData;
+        op.callData = callData;
+        op.callGasLimit = 30754;
+        op.verificationGasLimit = 150000;
+        op.maxFeePerGas = 1000000007;
+        op.maxPriorityFeePerGas = 1000000000;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        assertEq(logs[4].topics[0], keccak256("StubUniswapExchangeEvent(uint256,uint256,address,address)"));
+        assertEq(logs[8].topics[0], keccak256("Received(address,uint256)"));
+        assertEq(logs[9].topics[0], keccak256("Deposited(address,uint256)"));
+        // TODO: validate deFactoExchangeRate with expectedPrice
+
+        vm.stopPrank();
     }
 
     function _generatePaymasterData(address _pmAddress, uint256 tokenPrice) internal pure returns (bytes memory) {
