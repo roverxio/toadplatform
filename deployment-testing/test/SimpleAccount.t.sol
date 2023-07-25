@@ -16,12 +16,13 @@ contract SimpleAccountTest is TestHelper {
     }
 
     // Owner should be able to call transfer
-    function testTransferByOwner(address receiver) public {
+    function testTransferByOwner() public {
         // add balance to scw
         vm.deal(accountAddress, 3 ether);
+        Account memory receiver = makeAccount("receiver");
         // set msg.sender to owner address
         vm.prank(owner.addr);
-        account.execute(receiver, 1 ether, defaultBytes);
+        account.execute(receiver.addr, 1 ether, defaultBytes);
         assertEq(getAccountBalance(), 2 ether);
     }
 
