@@ -340,8 +340,8 @@ contract TokenPaymasterTest is TestHelper {
         Vm.Log[] memory logs = vm.getRecordedLogs();
         uint256 preChargeTokens = abi.decode(logs[0].data, (uint256)); // 0 is transfer event
         uint256 overdraftTokens = abi.decode(logs[3].data, (uint256)); // 3 is transfer event
-        uint256 actualTokenCharge = abi.decode(logs[4].data, (uint256)); // 4 is UserOperationSponsored event
-        (, bool success,,) = abi.decode(logs[5].data, (uint256, bool, uint256, uint256)); // 5 is UserOperationExecuted event
+        (uint256 actualTokenCharge,,) = abi.decode(logs[4].data, (uint256, uint256, uint256)); // 4 is UserOperationSponsored event
+        (, bool success,,) = abi.decode(logs[5].data, (uint256, bool, uint256, uint256)); // 5 is UserOperationEvent event
 
         assertEq(logs[0].topics[1], logs[3].topics[1]);
         assertEq(logs[0].topics[2], logs[3].topics[2]);
