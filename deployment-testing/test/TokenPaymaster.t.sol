@@ -25,7 +25,7 @@ contract TokenPaymasterTest is TestHelper {
     int256 private initialPriceEther = 500000000;
     int256 private initialPriceToken = 100000000;
     bytes private callData;
-    address private beneficiaryAddress = 0x1111111111111111111111111111111111111111;
+    address payable private beneficiaryAddress = payable(0x1111111111111111111111111111111111111111);
     UserOperation[] public ops;
     uint256 private priceDenominator = 1e26;
     uint256 private minEntryPointBalance = 1e17;
@@ -111,7 +111,7 @@ contract TokenPaymasterTest is TestHelper {
         vm.expectRevert(
             abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: insufficient allowance")
         );
-        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
 
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
         vm.expectRevert(
@@ -119,7 +119,7 @@ contract TokenPaymasterTest is TestHelper {
                 "FailedOp(uint256,string)", 0, "AA33 reverted: ERC20: transfer amount exceeds balance"
             )
         );
-        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
         vm.revertTo(snapShotId);
     }
 
@@ -147,11 +147,12 @@ contract TokenPaymasterTest is TestHelper {
         emit TokenPriceUpdated(newExpectedPrice, oldExpectedPrice, block.timestamp);
 
         vm.recordLogs();
-        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
 
         Vm.Log[] memory logs = vm.getRecordedLogs();
         (,, uint256 actualTokenPrice) = abi.decode(logs[4].data, (uint256, uint256, uint256)); //Expected event is UserOperationSponsored
         assertEq(actualTokenPrice, newExpectedPrice);
+        vm.stopPrank();
         vm.revertTo(snapShotId);
     }
 
@@ -188,6 +189,7 @@ contract TokenPaymasterTest is TestHelper {
         uint256 expectedTokenCharge = ((actualGasCostPaymaster + (op.maxFeePerGas * 40000)) * priceDenominator)
             / uint256(expectedTokenPriceWithMarkup);
         uint256 postOpGasCost = actualGasCostEntryPoint - actualGasCostPaymaster;
+        console.logUint(postOpGasCost);
 
         assertEq(logs.length, 5);
         assertEq(status, true);
@@ -198,6 +200,157 @@ contract TokenPaymasterTest is TestHelper {
 
         vm.stopPrank();
         vm.revertTo(snapShotId);
+    }
+
+    function test_UseSuppliedPriceIfItsBetter() public {
+        uint256 snapshotId = vm.snapshot();
+        vm.startPrank(owner.addr);
+        token.transfer(accountAddress, 1 ether);
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+
+        uint256 currentCachedPrice = paymaster.cachedPrice();
+        assertEq((currentCachedPrice * 10) / priceDenominator, 2);
+        uint256 overrideTokenPrice = (priceDenominator * 132) / 1000;
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = _generatePaymasterData(paymasterAddress, overrideTokenPrice);
+        op.callData = callData;
+
+        op.callGasLimit = 30754;
+        op.verificationGasLimit = 150000;
+        op.maxFeePerGas = 1000000007;
+        op.maxPriorityFeePerGas = 1000000000;
+
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        // TODO: figure out the syntax to set base fee per gas for the next block
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        uint256 preChargeTokens = abi.decode(logs[0].data, (uint256)); // log[0] is a transfer event
+        uint256 requiredGas = op.callGasLimit + (op.verificationGasLimit * 3) + op.preVerificationGas + 40000;
+        uint256 requeiredPrefund = requiredGas * op.maxFeePerGas;
+        uint256 preChargeTokenPrice = requeiredPrefund * priceDenominator / preChargeTokens;
+
+        assertEq(preChargeTokenPrice / 1e10, overrideTokenPrice / 1e10);
+        vm.stopPrank();
+        vm.revertTo(snapshotId);
+    }
+
+    function test_UseCachedPriceIfItsBetter() public {
+        uint256 snapshotId = vm.snapshot();
+        vm.startPrank(owner.addr);
+        token.transfer(accountAddress, 1 ether);
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+
+        uint256 currentCachedPrice = paymaster.cachedPrice();
+        assertEq((currentCachedPrice * 10) / priceDenominator, 2);
+        uint256 overrideTokenPrice = (priceDenominator * 50);
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = _generatePaymasterData(paymasterAddress, overrideTokenPrice);
+        op.callData = callData;
+
+        op.callGasLimit = 30754;
+        op.verificationGasLimit = 150000;
+        op.maxFeePerGas = 1000000007;
+        op.maxPriorityFeePerGas = 1000000000;
+
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        // TODO: figure out the syntax to set base fee per gas for the next block
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        uint256 preChargeTokens = abi.decode(logs[0].data, (uint256)); // log[0] is a transfer event
+        uint256 requiredGas = op.callGasLimit + (op.verificationGasLimit * 3) + op.preVerificationGas + 40000;
+        uint256 requeiredPrefund = requiredGas * op.maxFeePerGas;
+        uint256 preChargeTokenPrice = requeiredPrefund * priceDenominator / preChargeTokens;
+
+        assertEq(preChargeTokenPrice, (currentCachedPrice * 10) / 15);
+        vm.stopPrank();
+        vm.revertTo(snapshotId);
+    }
+
+    // should swap tokens for ether if it falls below configured value and deposit it
+    function test_SwapEtherTokens() public {
+        vm.startPrank(owner.addr);
+        vm.deal(owner.addr, 1 ether);
+
+        token.transfer(accountAddress, token.balanceOf(owner.addr));
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+
+        (uint112 deposit,,,,) = entryPoint.deposits(paymasterAddress);
+        paymaster.withdrawTo(payable(accountAddress), deposit);
+        entryPoint.depositTo{value: minEntryPointBalance}(paymasterAddress);
+
+        bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = paymasterData;
+        op.callData = callData;
+        op.callGasLimit = 30754;
+        op.verificationGasLimit = 150000;
+        op.maxFeePerGas = 1000000007;
+        op.maxPriorityFeePerGas = 1000000000;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, payable(beneficiaryAddress));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+
+        assertEq(logs[4].topics[0], keccak256("StubUniswapExchangeEvent(uint256,uint256,address,address)"));
+        assertEq(logs[8].topics[0], keccak256("Received(address,uint256)"));
+        assertEq(logs[9].topics[0], keccak256("Deposited(address,uint256)"));
+        // TODO: validate deFactoExchangeRate with expectedPrice
+
+        vm.stopPrank();
+    }
+
+    function test_chargeOverdraftIfPrechargeIsLowerThanTxnCost() public {
+        uint256 snapshotId = vm.snapshot();
+        vm.startPrank(owner.addr);
+        token.transfer(accountAddress, token.balanceOf(owner.addr));
+        token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
+
+        tokenOracle.setPrice(initialPriceToken);
+        nativeAssetOracle.setPrice(initialPriceEther * 100);
+
+        vm.warp(blockTime + 200);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.paymasterAndData = _generatePaymasterData(paymasterAddress, 0);
+        op.callData = callData;
+        op.callGasLimit = 30754;
+        op.verificationGasLimit = 150000;
+        op.maxFeePerGas = 1000000007;
+        op.maxPriorityFeePerGas = 1000000000;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        uint256 preChargeTokens = abi.decode(logs[0].data, (uint256)); // 0 is transfer event
+        uint256 overdraftTokens = abi.decode(logs[3].data, (uint256)); // 3 is transfer event
+        (uint256 actualTokenCharge,,) = abi.decode(logs[4].data, (uint256, uint256, uint256)); // 4 is UserOperationSponsored event
+        (, bool success,,) = abi.decode(logs[5].data, (uint256, bool, uint256, uint256)); // 5 is UserOperationEvent event
+
+        assertEq(logs[0].topics[1], logs[3].topics[1]);
+        assertEq(logs[0].topics[2], logs[3].topics[2]);
+
+        assertEq(preChargeTokens + overdraftTokens, actualTokenCharge);
+        assertEq(success, true);
+
+        vm.stopPrank();
+        vm.revertTo(snapshotId);
     }
 
     // Should revert in the first postOp run if the pre-charge ended up lower than the final transaction cost but the client has no tokens to cover the overdraft
@@ -215,7 +368,7 @@ contract TokenPaymasterTest is TestHelper {
 
         bytes memory withdrawTokens = abi.encodeWithSignature("transfer(address,uint256)", tokenAddress, 0.009 ether);
         bytes memory _callData =
-            abi.encodeWithSignature("execute(address,uint256,bytes)", tokenAddress, 0, withdrawTokens);
+                            abi.encodeWithSignature("execute(address,uint256,bytes)", tokenAddress, 0, withdrawTokens);
 
         bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
         UserOperation memory op = _defaultOp;
