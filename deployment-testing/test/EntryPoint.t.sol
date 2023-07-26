@@ -251,4 +251,24 @@ contract EntryPointTest is TestHelper {
         );
         entryPoint.handleOps(userOps, beneficiary);
     }
+
+    //should reject create if account not funded
+    function testRejectCreateIfNotFunded() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        uint256 salt = 123;
+
+        UserOperation memory op = fillOp(0);
+        bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, salt));
+        op.sender = accountFactory.getAddress(owner.addr, salt);
+        op.verificationGasLimit = 100000000;
+        op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
+        op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
+
+        assertEq(entryPoint.getDepositInfo(op.sender).deposit, 0);
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA21 didn't pay prefund")
+        );
+        entryPoint.handleOps(userOps, beneficiary);
+    }
 }
