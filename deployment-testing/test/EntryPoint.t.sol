@@ -310,4 +310,23 @@ contract EntryPointTest is TestHelper {
         );
         entryPoint.handleOps(userOps, beneficiary);
     }
+
+    //with paymaster (account with no eth)
+    //should fail with nonexistent paymaster
+    function testNonExistenetPaymaster() public {
+        uint256 salt = 123;
+        address pm = createAddress("paymaster").addr;
+
+        UserOperation memory op = fillOp(0);
+        bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, salt));
+        op.sender = accountFactory.getAddress(owner.addr, salt);
+        op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
+        op.paymasterAndData = abi.encodePacked(pm);
+        op = signUserOp(op, entryPointAddress, chainId);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA30 paymaster not deployed")
+        );
+        entryPoint.simulateValidation(op);
+    }
 }
