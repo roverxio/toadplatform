@@ -7,9 +7,10 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract EntryPointTest is TestHelper {
+    UserOperation[] internal ops;
 
     function setUp() public {
-        createAddress("owner_entrypoint");
+        owner = createAddress("owner_entrypoint");
         deployEntryPoint(123441);
         createAccount(123442, 123443);
     }
@@ -78,5 +79,99 @@ contract EntryPointTest is TestHelper {
 
         assertEq(getAccountBalance(), 1 ether);
         assertEq(account.getDeposit(), 0);
+    }
+
+    // 2d nonces
+    // Should fail nonce with new key and seq!=0
+    function test_FailNonce() public {
+        (Account memory beneficiary,, uint256 keyShifed, address _accountAddress) = _2dNonceSetup(false);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = _accountAddress;
+        op.nonce = keyShifed + 1;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA25 invalid account nonce"));
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+    }
+
+    // With key=1, seq=1
+    // should get next nonce value by getNonce
+    function test_GetNonce() public {
+        (, uint256 key, uint256 keyShifed, address _accountAddress) = _2dNonceSetup(true);
+
+        uint256 nonce = entryPoint.getNonce(_accountAddress, uint192(key));
+        assertEq(nonce, keyShifed + 1);
+    }
+
+    // Should allow to increment nonce of different key
+    function test_IncrementNonce() public {
+        (Account memory beneficiary, uint256 key,, address _accountAddress) = _2dNonceSetup(true);
+
+        UserOperation memory op2 = _defaultOp;
+        op2.sender = _accountAddress;
+        op2.nonce = entryPoint.getNonce(_accountAddress, uint192(key));
+        op2 = signUserOp(op2, entryPointAddress, chainId);
+        ops[0] = op2;
+
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+    }
+
+    // should allow manual nonce increment
+    function test_ManualNonceIncrement() public {
+        (Account memory beneficiary, uint256 key,, address _accountAddress) = _2dNonceSetup(true);
+
+        uint192 incNonceKey = 5;
+        bytes memory increment = abi.encodeWithSignature("incrementNonce(uint192)", incNonceKey);
+        bytes memory callData =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", entryPointAddress, 0, increment);
+
+        UserOperation memory op2 = _defaultOp;
+        op2.sender = _accountAddress;
+        op2.callData = callData;
+        op2.nonce = entryPoint.getNonce(_accountAddress, uint192(key));
+        op2 = signUserOp(op2, entryPointAddress, chainId);
+        ops[0] = op2;
+
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+
+        uint256 nonce = entryPoint.getNonce(_accountAddress, incNonceKey);
+        assertEq(nonce, (incNonceKey * 2 ** 64) + 1);
+    }
+
+    // Should fail with nonsequential seq
+    function test_NonsequentialNonce() public {
+        (Account memory beneficiary,, uint256 keyShifed, address _accountAddress) = _2dNonceSetup(true);
+
+        UserOperation memory op2 = _defaultOp;
+        op2.sender = _accountAddress;
+        op2.nonce = keyShifed + 3;
+        op2 = signUserOp(op2, entryPointAddress, chainId);
+        ops[0] = op2;
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA25 invalid account nonce"));
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+    }
+
+    function _2dNonceSetup(bool triggerHandelOps) internal returns (Account memory, uint256, uint256, address) {
+        Account memory beneficiary = createAddress("beneficiary");
+        uint256 key = 1;
+        uint256 keyShifed = key * 2 ** 64;
+
+        (, address _accountAddress) = createAccountWithFactory(123422);
+        vm.deal(_accountAddress, 1 ether);
+
+        if (!triggerHandelOps) {
+            return (beneficiary, key, keyShifed, _accountAddress);
+        }
+        UserOperation memory op = _defaultOp;
+        op.sender = _accountAddress;
+        op.nonce = keyShifed;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+        return (beneficiary, key, keyShifed, _accountAddress);
     }
 }
