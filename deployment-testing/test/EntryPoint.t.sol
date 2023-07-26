@@ -122,4 +122,19 @@ contract EntryPointTest is TestHelper {
         uint256 nonce = entryPoint.getNonce(_accountAddress, uint192(key));
         assertEq(nonce, keyShifed + 1);
     }
+
+    // Should allow to increment nonce of different key
+    function test_IncrementNonce() public {
+        /**
+         * Create beneficiary address
+         * initialize key with 1
+         * initialize key shifted
+         * Create a SCW
+         * Fund SCw
+         * Fill and sign userop
+         * Trigger handle ops
+         * Fill and sign userop by fetching nonce from entrypoint
+         * Trigger handle ops
+         */
+    }
 }
