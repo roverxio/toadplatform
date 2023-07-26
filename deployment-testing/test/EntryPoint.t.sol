@@ -7,6 +7,8 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract EntryPointTest is TestHelper {
+    UserOperation[] internal ops;
+
     function setUp() public {
         owner = createAddress("owner_entrypoint");
         deployEntryPoint(123441);
@@ -82,14 +84,20 @@ contract EntryPointTest is TestHelper {
     // 2d nonces
     // Should fail nonce with new key and seq!=0
     function test_FailNonce() public {
-        /**
-         * Create new Beneficiary Address
-         * Initialize the Key with 1
-         * Initialize keyShifted with key
-         * Create new SCW
-         * Fund SCW
-         * Create and sign User Op
-         * Trigger handle ops and handle revert
-         */
+        Account memory beneficiary = createAddress("beneficiary");
+        uint256 key = 1;
+        uint256 keyShifed = key * 2e64;
+
+        (, address _accountAddress) = createAccountWithFactory(123422);
+        vm.deal(_accountAddress, 1 ether);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = _accountAddress;
+        op.nonce = keyShifed + 1;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA25 invalid account nonce"));
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
     }
 }
