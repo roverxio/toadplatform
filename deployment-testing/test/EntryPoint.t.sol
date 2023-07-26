@@ -148,4 +148,22 @@ contract EntryPointTest is TestHelper {
 
         entryPoint.handleOps(ops, payable(beneficiary.addr));
     }
+
+    // should allow manual nonce increment
+    function test_ManualNonceIncrement() public {
+        /**
+         * Create beneficiary address
+         * Create a SCW
+         * Fund SCw
+         * Fill and sign userop
+         * Trigger handle ops
+         * Initialize incNonceKey with 5
+         * Create calldata for incrementnonce with incNonceKey as value
+         * Create calldata for execute with previous calldata
+         * Fill and sign userOp with nonce from enrtypoint
+         * Trigger handleOps
+         * Get nonce from entryPoint
+         * Validate Nonce
+         */
+    }
 }
