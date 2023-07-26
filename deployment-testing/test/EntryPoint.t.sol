@@ -7,10 +7,13 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract EntryPointTest is TestHelper {
+    uint256 internal _accountSalt;
+
     function setUp() public {
+        _accountSalt = 123433;
         owner = createAddress("owner_entrypoint");
         deployEntryPoint(123441);
-        createAccount(123442, 123443);
+        createAccount(123442, _accountSalt);
     }
 
     // Stake Management testing
@@ -182,7 +185,7 @@ contract EntryPointTest is TestHelper {
         );
         bytes memory executeCalldata =
             abi.encodeWithSignature("execute(address,uint256,bytes)", address(entryPoint), 0, handleOpsCalldata);
-        
+
         op.callData = executeCalldata;
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
@@ -229,5 +232,23 @@ contract EntryPointTest is TestHelper {
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA23 reverted (or OOG)")
         );
         entryPoint.simulateValidation(op1);
+    }
+
+    //create account
+    //should reject create if sender address is wrong
+    function testCreateWrongSenderAddress() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation memory op = fillOp(0);
+        bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, _accountSalt));
+        op.sender = 0x1111111111111111111111111111111111111111;
+        op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
+        op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA14 initCode must return sender")
+        );
+        entryPoint.handleOps(userOps, beneficiary);
     }
 }
