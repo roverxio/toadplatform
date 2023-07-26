@@ -183,4 +183,20 @@ contract EntryPointTest is TestHelper {
         uint256 nonce = entryPoint.getNonce(_accountAddress, incNonceKey);
         assertEq(nonce, (incNonceKey * 2 ** 64) + 1);
     }
+
+    // Should fail with nonsequential seq
+    function test_NonsequentialNonce() public {
+        /**
+         * Create beneficiary address
+         * initialize key with 1
+         * initialize key shifted
+         * Create a SCW
+         * Fund SCw
+         * Fill and sign userop
+         * Trigger handle ops
+         * Fill and sign userop with nonce incremented by 3
+         * Trigger handle ops
+         * Handle revert
+         */
+    }
 }
