@@ -294,4 +294,20 @@ contract EntryPointTest is TestHelper {
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries[3].topics[0], keccak256("AccountDeployed(bytes32,address,address,address)"));
     }
+
+    //should reject if account already created
+    function testSenderAlreadyCreated() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation memory op = fillOp(0);
+        bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, _accountSalt));
+        op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
+        op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA10 sender already constructed")
+        );
+        entryPoint.handleOps(userOps, beneficiary);
+    }
 }
