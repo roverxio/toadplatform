@@ -335,6 +335,7 @@ contract EntryPointTest is TestHelper {
 
     //should fail if paymaster has no deposit
     function testPaymasterWithNoDeposit() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
         uint256 salt = 123;
 
         UserOperation memory op = fillOp(0);
@@ -344,10 +345,11 @@ contract EntryPointTest is TestHelper {
         op.verificationGasLimit = 10000000;
         op.paymasterAndData = abi.encodePacked(address(paymasterAcceptAll));
         op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
 
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA31 paymaster deposit too low")
         );
-        entryPoint.simulateValidation(op);
+        entryPoint.handleOps(userOps, beneficiary);
     }
 }
