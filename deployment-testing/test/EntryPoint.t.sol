@@ -84,12 +84,7 @@ contract EntryPointTest is TestHelper {
     // 2d nonces
     // Should fail nonce with new key and seq!=0
     function test_FailNonce() public {
-        Account memory beneficiary = createAddress("beneficiary");
-        uint256 key = 1;
-        uint256 keyShifed = key * 2 ** 64;
-
-        (, address _accountAddress) = createAccountWithFactory(123422);
-        vm.deal(_accountAddress, 1 ether);
+        (Account memory beneficiary,, uint256 keyShifed, address _accountAddress) = _2dNonceSetup(false);
 
         UserOperation memory op = _defaultOp;
         op.sender = _accountAddress;
@@ -104,20 +99,7 @@ contract EntryPointTest is TestHelper {
     // With key=1, seq=1
     // should get next nonce value by getNonce
     function test_GetNonce() public {
-        Account memory beneficiary = createAddress("beneficiary");
-        uint256 key = 1;
-        uint256 keyShifed = key * 2 ** 64;
-
-        (, address _accountAddress) = createAccountWithFactory(123422);
-        vm.deal(_accountAddress, 1 ether);
-
-        UserOperation memory op = _defaultOp;
-        op.sender = _accountAddress;
-        op.nonce = keyShifed;
-        op = signUserOp(op, entryPointAddress, chainId);
-        ops.push(op);
-
-        entryPoint.handleOps(ops, payable(beneficiary.addr));
+        (, uint256 key, uint256 keyShifed, address _accountAddress) = _2dNonceSetup(true);
 
         uint256 nonce = entryPoint.getNonce(_accountAddress, uint192(key));
         assertEq(nonce, keyShifed + 1);
@@ -125,20 +107,7 @@ contract EntryPointTest is TestHelper {
 
     // Should allow to increment nonce of different key
     function test_IncrementNonce() public {
-        Account memory beneficiary = createAddress("beneficiary");
-        uint256 key = 1;
-        uint256 keyShifed = key * 2 ** 64;
-
-        (, address _accountAddress) = createAccountWithFactory(123422);
-        vm.deal(_accountAddress, 1 ether);
-
-        UserOperation memory op = _defaultOp;
-        op.sender = _accountAddress;
-        op.nonce = keyShifed;
-        op = signUserOp(op, entryPointAddress, chainId);
-        ops.push(op);
-
-        entryPoint.handleOps(ops, payable(beneficiary.addr));
+        (Account memory beneficiary, uint256 key,, address _accountAddress) = _2dNonceSetup(true);
 
         UserOperation memory op2 = _defaultOp;
         op2.sender = _accountAddress;
@@ -151,20 +120,7 @@ contract EntryPointTest is TestHelper {
 
     // should allow manual nonce increment
     function test_ManualNonceIncrement() public {
-        Account memory beneficiary = createAddress("beneficiary");
-        uint256 key = 1;
-        uint256 keyShifed = key * 2 ** 64;
-
-        (, address _accountAddress) = createAccountWithFactory(123422);
-        vm.deal(_accountAddress, 1 ether);
-
-        UserOperation memory op = _defaultOp;
-        op.sender = _accountAddress;
-        op.nonce = keyShifed;
-        op = signUserOp(op, entryPointAddress, chainId);
-        ops.push(op);
-
-        entryPoint.handleOps(ops, payable(beneficiary.addr));
+        (Account memory beneficiary, uint256 key,, address _accountAddress) = _2dNonceSetup(true);
 
         uint192 incNonceKey = 5;
         bytes memory increment = abi.encodeWithSignature("incrementNonce(uint192)", incNonceKey);
@@ -186,20 +142,7 @@ contract EntryPointTest is TestHelper {
 
     // Should fail with nonsequential seq
     function test_NonsequentialNonce() public {
-        Account memory beneficiary = createAddress("beneficiary");
-        uint256 key = 1;
-        uint256 keyShifed = key * 2 ** 64;
-
-        (, address _accountAddress) = createAccountWithFactory(123422);
-        vm.deal(_accountAddress, 1 ether);
-
-        UserOperation memory op = _defaultOp;
-        op.sender = _accountAddress;
-        op.nonce = keyShifed;
-        op = signUserOp(op, entryPointAddress, chainId);
-        ops.push(op);
-
-        entryPoint.handleOps(ops, payable(beneficiary.addr));
+        (Account memory beneficiary,, uint256 keyShifed, address _accountAddress) = _2dNonceSetup(true);
 
         UserOperation memory op2 = _defaultOp;
         op2.sender = _accountAddress;
@@ -209,5 +152,26 @@ contract EntryPointTest is TestHelper {
 
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA25 invalid account nonce"));
         entryPoint.handleOps(ops, payable(beneficiary.addr));
+    }
+
+    function _2dNonceSetup(bool triggerHandelOps) internal returns (Account memory, uint256, uint256, address) {
+        Account memory beneficiary = createAddress("beneficiary");
+        uint256 key = 1;
+        uint256 keyShifed = key * 2 ** 64;
+
+        (, address _accountAddress) = createAccountWithFactory(123422);
+        vm.deal(_accountAddress, 1 ether);
+
+        if (!triggerHandelOps) {
+            return (beneficiary, key, keyShifed, _accountAddress);
+        }
+        UserOperation memory op = _defaultOp;
+        op.sender = _accountAddress;
+        op.nonce = keyShifed;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+        return (beneficiary, key, keyShifed, _accountAddress);
     }
 }
