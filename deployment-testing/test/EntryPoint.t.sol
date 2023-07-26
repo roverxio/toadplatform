@@ -125,16 +125,27 @@ contract EntryPointTest is TestHelper {
 
     // Should allow to increment nonce of different key
     function test_IncrementNonce() public {
-        /**
-         * Create beneficiary address
-         * initialize key with 1
-         * initialize key shifted
-         * Create a SCW
-         * Fund SCw
-         * Fill and sign userop
-         * Trigger handle ops
-         * Fill and sign userop by fetching nonce from entrypoint
-         * Trigger handle ops
-         */
+        Account memory beneficiary = createAddress("beneficiary");
+        uint256 key = 1;
+        uint256 keyShifed = key * 2 ** 64;
+
+        (, address _accountAddress) = createAccountWithFactory(123422);
+        vm.deal(_accountAddress, 1 ether);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = _accountAddress;
+        op.nonce = keyShifed;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+
+        UserOperation memory op2 = _defaultOp;
+        op2.sender = _accountAddress;
+        op2.nonce = entryPoint.getNonce(_accountAddress, uint192(key));
+        op2 = signUserOp(op2, entryPointAddress, chainId);
+        ops[0] = op2;
+
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
     }
 }
