@@ -86,7 +86,7 @@ contract EntryPointTest is TestHelper {
     function test_FailNonce() public {
         Account memory beneficiary = createAddress("beneficiary");
         uint256 key = 1;
-        uint256 keyShifed = key * 2e64;
+        uint256 keyShifed = key * 2 ** 64;
 
         (, address _accountAddress) = createAccountWithFactory(123422);
         vm.deal(_accountAddress, 1 ether);
