@@ -352,4 +352,38 @@ contract EntryPointTest is TestHelper {
         );
         entryPoint.handleOps(userOps, beneficiary);
     }
+
+    //paymaster should pay for tx
+    function testPaymasterPaysForTransaction() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address paymaster = address(paymasterAcceptAll);
+        uint256 salt = 123;
+
+        entryPoint.depositTo{value: 1 ether}(paymaster);
+
+        UserOperation memory op = fillOp(0);
+        bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, salt));
+        op.sender = accountFactory.getAddress(owner.addr, salt);
+        op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
+        op.verificationGasLimit = 10000000;
+        op.paymasterAndData = abi.encodePacked(paymaster);
+        op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps(userOps, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        uint256 i;
+        for (i = 0; i < entries.length; i++) {
+            if (
+                entries[i].topics[0]
+                    == keccak256("UserOperationEvent(bytes32,address,address,uint256,bool,uint256,uint256)")
+            ) {
+                console.log(i);
+                break;
+            }
+        }
+        (,, uint256 actualGasCost,) = abi.decode(entries[i].data, (uint256, bool, uint256, uint256));
+        assertEq(entryPoint.getDepositInfo(paymaster).deposit + actualGasCost, 1 ether);
+    }
 }
