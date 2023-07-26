@@ -7,7 +7,6 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract EntryPointTest is TestHelper {
-
     function setUp() public {
         createAddress("owner_entrypoint");
         deployEntryPoint(123441);
@@ -78,5 +77,19 @@ contract EntryPointTest is TestHelper {
 
         assertEq(getAccountBalance(), 1 ether);
         assertEq(account.getDeposit(), 0);
+    }
+
+    // 2d nonces
+    // Should fail nonce with new key and seq!=0
+    function test_FailNonce() public {
+        /**
+         * Create new Beneficiary Address
+         * Initialize the Key with 1
+         * Initialize keyShifted with key
+         * Create new SCW
+         * Fund SCW
+         * Create and sign User Op
+         * Trigger handle ops and handle revert
+         */
     }
 }
