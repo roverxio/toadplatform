@@ -100,4 +100,20 @@ contract EntryPointTest is TestHelper {
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA25 invalid account nonce"));
         entryPoint.handleOps(ops, payable(beneficiary.addr));
     }
+
+    // With key=1, seq=1
+    // should get next nonce value by getNonce
+    function test_GetNonce() public {
+        /**
+         * Create beneficiary address
+         * initialize key with 1
+         * initialize key shifted
+         * Create a SCW
+         * Fund SCw
+         * Fill and sign userop
+         * Trigger handle ops
+         * Get nonce
+         * Validate nonce
+         */
+    }
 }
