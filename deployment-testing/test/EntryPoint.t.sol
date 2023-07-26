@@ -5,15 +5,18 @@ import "./TestHelper.sol";
 import "../src/EntryPoint.sol";
 import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
+import "../src/test/TestPaymasterAcceptAll.sol";
 
 contract EntryPointTest is TestHelper {
     uint256 internal _accountSalt;
+    BasePaymaster internal paymasterAcceptAll;
 
     function setUp() public {
         _accountSalt = 123433;
         owner = createAddress("owner_entrypoint");
         deployEntryPoint(123441);
         createAccount(123442, _accountSalt);
+        paymasterAcceptAll = new TestPaymasterAcceptAll(entryPoint);
     }
 
     // Stake Management testing
@@ -326,6 +329,24 @@ contract EntryPointTest is TestHelper {
 
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA30 paymaster not deployed")
+        );
+        entryPoint.simulateValidation(op);
+    }
+
+    //should fail if paymaster has no deposit
+    function testPaymasterWithNoDeposit() public {
+        uint256 salt = 123;
+
+        UserOperation memory op = fillOp(0);
+        bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, salt));
+        op.sender = accountFactory.getAddress(owner.addr, salt);
+        op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
+        op.verificationGasLimit = 10000000;
+        op.paymasterAndData = abi.encodePacked(address(paymasterAcceptAll));
+        op = signUserOp(op, entryPointAddress, chainId);
+
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA31 paymaster deposit too low")
         );
         entryPoint.simulateValidation(op);
     }
