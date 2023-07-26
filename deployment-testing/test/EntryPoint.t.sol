@@ -104,16 +104,22 @@ contract EntryPointTest is TestHelper {
     // With key=1, seq=1
     // should get next nonce value by getNonce
     function test_GetNonce() public {
-        /**
-         * Create beneficiary address
-         * initialize key with 1
-         * initialize key shifted
-         * Create a SCW
-         * Fund SCw
-         * Fill and sign userop
-         * Trigger handle ops
-         * Get nonce
-         * Validate nonce
-         */
+        Account memory beneficiary = createAddress("beneficiary");
+        uint256 key = 1;
+        uint256 keyShifed = key * 2 ** 64;
+
+        (, address _accountAddress) = createAccountWithFactory(123422);
+        vm.deal(_accountAddress, 1 ether);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = _accountAddress;
+        op.nonce = keyShifed;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+
+        uint256 nonce = entryPoint.getNonce(_accountAddress, uint192(key));
+        assertEq(nonce, keyShifed + 1);
     }
 }
