@@ -151,19 +151,36 @@ contract EntryPointTest is TestHelper {
 
     // should allow manual nonce increment
     function test_ManualNonceIncrement() public {
-        /**
-         * Create beneficiary address
-         * Create a SCW
-         * Fund SCw
-         * Fill and sign userop
-         * Trigger handle ops
-         * Initialize incNonceKey with 5
-         * Create calldata for incrementnonce with incNonceKey as value
-         * Create calldata for execute with previous calldata
-         * Fill and sign userOp with nonce from enrtypoint
-         * Trigger handleOps
-         * Get nonce from entryPoint
-         * Validate Nonce
-         */
+        Account memory beneficiary = createAddress("beneficiary");
+        uint256 key = 1;
+        uint256 keyShifed = key * 2 ** 64;
+
+        (, address _accountAddress) = createAccountWithFactory(123422);
+        vm.deal(_accountAddress, 1 ether);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = _accountAddress;
+        op.nonce = keyShifed;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+
+        uint192 incNonceKey = 5;
+        bytes memory increment = abi.encodeWithSignature("incrementNonce(uint192)", incNonceKey);
+        bytes memory callData =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", entryPointAddress, 0, increment);
+
+        UserOperation memory op2 = _defaultOp;
+        op2.sender = _accountAddress;
+        op2.callData = callData;
+        op2.nonce = entryPoint.getNonce(_accountAddress, uint192(key));
+        op2 = signUserOp(op2, entryPointAddress, chainId);
+        ops[0] = op2;
+
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+
+        uint256 nonce = entryPoint.getNonce(_accountAddress, incNonceKey);
+        assertEq(nonce, (incNonceKey * 2 ** 64) + 1);
     }
 }
