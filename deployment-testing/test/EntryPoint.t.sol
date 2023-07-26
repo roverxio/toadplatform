@@ -379,7 +379,6 @@ contract EntryPointTest is TestHelper {
                 entries[i].topics[0]
                     == keccak256("UserOperationEvent(bytes32,address,address,uint256,bool,uint256,uint256)")
             ) {
-                console.log(i);
                 break;
             }
         }
