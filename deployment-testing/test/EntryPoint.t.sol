@@ -186,17 +186,28 @@ contract EntryPointTest is TestHelper {
 
     // Should fail with nonsequential seq
     function test_NonsequentialNonce() public {
-        /**
-         * Create beneficiary address
-         * initialize key with 1
-         * initialize key shifted
-         * Create a SCW
-         * Fund SCw
-         * Fill and sign userop
-         * Trigger handle ops
-         * Fill and sign userop with nonce incremented by 3
-         * Trigger handle ops
-         * Handle revert
-         */
+        Account memory beneficiary = createAddress("beneficiary");
+        uint256 key = 1;
+        uint256 keyShifed = key * 2 ** 64;
+
+        (, address _accountAddress) = createAccountWithFactory(123422);
+        vm.deal(_accountAddress, 1 ether);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = _accountAddress;
+        op.nonce = keyShifed;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+
+        UserOperation memory op2 = _defaultOp;
+        op2.sender = _accountAddress;
+        op2.nonce = keyShifed + 3;
+        op2 = signUserOp(op2, entryPointAddress, chainId);
+        ops[0] = op2;
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA25 invalid account nonce"));
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
     }
 }
