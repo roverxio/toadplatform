@@ -21,8 +21,8 @@ contract TestHelper is Test {
     uint256 constant internal paymasterStake = 2 ether;
     bytes constant internal defaultBytes = bytes("");
 
-    function createAddress(string memory _name) internal {
-        owner = makeAccount(_name);
+    function createAddress(string memory _name) internal returns (Account memory) {
+        return makeAccount(_name);
     }
 
     function deployEntryPoint(uint256 _salt) internal returns (EntryPoint) {

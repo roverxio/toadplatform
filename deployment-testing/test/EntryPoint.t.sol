@@ -8,7 +8,7 @@ import "../src/SimpleAccountFactory.sol";
 
 contract EntryPointTest is TestHelper {
     function setUp() public {
-        createAddress("owner_entrypoint");
+        owner = createAddress("owner_entrypoint");
         deployEntryPoint(123441);
         createAccount(123442, 123443);
     }
