@@ -10,7 +10,7 @@ contract SimpleAccountTest is TestHelper {
     uint256 internal constant gasPrice = 1000000000;
 
     function setUp() public {
-        createAddress("owner");
+        owner = createAddress("owner");
         deployEntryPoint(123456);
         createAccount(123457, 123458);
     }
@@ -29,7 +29,7 @@ contract SimpleAccountTest is TestHelper {
     function testTransferByNonOwner(address receiver) public {
         // add balance to scw
         vm.deal(accountAddress, 3 ether);
-        vm.expectRevert(bytes('account: not Owner or EntryPoint'));
+        vm.expectRevert(bytes("account: not Owner or EntryPoint"));
         account.execute(receiver, 1 ether, defaultBytes);
     }
 
