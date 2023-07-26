@@ -271,4 +271,27 @@ contract EntryPointTest is TestHelper {
         );
         entryPoint.handleOps(userOps, beneficiary);
     }
+
+    //should succeed to create account after prefund
+    function testCreateIfFunded() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        uint256 salt = 123;
+
+        UserOperation memory op = fillOp(0);
+        bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, salt));
+        op.sender = accountFactory.getAddress(owner.addr, salt);
+        op.verificationGasLimit = 100000000;
+        op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
+        op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
+
+        entryPoint.depositTo{value: 1 ether}(op.sender);
+        bool isFunded = entryPoint.getDepositInfo(op.sender).deposit > 0;
+        assertEq(isFunded, true);
+
+        vm.recordLogs();
+        entryPoint.handleOps(userOps, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        assertEq(entries[3].topics[0], keccak256("AccountDeployed(bytes32,address,address,address)"));
+    }
 }
