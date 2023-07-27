@@ -5,6 +5,7 @@ import "./TestHelper.sol";
 import "../src/EntryPoint.sol";
 import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
+import "../src/test/TestWarmColdAccount.sol";
 
 contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
@@ -193,17 +194,35 @@ contract EntryPointTest is TestHelper {
     // Warm/cold storage detection in simulation vs execution
     // Should prevent detection through getAggregator()
     function test_DetectionThroughGetAggregator() public {
-        /**
-         * Initialize TOUCH_GET_AGGREGATOR with 1
-         * Initialize TOUCH_PAYMASTER with 2
-         * Deploy Test Warm Cold Account
-         * Build user op with TOUCH_GET_AGGREGATOR and test account address
-         * Create Beneficiary address
-         * Trigger simulateValidation
-         * Handle error
-         * - if include 'ValidationResult' trigger handleOps
-         * - validate error message for failed op
-         */
+        uint256 TOUCH_GET_AGGREGATOR = 1;
+        TestWarmColdAccount testAccount = new TestWarmColdAccount(entryPoint);
+        UserOperation memory badOp = _defaultOp;
+        badOp.nonce = TOUCH_GET_AGGREGATOR;
+        badOp.sender = address(testAccount);
+
+        Account memory beneficiary = createAddress("beneficiary");
+
+        try entryPoint.simulateValidation{gas: 1e6}(badOp) {}
+        catch (bytes memory revertReason) {
+            bytes4 reason;
+            assembly {
+                reason := mload(add(revertReason, 32))
+            }
+            if (
+                reason
+                    == bytes4(
+                        keccak256(
+                            "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
+                        )
+                    )
+            ) {
+                ops.push(badOp);
+                entryPoint.handleOps{gas: 1e6}(ops, payable(beneficiary.addr));
+            } else {
+                bytes memory failedOp = abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA23 reverted (or OOG)");
+                assertEq(revertReason, failedOp);
+            }
+        }
     }
 
     // Should prevent detection through paymaster.code.length
