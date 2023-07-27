@@ -154,6 +154,26 @@ contract EntryPointTest is TestHelper {
         entryPoint.handleOps(ops, payable(beneficiary.addr));
     }
 
+    // Flickering account validation
+    // Should prevent leakage of basefee
+    function test_BaseFeeLeakage() public {
+        /**
+         * Create a malicious account
+         * Take snapshot
+         * RPC call 'evm_mine'
+         * Get latest block
+         * RPC call 'evm_revert'
+         * Validate block baseFeePerGas and expect failure
+         * Generate UserOp
+         * Trigger Simulate validation
+         * Handle revert
+         * RPC call 'evm_mine'
+         * Trigger Simulate validation
+         * Handle revert
+         * Expect failures with error messages
+         */
+    }
+
     function _2dNonceSetup(bool triggerHandelOps) internal returns (Account memory, uint256, uint256, address) {
         Account memory beneficiary = createAddress("beneficiary");
         uint256 key = 1;
