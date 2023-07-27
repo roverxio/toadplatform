@@ -174,6 +174,53 @@ contract EntryPointTest is TestHelper {
          */
     }
 
+    // Should limit revert reason length before emitting it
+    function test_RevertReasonLength() public {
+        /**
+         * Initialize revertLength with 1e5
+         * Initialize REVERT_REASON_MAX_LENGTH with 2048
+         * Deploy Test Revert Account contract
+         * Create call data of revertLong
+         * Create UserOp
+         * Create Beneficiary Address
+         * Trigger simulateValidation and handle revert
+         * Trigger handle Ops
+         * Capture UserOperationRevert event
+         * Validate event
+         */
+    }
+
+    // Warm/cold storage detection in simulation vs execution
+    // Should prevent detection through getAggregator()
+    function test_DetectionThroughGetAggregator() public {
+        /**
+         * Initialize TOUCH_GET_AGGREGATOR with 1
+         * Initialize TOUCH_PAYMASTER with 2
+         * Deploy Test Warm Cold Account
+         * Build user op with TOUCH_GET_AGGREGATOR and test account address
+         * Create Beneficiary address
+         * Trigger simulateValidation
+         * Handle error
+         * - if include 'ValidationResult' trigger handleOps
+         * - validate error message for failed op
+         */
+    }
+
+    // Should prevent detection through paymaster.code.length
+    function test_DetectionThroughPaymasterCodeLength() public {
+        /**
+         * Initialize TOUCH_GET_AGGREGATOR with 1
+         * Initialize TOUCH_PAYMASTER with 2
+         * Deploy Test Warm Cold Account
+         * Build user op with TOUCH_GET_AGGREGATOR, test account address and paymaster data
+         * Create Beneficiary address
+         * Trigger simulateValidation
+         * Handle error
+         * - if include 'ValidationResult' trigger handleOps
+         * - validate error message for failed op
+         */
+    }
+
     function _2dNonceSetup(bool triggerHandelOps) internal returns (Account memory, uint256, uint256, address) {
         Account memory beneficiary = createAddress("beneficiary");
         uint256 key = 1;
