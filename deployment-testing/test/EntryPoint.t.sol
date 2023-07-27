@@ -16,7 +16,13 @@ contract EntryPointTest is TestHelper {
         owner = createAddress("owner_entrypoint");
         deployEntryPoint(123441);
         createAccount(123442, _accountSalt);
+
+        Vm.startPrank(owner);
         paymasterAcceptAll = new TestPaymasterAcceptAll(entryPoint);
+        uint32 unstakeDelaySec = 10000;
+        uint256 stake = 2 ether;
+        paymasterAcceptAll.addStake{value: stake}(unstakeDelaySec);
+        vm.stopPrank();
     }
 
     // Stake Management testing
@@ -383,5 +389,47 @@ contract EntryPointTest is TestHelper {
         }
         (,, uint256 actualGasCost,) = abi.decode(entries[i].data, (uint256, bool, uint256, uint256));
         assertEq(entryPoint.getDepositInfo(paymaster).deposit + actualGasCost, 1 ether);
+    }
+
+    function testReturnPaymasterStakeInfo() public {
+        address paymaster = address(paymasterAcceptAll);
+        uint256 salt = 123;
+
+        entryPoint.depositTo{value: 1 ether}(paymaster);
+        UserOperation memory op = fillOp(0);
+        bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, salt));
+        op.sender = accountFactory.getAddress(owner.addr, salt);
+        op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
+        op.verificationGasLimit = 10000000;
+        op.paymasterAndData = abi.encodePacked(paymaster);
+        op = signUserOp(op, entryPointAddress, chainId);
+
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            bytes memory data;
+            require(revertReason.length >= 4);
+
+            assembly {
+                let totalLength := mload(revertReason)
+                let targetLength := sub(totalLength, 4)
+                data := mload(0x40)
+
+                mstore(data, targetLength)
+                mstore(0x40, add(data, add(0x20, targetLength)))
+                mstore(add(data, 0x20), shl(0x20, mload(add(revertReason, 0x20))))
+
+                for { let i := 0x1C } lt(i, targetLength) { i := add(i, 0x20) } {
+                    mstore(add(add(data, 0x20), i), mload(add(add(revertReason, 0x20), add(i, 0x04))))
+                }
+            }
+
+            (,,, IStakeManager.StakeInfo memory stakeInfoFromRevert) = abi.decode(
+                data,
+                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
+            );
+            IStakeManager.DepositInfo memory stakeInfo = entryPoint.getDepositInfo(paymaster);
+            assertEq(stakeInfoFromRevert.stake, stakeInfo.stake);
+            assertEq(stakeInfoFromRevert.unstakeDelaySec, stakeInfo.unstakeDelaySec);
+        }
     }
 }
