@@ -210,7 +210,6 @@ contract EntryPointTest is TestHelper {
         op0 = signUserOp(op0, entryPointAddress, chainId);
         entryPoint.depositTo{value: 1 ether}(op0.sender);
 
-        vm.expectRevert();
         try entryPoint.simulateValidation(op0) {}
         catch (bytes memory revertReason) {
             bytes4 reason;
