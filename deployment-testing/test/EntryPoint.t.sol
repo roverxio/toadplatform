@@ -391,6 +391,7 @@ contract EntryPointTest is TestHelper {
         assertEq(entryPoint.getDepositInfo(paymaster).deposit + actualGasCost, 1 ether);
     }
 
+    // simulateValidation should return paymaster stake and delay
     function testReturnPaymasterStakeInfo() public {
         address paymaster = address(paymasterAcceptAll);
         uint256 salt = 123;
@@ -432,4 +433,6 @@ contract EntryPointTest is TestHelper {
             assertEq(stakeInfoFromRevert.unstakeDelaySec, stakeInfo.unstakeDelaySec);
         }
     }
+
+
 }
