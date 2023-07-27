@@ -2,7 +2,7 @@
 pragma solidity ^0.8.12;
 import "../interfaces/IAccount.sol";
 import "../interfaces/IEntryPoint.sol";
-import "../core/EntryPoint.sol";
+import "../EntryPoint.sol";
 
 contract MaliciousAccount is IAccount {
     IEntryPoint private ep;
