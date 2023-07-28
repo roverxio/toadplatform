@@ -157,14 +157,14 @@ contract TokenPaymasterTest is TestHelper {
         uint256 expectedTokenCharge = ((actualGasCostPaymaster + (op.maxFeePerGas * 40000)) * priceDenominator)
             / uint256(expectedTokenPriceWithMarkup);
         uint256 postOpGasCost = actualGasCostEntryPoint - actualGasCostPaymaster;
-        console.logUint(postOpGasCost);
 
         assertEq(logs.length, 5);
         assertEq(status, true);
         assertEq(actualTokenChargeEvents, actualTokenCharge);
         assertEq(actualTokenChargeEvents, expectedTokenCharge);
         assertEq((int256(actualTokenPrice) / 1e26), (initialPriceToken / initialPriceEther));
-        // TODO: Assert (postOpGasCost/tx.effectiveGasPrice) close to 40000 with 20000 delta
+        // TODO: gas usage is more compared to AA testcases, why?
+        assertApproxEqAbs(postOpGasCost/op.maxFeePerGas, 30000, 20000);
 
         vm.stopPrank();
         vm.revertTo(snapShotId);
