@@ -445,4 +445,33 @@ contract EntryPointTest is TestHelper {
             assertEq(returnInfoFromRevert.validUntil, _until);
         }
     }
+
+    //should not reject expired owner
+    function testExpiredOwner() public {
+        TestExpiryAccount testAccount = new TestExpiryAccount(entryPoint);
+        Account memory sessionOwner = createAddress('session_owner');
+        vm.warp(100);
+        uint48 _after = 0;
+        uint48 _until = 99;
+        vm.prank(nullAddress);
+        testAccount.addTemporaryOwner(sessionOwner.addr, uint48(_after), uint48(_until));
+
+        UserOperation memory op = fillOp(0);
+        op.sender = address(testAccount);
+        op = signUserOp(op, entryPointAddress, chainId, sessionOwner.key);
+
+        entryPoint.depositTo{value: 1 ether}(address(testAccount));
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            require(revertReason.length >= 4);
+            bytes memory data = getDataFromEncoding(revertReason);
+
+            (IEntryPoint.ReturnInfo memory returnInfoFromRevert,,,) = abi.decode(
+                data,
+                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
+            );
+            assertEq(returnInfoFromRevert.validAfter, _after);
+            assertEq(returnInfoFromRevert.validUntil, _until);
+        }
+    }
 }
