@@ -17,12 +17,7 @@ contract EntryPointTest is TestHelper {
         deployEntryPoint(123441);
         createAccount(123442, _accountSalt);
 
-        Vm.startPrank(owner);
         paymasterAcceptAll = new TestPaymasterAcceptAll(entryPoint);
-        uint32 unstakeDelaySec = 10000;
-        uint256 stake = 2 ether;
-        paymasterAcceptAll.addStake{value: stake}(unstakeDelaySec);
-        vm.stopPrank();
     }
 
     // Stake Management testing
