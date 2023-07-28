@@ -424,7 +424,7 @@ contract EntryPointTest is TestHelper {
     //should accept non-expired owner
     function testNonExpiredOwner() public {
         TestExpiryAccount testAccount = new TestExpiryAccount(entryPoint);
-        Account memory sessionOwner = createAddress('session_owner');
+        Account memory sessionOwner = createAddress("session_owner");
         uint48 _after = uint48(block.timestamp);
         uint48 _until = uint48(block.timestamp) + 10000;
         vm.prank(nullAddress);
@@ -452,7 +452,7 @@ contract EntryPointTest is TestHelper {
     //should not reject expired owner
     function testExpiredOwner() public {
         TestExpiryAccount testAccount = new TestExpiryAccount(entryPoint);
-        Account memory sessionOwner = createAddress('session_owner');
+        Account memory sessionOwner = createAddress("session_owner");
         vm.warp(100);
         uint48 _after = 0;
         uint48 _until = 99;
@@ -528,5 +528,66 @@ contract EntryPointTest is TestHelper {
             assertEq(returnInfoFromRevert.validAfter, _after);
             assertEq(returnInfoFromRevert.validUntil, _until);
         }
+    }
+
+    //time-range overlap of paymaster and account should intersect
+    function simulateWithValidityParams(
+        uint48 accountValidAfter,
+        uint48 accountValidUntil,
+        uint48 paymasterValidAfter,
+        uint48 paymasterValidUntil
+    ) public returns (uint48 validAfter, uint48 validUntil) {
+        address paymaster = address(expirePaymaster);
+
+        TestExpiryAccount testAccount = new TestExpiryAccount(entryPoint);
+        Account memory sessionOwner = createAddress("session_owner");
+        vm.prank(nullAddress);
+        testAccount.addTemporaryOwner(sessionOwner.addr, accountValidAfter, accountValidUntil);
+
+        UserOperation memory op = fillOp(0);
+        op.sender = address(testAccount);
+        op.paymasterAndData = abi.encodePacked(paymaster, paymasterValidAfter, paymasterValidUntil);
+        op = signUserOp(op, entryPointAddress, chainId, sessionOwner.key);
+
+        entryPoint.depositTo{value: 1 ether}(paymaster);
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            require(revertReason.length >= 4);
+            bytes memory data = getDataFromEncoding(revertReason);
+
+            (IEntryPoint.ReturnInfo memory returnInfoFromRevert,,,) = abi.decode(
+                data,
+                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
+            );
+            return (returnInfoFromRevert.validAfter, returnInfoFromRevert.validUntil);
+        }
+    }
+
+    //should use lower "after" value of account
+    function testAfterOfAccount() public {
+        uint48 _after = 10;
+        (uint48 validAfter,) = simulateWithValidityParams(_after, 100, _after - 10, 100);
+        assertEq(validAfter, _after);
+    }
+
+    //should use lower "after" value of paymaster
+    function testAfterOfPaymaster() public {
+        uint48 _after = 10;
+        (uint48 validAfter,) = simulateWithValidityParams(_after - 10, 100, _after, 100);
+        assertEq(validAfter, _after);
+    }
+
+    //should use higher "until" value of account
+    function testUntilOfAccount() public {
+        uint48 _until = 100;
+        (, uint48 validUntil) = simulateWithValidityParams(10, _until, 10, _until + 10);
+        assertEq(validUntil, _until);
+    }
+
+    //should use higher "until" value of paymaster
+    function testUntilOfPaymaster() public {
+        uint48 _until = 100;
+        (, uint48 validUntil) = simulateWithValidityParams(10, _until + 10, 10, _until);
+        assertEq(validUntil, _until);
     }
 }
