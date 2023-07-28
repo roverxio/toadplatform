@@ -396,7 +396,8 @@ contract TokenPaymasterTest is TestHelper {
         assertEq(logs[4].topics[0], keccak256("StubUniswapExchangeEvent(uint256,uint256,address,address)"));
         assertEq(logs[8].topics[0], keccak256("Received(address,uint256)"));
         assertEq(logs[9].topics[0], keccak256("Deposited(address,uint256)"));
-        // TODO: validate deFactoExchangeRate with expectedPrice
+        (uint256 amountIn, uint256 amountOut,,) = abi.decode(logs[4].data, (uint256,uint256,address,address));
+        assertApproxEqAbs((amountOut * 1000)/amountIn, uint256((initialPriceToken * 1000)/initialPriceEther), 1);
 
         vm.stopPrank();
     }
