@@ -7,10 +7,12 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestExpiryAccount.sol";
+import "../src/test/TestExpirePaymaster.sol";
 
 contract EntryPointTest is TestHelper {
     uint256 internal _accountSalt;
     BasePaymaster internal paymasterAcceptAll;
+    TestExpirePaymaster internal expirePaymaster;
 
     function setUp() public {
         _accountSalt = 123433;
@@ -19,6 +21,7 @@ contract EntryPointTest is TestHelper {
         createAccount(123442, _accountSalt);
 
         paymasterAcceptAll = new TestPaymasterAcceptAll(entryPoint);
+        expirePaymaster = new TestExpirePaymaster(entryPoint);
     }
 
     // Stake Management testing
@@ -461,6 +464,58 @@ contract EntryPointTest is TestHelper {
         op = signUserOp(op, entryPointAddress, chainId, sessionOwner.key);
 
         entryPoint.depositTo{value: 1 ether}(address(testAccount));
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            require(revertReason.length >= 4);
+            bytes memory data = getDataFromEncoding(revertReason);
+
+            (IEntryPoint.ReturnInfo memory returnInfoFromRevert,,,) = abi.decode(
+                data,
+                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
+            );
+            assertEq(returnInfoFromRevert.validAfter, _after);
+            assertEq(returnInfoFromRevert.validUntil, _until);
+        }
+    }
+
+    //validatePaymasterUserOp with deadline
+    //should accept non-expired paymaster request
+    function testNonExpiredPaymasterRequest() public {
+        address paymaster = address(expirePaymaster);
+        uint48 _after = 1;
+        uint48 _until = 100;
+        UserOperation memory op = fillOp(0);
+        op.verificationGasLimit = 1000000;
+        op.paymasterAndData = abi.encodePacked(paymaster, _after, _until);
+        op = signUserOp(op, entryPointAddress, chainId, owner.key);
+
+        entryPoint.depositTo{value: 1 ether}(paymaster);
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            require(revertReason.length >= 4);
+            bytes memory data = getDataFromEncoding(revertReason);
+
+            (IEntryPoint.ReturnInfo memory returnInfoFromRevert,,,) = abi.decode(
+                data,
+                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
+            );
+            assertEq(returnInfoFromRevert.validAfter, _after);
+            assertEq(returnInfoFromRevert.validUntil, _until);
+        }
+    }
+
+    //should not reject expired paymaster request
+    function testExpiredPaymasterRequest() public {
+        address paymaster = address(expirePaymaster);
+        uint48 _after = 10;
+        uint48 _until = 20;
+        vm.warp(100);
+        UserOperation memory op = fillOp(0);
+        op.verificationGasLimit = 1000000;
+        op.paymasterAndData = abi.encodePacked(paymaster, _after, _until);
+        op = signUserOp(op, entryPointAddress, chainId, owner.key);
+
+        entryPoint.depositTo{value: 1 ether}(paymaster);
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
             require(revertReason.length >= 4);
