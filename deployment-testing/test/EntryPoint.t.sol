@@ -6,6 +6,7 @@ import "../src/EntryPoint.sol";
 import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestWarmColdAccount.sol";
+import "../src/test/TestPaymasterAcceptAll.sol";
 
 contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
@@ -227,17 +228,40 @@ contract EntryPointTest is TestHelper {
 
     // Should prevent detection through paymaster.code.length
     function test_DetectionThroughPaymasterCodeLength() public {
-        /**
-         * Initialize TOUCH_GET_AGGREGATOR with 1
-         * Initialize TOUCH_PAYMASTER with 2
-         * Deploy Test Warm Cold Account
-         * Build user op with TOUCH_GET_AGGREGATOR, test account address and paymaster data
-         * Create Beneficiary address
-         * Trigger simulateValidation
-         * Handle error
-         * - if include 'ValidationResult' trigger handleOps
-         * - validate error message for failed op
-         */
+        uint256 TOUCH_PAYMASTER = 2;
+        TestWarmColdAccount testAccount = new TestWarmColdAccount(entryPoint);
+        TestPaymasterAcceptAll paymaster = new TestPaymasterAcceptAll(entryPoint);
+        paymaster.deposit{value: 1 ether}();
+
+        UserOperation memory badOp = _defaultOp;
+        badOp.nonce = TOUCH_PAYMASTER;
+        badOp.sender = address(testAccount);
+        badOp.paymasterAndData = abi.encodePacked(address(paymaster));
+        badOp.verificationGasLimit = 1000;
+
+        Account memory beneficiary = createAddress("beneficiary");
+
+        try entryPoint.simulateValidation{gas: 1e6}(badOp) {}
+        catch (bytes memory revertReason) {
+            bytes4 reason;
+            assembly {
+                reason := mload(add(revertReason, 32))
+            }
+            if (
+                reason
+                    == bytes4(
+                        keccak256(
+                            "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
+                        )
+                    )
+            ) {
+                ops.push(badOp);
+                entryPoint.handleOps{gas: 1e6}(ops, payable(beneficiary.addr));
+            } else {
+                bytes memory failedOp = abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA23 reverted (or OOG)");
+                assertEq(revertReason, failedOp);
+            }
+        }
     }
 
     function _2dNonceSetup(bool triggerHandelOps) internal returns (Account memory, uint256, uint256, address) {
