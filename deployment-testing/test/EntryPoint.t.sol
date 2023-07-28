@@ -590,4 +590,25 @@ contract EntryPointTest is TestHelper {
         (, uint48 validUntil) = simulateWithValidityParams(10, _until + 10, 10, _until);
         assertEq(validUntil, _until);
     }
+
+    //handleOps should revert on expired paymaster request
+    function testRevertExpiredPaymasterRequest() public {
+        address payable beneficiary = payable(createAddress("beneficiary").addr);
+        address paymaster = address(expirePaymaster);
+        uint48 _after = 10;
+        uint48 _until = 20;
+        vm.warp(100);
+        UserOperation memory op = fillOp(0);
+        op.paymasterAndData = abi.encodePacked(paymaster, _after, _until);
+        op = signUserOp(op, entryPointAddress, chainId, owner.key);
+        userOps.push(op);
+
+        entryPoint.depositTo{value: 1 ether}(paymaster);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA32 paymaster expired or not due"
+            )
+        );
+        entryPoint.handleOps(userOps, beneficiary);
+    }
 }
