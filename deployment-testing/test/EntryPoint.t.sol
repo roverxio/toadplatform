@@ -7,6 +7,7 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
+import "../src/test/TestRevertAccount.sol";
 
 contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
@@ -178,6 +179,42 @@ contract EntryPointTest is TestHelper {
 
     // Should limit revert reason length before emitting it
     function test_RevertReasonLength() public {
+        (uint256 revertLength, uint256 REVERT_REASON_MAX_LENGTH) = (1e5, 2048);
+        vm.deal(entryPointAddress, 1 ether);
+        TestRevertAccount testAccount = new TestRevertAccount(entryPoint);
+        bytes memory revertCallData = abi.encodeWithSignature("revertLong(uint256)", revertLength + 1);
+        UserOperation memory badOp = _defaultOp;
+        badOp.sender = address(testAccount);
+        badOp.callGasLimit = 1e5;
+        badOp.maxFeePerGas = 1;
+        badOp.nonce = entryPoint.getNonce(address(testAccount), 0);
+        badOp.verificationGasLimit = 1e5;
+        badOp.callData = revertCallData;
+        badOp.maxPriorityFeePerGas = 1e9;
+
+        Account memory beneficiary = createAddress("beneficiary");
+        vm.prank(owner.addr);
+        try entryPoint.simulateValidation{gas: 3e5}(badOp) {}
+        catch (bytes memory revertReason) {
+            bytes4 reason;
+            assembly {
+                reason := mload(add(revertReason, 32))
+            }
+            assertEq(
+                reason,
+                bytes4(
+                    keccak256(
+                        "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
+                    )
+                )
+            );
+        }
+        ops.push(badOp);
+        vm.recordLogs();
+        entryPoint.handleOps(ops, payable(beneficiary.addr));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        console.log(logs.length);
+        assert(1==0);
         /**
          * Initialize revertLength with 1e5
          * Initialize REVERT_REASON_MAX_LENGTH with 2048
