@@ -403,22 +403,8 @@ contract EntryPointTest is TestHelper {
 
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
-            bytes memory data;
             require(revertReason.length >= 4);
-
-            assembly {
-                let totalLength := mload(revertReason)
-                let targetLength := sub(totalLength, 4)
-                data := mload(0x40)
-
-                mstore(data, targetLength)
-                mstore(0x40, add(data, add(0x20, targetLength)))
-                mstore(add(data, 0x20), shl(0x20, mload(add(revertReason, 0x20))))
-
-                for { let i := 0x1C } lt(i, targetLength) { i := add(i, 0x20) } {
-                    mstore(add(add(data, 0x20), i), mload(add(add(revertReason, 0x20), add(i, 0x04))))
-                }
-            }
+            bytes memory data = getDataFromEncoding(revertReason);
 
             (,,, IStakeManager.StakeInfo memory stakeInfoFromRevert) = abi.decode(
                 data,
