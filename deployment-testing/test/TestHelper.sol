@@ -12,6 +12,7 @@ contract TestHelper is Test {
     SimpleAccount internal account;
     SimpleAccount internal implementation;
     SimpleAccountFactory internal accountFactory;
+    address internal nullAddress = 0x0000000000000000000000000000000000000000;
 
     address internal accountAddress;
     address internal entryPointAddress;
@@ -68,8 +69,16 @@ contract TestHelper is Test {
         view
         returns (UserOperation memory)
     {
+        return signUserOp(op, _entryPoint, _chainId, owner.key);
+    }
+
+    function signUserOp(UserOperation memory op, address _entryPoint, uint256 _chainId, uint256 key)
+        internal
+        pure
+        returns (UserOperation memory)
+    {
         bytes32 message = getUserOpHash(op, _entryPoint, _chainId);
-        op.signature = signMessage(message);
+        op.signature = signMessage(message, key);
         return op;
     }
 
@@ -115,8 +124,12 @@ contract TestHelper is Test {
     }
 
     function signMessage(bytes32 message) internal view returns (bytes memory) {
+        return signMessage(message, owner.key);
+    }
+
+    function signMessage(bytes32 message, uint256 key) internal pure returns (bytes memory) {
         bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner.key, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, digest);
         return abi.encodePacked(r, s, v);
     }
 
@@ -134,5 +147,21 @@ contract TestHelper is Test {
             size := extcodesize(addr)
         }
         return size > 0;
+    }
+
+    function getDataFromEncoding(bytes memory encoding) public pure returns(bytes memory data) {
+        assembly {
+                let totalLength := mload(encoding)
+                let targetLength := sub(totalLength, 4)
+                data := mload(0x40)
+
+                mstore(data, targetLength)
+                mstore(0x40, add(data, add(0x20, targetLength)))
+                mstore(add(data, 0x20), shl(0x20, mload(add(encoding, 0x20))))
+
+                for { let i := 0x1C } lt(i, targetLength) { i := add(i, 0x20) } {
+                    mstore(add(add(data, 0x20), i), mload(add(add(encoding, 0x20), add(i, 0x04))))
+                }
+            }
     }
 }

@@ -6,6 +6,7 @@ import "../src/EntryPoint.sol";
 import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
+import "../src/test/TestExpiryAccount.sol";
 
 contract EntryPointTest is TestHelper {
     uint256 internal _accountSalt;
@@ -429,5 +430,33 @@ contract EntryPointTest is TestHelper {
         }
     }
 
+    //Validation time-range
+    //validateUserOp time-range
+    //should accept non-expired owner
+    function testNonExpiredOwner() public {
+        TestExpiryAccount testAccount = new TestExpiryAccount(entryPoint);
+        Account memory sessionOwner = createAddress('session_owner');
+        uint48 _after = uint48(block.timestamp);
+        uint48 _until = uint48(block.timestamp) + 10000;
+        vm.prank(nullAddress);
+        testAccount.addTemporaryOwner(sessionOwner.addr, uint48(_after), uint48(_until));
 
+        UserOperation memory op = fillOp(0);
+        op.sender = address(testAccount);
+        op = signUserOp(op, entryPointAddress, chainId, sessionOwner.key);
+
+        entryPoint.depositTo{value: 1 ether}(address(testAccount));
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            require(revertReason.length >= 4);
+            bytes memory data = getDataFromEncoding(revertReason);
+
+            (IEntryPoint.ReturnInfo memory returnInfoFromRevert,,,) = abi.decode(
+                data,
+                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
+            );
+            assertEq(returnInfoFromRevert.validAfter, _after);
+            assertEq(returnInfoFromRevert.validUntil, _until);
+        }
+    }
 }
