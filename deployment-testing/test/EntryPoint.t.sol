@@ -635,4 +635,27 @@ contract EntryPointTest is TestHelper {
         );
         entryPoint.handleOps(userOps, beneficiary);
     }
+
+    //should revert on date owner
+    function testRevertDateOwner() public {
+        address payable beneficiary = payable(createAddress("beneficiary").addr);
+        TestExpiryAccount testAccount = new TestExpiryAccount(entryPoint);
+        Account memory sessionOwner = createAddress("session_owner");
+        vm.warp(1);
+        uint48 _after = 10;
+        uint48 _until = 100;
+        vm.prank(nullAddress);
+        testAccount.addTemporaryOwner(sessionOwner.addr, uint48(_after), uint48(_until));
+
+        UserOperation memory op = fillOp(0);
+        op.sender = address(testAccount);
+        op = signUserOp(op, entryPointAddress, chainId, sessionOwner.key);
+        userOps.push(op);
+
+        entryPoint.depositTo{value: 1 ether}(address(testAccount));
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA22 expired or not due")
+        );
+        entryPoint.handleOps(userOps, beneficiary);
+    }
 }
