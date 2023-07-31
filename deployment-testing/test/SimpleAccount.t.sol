@@ -20,7 +20,7 @@ contract SimpleAccountTest is TestHelper {
         // add balance to scw
         vm.deal(accountAddress, 3 ether);
         // set msg.sender to owner address
-        vm.prank(owner.addr);
+        vm.prank(accountOwner.addr);
         account.execute(receiver, 1 ether, defaultBytes);
         assertEq(getAccountBalance(), 2 ether);
     }

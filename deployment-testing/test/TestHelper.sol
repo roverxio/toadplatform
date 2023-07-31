@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
@@ -7,7 +7,7 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract TestHelper is Test {
-    Account internal owner;
+    Account internal accountOwner;
     EntryPoint internal entryPoint;
     SimpleAccount internal account;
     SimpleAccount internal implementation;
@@ -22,22 +22,19 @@ contract TestHelper is Test {
     bytes internal constant defaultBytes = bytes("");
 
     function createAddress(string memory _name) internal {
-        owner = makeAccount(_name);
+        accountOwner = makeAccount(_name);
     }
 
-    function deployEntryPoint(uint256 _salt) internal returns (EntryPoint) {
+    function deployEntryPoint(uint256 _salt) internal {
         entryPoint = new EntryPoint{salt: bytes32(_salt)}();
         entryPointAddress = address(entryPoint);
-        return entryPoint;
     }
 
     function createAccount(uint256 _factorySalt, uint256 _accountSalt) internal {
-        vm.startBroadcast();
         simpleAccountFactory = new SimpleAccountFactory{salt: bytes32(_factorySalt)}(entryPoint);
         implementation = simpleAccountFactory.accountImplementation();
-        simpleAccountFactory.createAccount(owner.addr, _accountSalt);
-        accountAddress = simpleAccountFactory.getAddress(owner.addr, _accountSalt);
-        vm.stopBroadcast();
+        simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
+        accountAddress = simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt);
         account = SimpleAccount(payable(accountAddress));
     }
 
@@ -110,7 +107,7 @@ contract TestHelper is Test {
 
     function signMessage(bytes32 message) internal view returns (bytes memory) {
         bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner.key, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(accountOwner.key, digest);
         return abi.encodePacked(r, s, v);
     }
 
