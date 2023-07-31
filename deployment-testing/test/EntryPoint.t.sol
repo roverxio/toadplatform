@@ -192,13 +192,13 @@ contract EntryPointTest is TestHelper {
         badOp.callData = revertCallData;
         badOp.maxPriorityFeePerGas = 1e9;
 
+        vm.deal(address(testAccount), 0.01 ether);
         Account memory beneficiary = createAddress("beneficiary");
-        vm.prank(owner.addr);
         try entryPoint.simulateValidation{gas: 3e5}(badOp) {}
-        catch (bytes memory revertReason) {
+        catch (bytes memory errorReason) {
             bytes4 reason;
             assembly {
-                reason := mload(add(revertReason, 32))
+                reason := mload(add(errorReason, 32))
             }
             assertEq(
                 reason,
@@ -213,20 +213,9 @@ contract EntryPointTest is TestHelper {
         vm.recordLogs();
         entryPoint.handleOps(ops, payable(beneficiary.addr));
         Vm.Log[] memory logs = vm.getRecordedLogs();
-        console.log(logs.length);
-        assert(1==0);
-        /**
-         * Initialize revertLength with 1e5
-         * Initialize REVERT_REASON_MAX_LENGTH with 2048
-         * Deploy Test Revert Account contract
-         * Create call data of revertLong
-         * Create UserOp
-         * Create Beneficiary Address
-         * Trigger simulateValidation and handle revert
-         * Trigger handle Ops
-         * Capture UserOperationRevert event
-         * Validate event
-         */
+        assertEq(logs[2].topics[0], keccak256("UserOperationRevertReason(bytes32,address,uint256,bytes)"));
+        (, bytes memory revertReason) = abi.decode(logs[2].data, (uint256, bytes));
+        assertEq(revertReason.length, REVERT_REASON_MAX_LENGTH);
     }
 
     // Warm/cold storage detection in simulation vs execution
