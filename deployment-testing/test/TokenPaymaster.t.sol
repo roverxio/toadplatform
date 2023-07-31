@@ -157,14 +157,15 @@ contract TokenPaymasterTest is TestHelper {
         uint256 expectedTokenCharge = ((actualGasCostPaymaster + (op.maxFeePerGas * 40000)) * priceDenominator)
             / uint256(expectedTokenPriceWithMarkup);
         uint256 postOpGasCost = actualGasCostEntryPoint - actualGasCostPaymaster;
-        console.logUint(postOpGasCost);
 
         assertEq(logs.length, 5);
         assertEq(status, true);
         assertEq(actualTokenChargeEvents, actualTokenCharge);
         assertEq(actualTokenChargeEvents, expectedTokenCharge);
         assertEq((int256(actualTokenPrice) / 1e26), (initialPriceToken / initialPriceEther));
-        // TODO: Assert (postOpGasCost/tx.effectiveGasPrice) close to 40000 with 20000 delta
+        // TODO: gas usage is more compared to AA testcases, why?
+        // TODO: Calculate effective gas price  for transaction (temp value is used for assertion)
+        assertApproxEqAbs(postOpGasCost / op.maxFeePerGas, 30000, 20000);
 
         vm.stopPrank();
         vm.revertTo(snapShotId);
@@ -396,7 +397,8 @@ contract TokenPaymasterTest is TestHelper {
         assertEq(logs[4].topics[0], keccak256("StubUniswapExchangeEvent(uint256,uint256,address,address)"));
         assertEq(logs[8].topics[0], keccak256("Received(address,uint256)"));
         assertEq(logs[9].topics[0], keccak256("Deposited(address,uint256)"));
-        // TODO: validate deFactoExchangeRate with expectedPrice
+        (uint256 amountIn, uint256 amountOut,,) = abi.decode(logs[4].data, (uint256, uint256, address, address));
+        assertApproxEqAbs((amountOut * 1000) / amountIn, uint256((initialPriceToken * 1000) / initialPriceEther), 1);
 
         vm.stopPrank();
     }
