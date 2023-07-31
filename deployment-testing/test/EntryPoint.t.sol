@@ -14,6 +14,17 @@ contract EntryPointTest is TestHelper {
     BasePaymaster internal paymasterAcceptAll;
     TestExpirePaymaster internal expirePaymaster;
 
+    event SignatureAggregatorChanged(address indexed aggregator);
+    event UserOperationEvent(
+        bytes32 indexed userOpHash,
+        address indexed sender,
+        address indexed paymaster,
+        uint256 nonce,
+        bool success,
+        uint256 actualGasCost,
+        uint256 actualGasUsed
+    );
+
     function setUp() public {
         _accountSalt = 123433;
         owner = createAddress("owner_entrypoint");
@@ -727,6 +738,60 @@ contract EntryPointTest is TestHelper {
 
         entryPoint.depositTo{value: 1 ether}(op.sender);
         vm.expectRevert(abi.encodeWithSignature("SignatureValidationFailed(address)", aggregator));
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //should run with multiple aggregators (and non-aggregated-accounts)
+    function testMultipleAggregators() public {
+        address payable beneficiary = payable(createAddress("beneficiary").addr);
+        UserOperation[] memory userOpsArr = new UserOperation[](2);
+        UserOperation[] memory userOpsAggrArr = new UserOperation[](1);
+        UserOperation[] memory userOpsNoAggrArr = new UserOperation[](1);
+        TestSignatureAggregator aggregator3 = new TestSignatureAggregator();
+
+        UserOperation memory op1 = fillOp(0);
+        op1.sender = aggrAccountAddress;
+        op1.signature = aggregator.validateUserOpSignature(op1);
+        userOpsArr[0] = op1;
+
+        UserOperation memory op2 = fillOp(0);
+        aggrAccountFactory.createAccount(owner.addr, 2);
+        address aggrAccount2 = aggrAccountFactory.getAddress(owner.addr, 2);
+        op2.sender = aggrAccount2;
+        op2.signature = aggregator.validateUserOpSignature(op2);
+        userOpsArr[1] = op2;
+
+        UserOperation memory op3 = fillOp(0);
+        TestAggregatedAccountFactory tempAggrAccountFactory =
+            new TestAggregatedAccountFactory(entryPoint, address(aggregator3));
+        tempAggrAccountFactory.createAccount(owner.addr, 3);
+        op3.sender = tempAggrAccountFactory.getAddress(owner.addr, 3);
+        userOpsAggrArr[0] = signUserOp(op3, entryPointAddress, chainId);
+
+        userOpsNoAggrArr[0] = fillAndSign(chainId, 0);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](3);
+        opsPerAggregator[0] = fillAggregatedOp(userOpsArr, aggregator);
+        opsPerAggregator[1] =
+            IEntryPoint.UserOpsPerAggregator(userOpsAggrArr, aggregator3, abi.encodePacked(bytes32(0)));
+        opsPerAggregator[2] =
+            IEntryPoint.UserOpsPerAggregator(userOpsNoAggrArr, IAggregator(nullAddress), abi.encodePacked(bytes32(0)));
+
+        entryPoint.depositTo{value: 1 ether}(op1.sender);
+        entryPoint.depositTo{value: 1 ether}(op2.sender);
+        entryPoint.depositTo{value: 1 ether}(op3.sender);
+        entryPoint.depositTo{value: 1 ether}(accountAddress);
+
+        for (uint256 i = 0; i < opsPerAggregator.length; i++) {
+            vm.expectEmit(true, false, false, false);
+            emit SignatureAggregatorChanged(address(opsPerAggregator[i].aggregator));
+            for (uint256 j = 0; j < opsPerAggregator[i].userOps.length; j++) {
+                vm.expectEmit(false, true, false, false);
+                emit UserOperationEvent(bytes32(0), opsPerAggregator[i].userOps[j].sender, address(0), 0, false, 0, 0);
+            }
+        }
+        vm.expectEmit(true, false, false, false);
+        emit SignatureAggregatorChanged(address(0));
         entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
     }
 }
