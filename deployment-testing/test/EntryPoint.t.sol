@@ -419,7 +419,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
             require(revertReason.length >= 4);
-            bytes memory data = getDataFromEncoding(revertReason);
+            (, bytes memory data) = getDataFromEncoding(revertReason);
 
             (,,, IStakeManager.StakeInfo memory stakeInfoFromRevert) = abi.decode(
                 data,
@@ -450,7 +450,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
             require(revertReason.length >= 4);
-            bytes memory data = getDataFromEncoding(revertReason);
+            (, bytes memory data) = getDataFromEncoding(revertReason);
 
             (IEntryPoint.ReturnInfo memory returnInfoFromRevert,,,) = abi.decode(
                 data,
@@ -479,7 +479,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
             require(revertReason.length >= 4);
-            bytes memory data = getDataFromEncoding(revertReason);
+            (, bytes memory data) = getDataFromEncoding(revertReason);
 
             (IEntryPoint.ReturnInfo memory returnInfoFromRevert,,,) = abi.decode(
                 data,
@@ -505,7 +505,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
             require(revertReason.length >= 4);
-            bytes memory data = getDataFromEncoding(revertReason);
+            (, bytes memory data) = getDataFromEncoding(revertReason);
 
             (IEntryPoint.ReturnInfo memory returnInfoFromRevert,,,) = abi.decode(
                 data,
@@ -531,7 +531,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
             require(revertReason.length >= 4);
-            bytes memory data = getDataFromEncoding(revertReason);
+            (, bytes memory data) = getDataFromEncoding(revertReason);
 
             (IEntryPoint.ReturnInfo memory returnInfoFromRevert,,,) = abi.decode(
                 data,
@@ -565,7 +565,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
             require(revertReason.length >= 4);
-            bytes memory data = getDataFromEncoding(revertReason);
+            (, bytes memory data) = getDataFromEncoding(revertReason);
 
             (IEntryPoint.ReturnInfo memory returnInfoFromRevert,,,) = abi.decode(
                 data,
@@ -793,5 +793,47 @@ contract EntryPointTest is TestHelper {
         vm.expectEmit(true, false, false, false);
         emit SignatureAggregatorChanged(address(0));
         entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //execution ordering
+    //simulateValidation should return aggregator and its stake
+    function testAggregatorAndStakeReturned() public {
+        UserOperation memory op = fillOp(0);
+        op.sender = aggrAccountFactory.getAddress(owner.addr, 1);
+        bytes memory _initCallData = abi.encodeWithSignature("createAccount(address,uint256)", owner.addr, 1);
+        op.initCode = abi.encodePacked(address(aggrAccountFactory), _initCallData);
+        op = signUserOp(op, entryPointAddress, chainId);
+
+        uint256 _stake = 1 ether;
+        uint32 _delay = 100;
+        aggregator.addStake{value: _stake}(entryPoint, _delay);
+
+        entryPoint.depositTo{value: 1 ether}(op.sender);
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            require(revertReason.length >= 4);
+            (bytes4 sig, bytes memory data) = getDataFromEncoding(revertReason);
+            (,,,, IEntryPoint.AggregatorStakeInfo memory aggrStakeInfo) = abi.decode(
+                data,
+                (
+                    IEntryPoint.ReturnInfo,
+                    IStakeManager.StakeInfo,
+                    IStakeManager.StakeInfo,
+                    IStakeManager.StakeInfo,
+                    IEntryPoint.AggregatorStakeInfo
+                )
+            );
+            assertEq(
+                sig,
+                bytes4(
+                    keccak256(
+                        "ValidationResultWithAggregation((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256),(address,(uint256,uint256)))"
+                    )
+                )
+            );
+            assertEq(aggrStakeInfo.aggregator, address(aggregator));
+            assertEq(aggrStakeInfo.stakeInfo.stake, _stake);
+            assertEq(aggrStakeInfo.stakeInfo.unstakeDelaySec, _delay);
+        }
     }
 }

@@ -77,7 +77,7 @@ contract TestHelper is Test {
         op.callData = defaultBytes;
         op.initCode = defaultBytes;
         op.callGasLimit = 200000;
-        op.verificationGasLimit = 100000;
+        op.verificationGasLimit = 10000000;
         op.preVerificationGas = 21000;
         op.maxFeePerGas = 300000;
         op.maxPriorityFeePerGas = 300000;
@@ -172,10 +172,11 @@ contract TestHelper is Test {
         return size > 0;
     }
 
-    function getDataFromEncoding(bytes memory encoding) public pure returns (bytes memory data) {
+    function getDataFromEncoding(bytes memory encoding) public pure returns (bytes4 sig, bytes memory data) {
         assembly {
             let totalLength := mload(encoding)
             let targetLength := sub(totalLength, 4)
+            sig := mload(add(encoding, 0x20))
             data := mload(0x40)
 
             mstore(data, targetLength)
