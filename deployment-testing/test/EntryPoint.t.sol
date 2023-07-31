@@ -24,6 +24,7 @@ contract EntryPointTest is TestHelper {
         uint256 actualGasCost,
         uint256 actualGasUsed
     );
+    event AccountDeployed(bytes32 indexed userOpHash, address indexed sender, address factory, address paymaster);
 
     function setUp() public {
         _accountSalt = 123433;
@@ -835,5 +836,24 @@ contract EntryPointTest is TestHelper {
             assertEq(aggrStakeInfo.stakeInfo.stake, _stake);
             assertEq(aggrStakeInfo.stakeInfo.unstakeDelaySec, _delay);
         }
+    }
+
+    //should create account in handleOps
+    function testAggrCreateAccount() public {
+        address payable beneficiary = payable(createAddress("beneficiary").addr);
+        UserOperation memory op = fillOp(0);
+        op.sender = aggrAccountFactory.getAddress(owner.addr, 1);
+        bytes memory _initCallData = abi.encodeWithSignature("createAccount(address,uint256)", owner.addr, 1);
+        op.initCode = abi.encodePacked(address(aggrAccountFactory), _initCallData);
+        op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        opsPerAggregator[0] = fillAggregatedOp(userOps, aggregator);
+
+        entryPoint.depositTo{value: 1 ether}(op.sender);
+        vm.expectEmit(false, true, false, false);
+        emit AccountDeployed(bytes32(0), op.sender, address(0), address(0));
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
     }
 }
