@@ -19,6 +19,7 @@ contract EntryPointTest is TestHelper {
         owner = createAddress("owner_entrypoint");
         deployEntryPoint(123441);
         createAccount(123442, _accountSalt);
+        createAggregatedAccount(123456, 123456);
 
         paymasterAcceptAll = new TestPaymasterAcceptAll(entryPoint);
         expirePaymaster = new TestExpirePaymaster(entryPoint);
@@ -655,6 +656,23 @@ contract EntryPointTest is TestHelper {
         entryPoint.depositTo{value: 1 ether}(address(testAccount));
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA22 expired or not due")
+        );
+        entryPoint.handleOps(userOps, beneficiary);
+    }
+
+    //aggregation tests
+    //should fail to execute aggregated account without an aggregator
+    function testAggrAccountWithoutAggregator() public {
+        address payable beneficiary = payable(createAddress("beneficiary").addr);
+        UserOperation memory op = fillOp(0);
+        op.sender = aggrAccountAddress;
+        op.verificationGasLimit = 1000000000000;
+        op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
+
+        entryPoint.depositTo{value: 1 ether}(op.sender);
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA24 signature error")
         );
         entryPoint.handleOps(userOps, beneficiary);
     }

@@ -5,6 +5,9 @@ import "forge-std/Test.sol";
 import "../src/EntryPoint.sol";
 import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
+import "../src/test/TestAggregatedAccount.sol";
+import "../src/test/TestAggregatedAccountFactory.sol";
+import "../src/test/TestSignatureAggregator.sol";
 
 contract TestHelper is Test {
     Account internal owner;
@@ -14,8 +17,15 @@ contract TestHelper is Test {
     SimpleAccountFactory internal accountFactory;
     address internal nullAddress = 0x0000000000000000000000000000000000000000;
 
+    TestSignatureAggregator internal aggregator;
+    TestAggregatedAccount internal aggrAccount;
+    TestAggregatedAccount internal aggrAccountImplementation;
+    TestAggregatedAccountFactory internal aggrAccountFactory;
+
     address internal accountAddress;
     address internal entryPointAddress;
+    address internal aggregatorAddress;
+    address internal aggrAccountAddress;
 
     uint256 internal chainId = vm.envOr("FOUNDRY_CHAIN_ID", uint256(31337));
     uint256 internal constant globalUnstakeDelaySec = 2;
@@ -40,6 +50,19 @@ contract TestHelper is Test {
         accountAddress = accountFactory.getAddress(owner.addr, _accountSalt);
         vm.stopBroadcast();
         account = SimpleAccount(payable(accountAddress));
+    }
+
+    function createAggregatedAccount(uint256 _factorySalt, uint256 _accountSalt) internal {
+        vm.startBroadcast();
+        aggregator = new TestSignatureAggregator();
+        aggregatorAddress = address(aggregator);
+        aggrAccountFactory =
+            new TestAggregatedAccountFactory{salt: bytes32(_factorySalt)}(entryPoint, aggregatorAddress);
+        aggrAccountImplementation = aggrAccountFactory.accountImplementation();
+        aggrAccountFactory.createAccount(owner.addr, _accountSalt);
+        aggrAccountAddress = aggrAccountFactory.getAddress(owner.addr, _accountSalt);
+        vm.stopBroadcast();
+        aggrAccount = TestAggregatedAccount(payable(aggrAccountAddress));
     }
 
     function fillAndSign(uint256 _chainId, uint256 _nonce) internal view returns (UserOperation memory) {
@@ -149,19 +172,19 @@ contract TestHelper is Test {
         return size > 0;
     }
 
-    function getDataFromEncoding(bytes memory encoding) public pure returns(bytes memory data) {
+    function getDataFromEncoding(bytes memory encoding) public pure returns (bytes memory data) {
         assembly {
-                let totalLength := mload(encoding)
-                let targetLength := sub(totalLength, 4)
-                data := mload(0x40)
+            let totalLength := mload(encoding)
+            let targetLength := sub(totalLength, 4)
+            data := mload(0x40)
 
-                mstore(data, targetLength)
-                mstore(0x40, add(data, add(0x20, targetLength)))
-                mstore(add(data, 0x20), shl(0x20, mload(add(encoding, 0x20))))
+            mstore(data, targetLength)
+            mstore(0x40, add(data, add(0x20, targetLength)))
+            mstore(add(data, 0x20), shl(0x20, mload(add(encoding, 0x20))))
 
-                for { let i := 0x1C } lt(i, targetLength) { i := add(i, 0x20) } {
-                    mstore(add(add(data, 0x20), i), mload(add(add(encoding, 0x20), add(i, 0x04))))
-                }
+            for { let i := 0x1C } lt(i, targetLength) { i := add(i, 0x20) } {
+                mstore(add(add(data, 0x20), i), mload(add(add(encoding, 0x20), add(i, 0x04))))
             }
+        }
     }
 }
