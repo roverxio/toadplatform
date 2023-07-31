@@ -187,4 +187,16 @@ contract TestHelper is Test {
             }
         }
     }
+
+    function fillAggregatedOp(UserOperation[] memory _userOps, IAggregator _aggregator)
+        public
+        view
+        returns (IEntryPoint.UserOpsPerAggregator memory)
+    {
+        IEntryPoint.UserOpsPerAggregator memory ops;
+        ops.userOps = _userOps;
+        ops.aggregator = _aggregator;
+        ops.signature = _aggregator.aggregateSignatures(_userOps);
+        return ops;
+    }
 }

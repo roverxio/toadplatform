@@ -666,7 +666,7 @@ contract EntryPointTest is TestHelper {
         address payable beneficiary = payable(createAddress("beneficiary").addr);
         UserOperation memory op = fillOp(0);
         op.sender = aggrAccountAddress;
-        op.verificationGasLimit = 1000000000000;
+        op.verificationGasLimit = 100000000;
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
 
@@ -675,5 +675,24 @@ contract EntryPointTest is TestHelper {
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA24 signature error")
         );
         entryPoint.handleOps(userOps, beneficiary);
+    }
+
+    //should fail to execute aggregated account with wrong aggregator
+    function testAggrAccountWithWrongAggregator() public {
+        address payable beneficiary = payable(createAddress("beneficiary").addr);
+        UserOperation memory op = fillOp(0);
+        op.sender = aggrAccountAddress;
+        op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        TestSignatureAggregator wrongAggregator = new TestSignatureAggregator();
+        opsPerAggregator[0] = fillAggregatedOp(userOps, wrongAggregator);
+
+        entryPoint.depositTo{value: 1 ether}(op.sender);
+        vm.expectRevert(
+            abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA24 signature error")
+        );
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
     }
 }
