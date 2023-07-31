@@ -16,7 +16,6 @@ contract TestHelper is Test {
     SimpleAccount internal implementation;
     SimpleAccountFactory internal accountFactory;
     address internal nullAddress = 0x0000000000000000000000000000000000000000;
-    bytes internal nullSignature = abi.encodePacked(bytes32(0));
 
     TestSignatureAggregator internal aggregator;
     TestAggregatedAccount internal aggrAccount;

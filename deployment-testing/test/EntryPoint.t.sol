@@ -705,10 +705,28 @@ contract EntryPointTest is TestHelper {
         userOps.push(op);
 
         IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        bytes memory nullSignature = abi.encodePacked(bytes32(0));
         opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(userOps, IAggregator(address(1)), nullSignature);
 
         entryPoint.depositTo{value: 1 ether}(op.sender);
         vm.expectRevert("AA96 invalid aggregator");
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //should fail to execute aggregated account with wrong agg. signature
+    function testWrongAggregateSig() public {
+        address payable beneficiary = payable(createAddress("beneficiary").addr);
+        UserOperation memory op = fillOp(0);
+        op.sender = aggrAccountAddress;
+        op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        bytes memory wrongSignature = abi.encodePacked(uint256(0x123456));
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(userOps, aggregator, wrongSignature);
+
+        entryPoint.depositTo{value: 1 ether}(op.sender);
+        vm.expectRevert(abi.encodeWithSignature("SignatureValidationFailed(address)", aggregator));
         entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
     }
 }
