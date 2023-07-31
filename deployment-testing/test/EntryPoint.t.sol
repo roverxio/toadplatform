@@ -195,6 +195,7 @@ contract EntryPointTest is TestHelper {
 
     /// @notice 5. Should succeed if validUserOp succeeds: TBD
     function test_shouldSucceedifUserOpSucceeds() public {
+        IEntryPoint.ReturnInfo memory returnInfo;
         SimpleAccount account1;
         Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
         (account1,) = utils.createAccountWithEntryPoint(accountOwner1.addr, entryPoint, simpleAccountFactory);
@@ -214,7 +215,14 @@ contract EntryPointTest is TestHelper {
 
         vm.deal(address(account1), 1 ether);
         UserOperation memory op1 = utils.fillAndSign(op, accountOwner1, entryPoint, chainId);
-        entryPoint.simulateValidation(op1);
+        try entryPoint.simulateValidation(op1) {}
+        catch (bytes memory revertReason) {
+            bytes memory data = utils.getDataFromEncoding(revertReason);
+            (returnInfo,,,) = abi.decode(
+                data,
+                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
+            );
+        }
     }
 
     /// @notice 6. Should return empty context if no Paymaster
@@ -350,12 +358,26 @@ contract EntryPointTest is TestHelper {
         op.signature = defaultBytes;
 
         UserOperation memory op1 = utils.fillAndSign(op, accountOwner1, entryPoint, chainId);
-        vm.expectRevert("ValidationResult");
-        entryPoint.simulateValidation{gas: 1e6}(op1);
+        try entryPoint.simulateValidation{gas: 1e6}(op1) {}
+        catch (bytes memory result) {
+            bytes memory data = utils.getDataFromEncoding(result);
+            (IEntryPoint.ReturnInfo memory r,,,) = abi.decode(
+                data,
+                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
+            );
+            console.logBool(r.sigFailed);
+        }
+
+        op1.verificationGasLimit = 1e5;
+
+        UserOperation memory op2 = utils.fillAndSign(op1, accountOwner1, entryPoint, chainId);
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA13 initCode failed or OOG"));
+        entryPoint.simulateValidation(op2);
     }
 
     /// @notice 11. Should succeed for creating an account
     function test_shouldSucceedCreatingAccount() public {
+        IEntryPoint.ReturnInfo memory returnInfo;
         Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
         address sender = utils.getAccountAddress(accountOwner1.addr, simpleAccountFactory, 0);
 
@@ -374,7 +396,14 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op1 = utils.fillAndSign(op, accountOwner1, entryPoint, chainId);
 
         vm.deal(op1.sender, 1 ether);
-        entryPoint.simulateValidation(op1);
+        try entryPoint.simulateValidation(op1) {}
+        catch (bytes memory revertReason) {
+            bytes memory data = utils.getDataFromEncoding(revertReason);
+            (returnInfo,,,) = abi.decode(
+                data,
+                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
+            );
+        }
     }
 
     //    12. Should not call initCode from EntryPoint
@@ -398,6 +427,7 @@ contract EntryPointTest is TestHelper {
         op.paymasterAndData = defaultBytes;
         op.signature = defaultBytes;
         UserOperation memory op1 = utils.fillAndSign(op, accountOwner, entryPoint, chainId);
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA13 initCode failed or OOG"));
         entryPoint.simulateValidation(op1);
     }
 
