@@ -868,4 +868,33 @@ contract EntryPointTest is TestHelper {
         emit AccountDeployed(bytes32(0), op.sender, address(0), address(0));
         entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
     }
+
+    //batch multiple requests
+    //should pay for tx
+    function testBatchMultipleRequestsPay() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation memory op1 = fillOp(0);
+        SimpleAccount account1 = accountFactory.createAccount(owner.addr, 1);
+        op1.sender = address(account1);
+        op1 = signUserOp(op1, entryPointAddress, chainId);
+        userOps.push(op1);
+        entryPoint.depositTo{value: 1 ether}(op1.sender);
+
+        UserOperation memory op2 = fillOp(0);
+        SimpleAccount account2 = accountFactory.createAccount(owner.addr, 2);
+        op2.sender = address(account2);
+        op2 = signUserOp(op2, entryPointAddress, chainId);
+        userOps.push(op2);
+        entryPoint.depositTo{value: 1 ether}(op2.sender);
+
+        vm.recordLogs();
+        entryPoint.handleOps(userOps, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost1,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
+        (,, uint256 actualGasCost2,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertEq(actualGasCost1 + entryPoint.getDepositInfo(address(account1)).deposit, 1 ether);
+        assertEq(actualGasCost2 + entryPoint.getDepositInfo(address(account2)).deposit, 1 ether);
+        assertEq(beneficiary.balance, actualGasCost1 + actualGasCost2);
+    }
 }
