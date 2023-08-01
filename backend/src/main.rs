@@ -1,6 +1,6 @@
 use lazy_static::lazy_static;
 use crate::models::config::server::Server;
-use crate::models::config::settings;
+use crate::models::config::settings::Settings;
 use crate::server::{api_server, init_services};
 
 mod handlers;
@@ -12,7 +12,7 @@ mod helpers;
 mod server;
 
 lazy_static! {
-    static ref CONFIG: settings::Settings = settings::Settings::new().expect("Failed to load config.");
+    static ref CONFIG: Settings = Settings::new().expect("Failed to load config.");
 }
 
 #[actix_web::main]
