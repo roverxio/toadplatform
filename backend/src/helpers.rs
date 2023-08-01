@@ -8,12 +8,8 @@ pub fn respond_json<T>(data: T) -> Result<Json<BaseResponse<T>>, ApiError>
     where
         T: Serialize,
 {
-    Ok(Json(get_base_response(data)))
-}
-
-pub fn get_base_response<T>(data: T) -> BaseResponse<T> where T: Serialize {
-    BaseResponse {
+    Ok(Json(BaseResponse {
         data,
         err: Default::default(),
-    }
+    }))
 }
