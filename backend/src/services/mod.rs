@@ -1,1 +1,1 @@
-pub(crate) mod hello_world_service;
+pub mod hello_world_service;
