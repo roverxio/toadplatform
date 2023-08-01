@@ -870,6 +870,31 @@ contract EntryPointTest is TestHelper {
     }
 
     //batch multiple requests
+    //should execute
+    function testBatchMultipleRequestsExec() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation memory op1 = fillOp(0);
+        SimpleAccount account1 = accountFactory.createAccount(owner.addr, 1);
+        op1.sender = address(account1);
+        op1 = signUserOp(op1, entryPointAddress, chainId);
+        userOps.push(op1);
+        entryPoint.depositTo{value: 1 ether}(op1.sender);
+
+        UserOperation memory op2 = fillOp(0);
+        SimpleAccount account2 = accountFactory.createAccount(owner.addr, 2);
+        op2.sender = address(account2);
+        op2 = signUserOp(op2, entryPointAddress, chainId);
+        userOps.push(op2);
+        entryPoint.depositTo{value: 1 ether}(op2.sender);
+
+        vm.expectEmit(false, true, false, false);
+        emit UserOperationEvent(bytes32(0), op1.sender, address(0), 0, true, 0, 0);
+        vm.expectEmit(false, true, false, false);
+        emit UserOperationEvent(bytes32(0), op2.sender, address(0), 0, true, 0, 0);
+        entryPoint.handleOps(userOps, beneficiary);
+    }
+
     //should pay for tx
     function testBatchMultipleRequestsPay() public {
         address payable beneficiary = payable(makeAddr("beneficiary"));
