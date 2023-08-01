@@ -111,8 +111,9 @@ contract EntryPointTest is TestHelper {
     //should revert on signature failure
     function test_RevertOnSignatureFailure() public {
         // assign a new owner to sign the User Op
-        owner = createAddress("new_owner");
-        UserOperation memory op = fillAndSign(chainId, 0);
+        Account memory new_owner = createAddress("new_owner");
+        UserOperation memory op = fillOp(0);
+        op = signUserOp(op, entryPointAddress, chainId, new_owner.key);
         entryPoint.depositTo{value: 1 ether}(op.sender);
         userOps.push(op);
         vm.expectRevert(
