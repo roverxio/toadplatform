@@ -10,9 +10,10 @@ pub enum ApiError {
     InternalServer(String),
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct ErrorResponse {
-    error: String,
+    #[serde(skip_serializing_if = "String::is_empty")]
+    message: String,
 }
 
 impl ResponseError for ApiError {
@@ -33,6 +34,6 @@ impl ResponseError for ApiError {
 
 impl From<String> for ErrorResponse {
     fn from(error: String) -> Self {
-        ErrorResponse { error }
+        ErrorResponse { message: error }
     }
 }
