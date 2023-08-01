@@ -8,10 +8,12 @@ import "../src/SimpleAccountFactory.sol";
 
 contract TestHelper is Test {
     Account internal accountOwner;
+    Account internal owner;
     EntryPoint internal entryPoint;
     SimpleAccount internal account;
     SimpleAccount internal implementation;
     SimpleAccountFactory internal simpleAccountFactory;
+    SimpleAccountFactory internal accountFactory;
 
     address internal accountAddress;
     address internal entryPointAddress;
@@ -21,8 +23,22 @@ contract TestHelper is Test {
     uint256 internal constant paymasterStake = 2 ether;
     bytes internal constant defaultBytes = bytes("");
 
-    function createAddress(string memory _name) internal {
-        accountOwner = makeAccount(_name);
+    UserOperation internal _defaultOp = UserOperation({
+        sender: accountAddress,
+        nonce: 0,
+        initCode: defaultBytes,
+        callData: defaultBytes,
+        callGasLimit: 200000,
+        verificationGasLimit: 100000,
+        preVerificationGas: 21000,
+        maxFeePerGas: 3000000000,
+        maxPriorityFeePerGas: 1,
+        paymasterAndData: defaultBytes,
+        signature: defaultBytes
+    });
+
+    function createAddress(string memory _name) internal returns (Account memory) {
+        return makeAccount(_name);
     }
 
     function deployEntryPoint(uint256 _salt) internal {
@@ -36,6 +52,14 @@ contract TestHelper is Test {
         simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
         accountAddress = simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt);
         account = SimpleAccount(payable(accountAddress));
+    }
+
+    function createAccountWithFactory(uint256 _accountSalt) internal returns (SimpleAccount, address) {
+        vm.startBroadcast();
+        accountFactory.createAccount(owner.addr, _accountSalt);
+        address _accountAddress = accountFactory.getAddress(owner.addr, _accountSalt);
+        vm.stopBroadcast();
+        return (SimpleAccount(payable(accountAddress)), _accountAddress);
     }
 
     function fillAndSign(uint256 _chainId, uint256 _nonce) internal view returns (UserOperation memory) {

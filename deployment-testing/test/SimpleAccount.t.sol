@@ -10,7 +10,7 @@ contract SimpleAccountTest is TestHelper {
     uint256 internal constant gasPrice = 1000000000;
 
     function setUp() public {
-        createAddress("owner");
+        owner = createAddress("owner");
         deployEntryPoint(123456);
         createAccount(123457, 123458);
     }
