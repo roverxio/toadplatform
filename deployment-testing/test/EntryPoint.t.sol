@@ -124,7 +124,7 @@ contract EntryPointTest is TestHelper {
     //account should pay for transaction
     function test_PayForTransaction() public {
         UserOperation memory op = fillAndSign(chainId, 0);
-        entryPoint.depositTo{value: 10 ether}(op.sender);
+        entryPoint.depositTo{value: 1 ether}(op.sender);
         userOps.push(op);
 
         vm.recordLogs();
@@ -163,8 +163,8 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = fillAndSign(chainId, 0);
         userOps.push(op);
 
-        entryPoint.depositTo{value: 10 ether}(op.sender);
-        (bool _sent,) = op.sender.call{value: 10 ether}("");
+        entryPoint.depositTo{value: 1 ether}(op.sender);
+        (bool _sent,) = op.sender.call{value: 1 ether}("");
         require(_sent, "Could not pay op.sender");
 
         vm.recordLogs();
@@ -172,8 +172,8 @@ contract EntryPointTest is TestHelper {
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
-        assertEq(op.sender.balance, 10 ether);
-        assertEq(entryPoint.getDepositInfo(op.sender).deposit + actualGasCost, 10 ether);
+        assertEq(op.sender.balance, 1 ether);
+        assertEq(entryPoint.getDepositInfo(op.sender).deposit + actualGasCost, 1 ether);
     }
 
     //should pay for reverted tx
@@ -182,7 +182,7 @@ contract EntryPointTest is TestHelper {
         op.callData = "0xdeadface";
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
-        entryPoint.depositTo{value: 10 ether}(op.sender);
+        entryPoint.depositTo{value: 1 ether}(op.sender);
 
         vm.recordLogs();
         entryPoint.handleOps(userOps, beneficiary);
@@ -197,7 +197,7 @@ contract EntryPointTest is TestHelper {
         UserOperation[] memory userOperations = new UserOperation[](1);
 
         UserOperation memory op = fillAndSign(chainId, 0);
-        entryPoint.depositTo{value: 10 ether}(op.sender);
+        entryPoint.depositTo{value: 1 ether}(op.sender);
         userOperations[0] = op;
 
         vm.recordLogs();
@@ -225,7 +225,7 @@ contract EntryPointTest is TestHelper {
         op.callData = executeCalldata;
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
-        entryPoint.depositTo{value: 10 ether}(op.sender);
+        entryPoint.depositTo{value: 1 ether}(op.sender);
 
         vm.recordLogs();
         entryPoint.handleOps(userOps, beneficiary);
@@ -292,7 +292,6 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = fillOp(0);
         bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, salt));
         op.sender = accountFactory.getAddress(owner.addr, salt);
-        op.verificationGasLimit = 100000000;
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
@@ -311,7 +310,6 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = fillOp(0);
         bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, salt));
         op.sender = accountFactory.getAddress(owner.addr, salt);
-        op.verificationGasLimit = 100000000;
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
@@ -385,7 +383,6 @@ contract EntryPointTest is TestHelper {
     function test_AggrAccountWithoutAggregator() public {
         UserOperation memory op = fillOp(0);
         op.sender = aggrAccountAddress;
-        op.verificationGasLimit = 100000000;
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
 
@@ -586,7 +583,6 @@ contract EntryPointTest is TestHelper {
         bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, salt));
         op.sender = accountFactory.getAddress(owner.addr, salt);
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
-        op.verificationGasLimit = 10000000;
         op.paymasterAndData = abi.encodePacked(address(paymasterAcceptAll));
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
@@ -608,7 +604,6 @@ contract EntryPointTest is TestHelper {
         bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, salt));
         op.sender = accountFactory.getAddress(owner.addr, salt);
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
-        op.verificationGasLimit = 10000000;
         op.paymasterAndData = abi.encodePacked(paymaster);
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
@@ -639,7 +634,6 @@ contract EntryPointTest is TestHelper {
         bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, salt));
         op.sender = accountFactory.getAddress(owner.addr, salt);
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
-        op.verificationGasLimit = 10000000;
         op.paymasterAndData = abi.encodePacked(paymaster);
         op = signUserOp(op, entryPointAddress, chainId);
 
@@ -724,7 +718,6 @@ contract EntryPointTest is TestHelper {
         uint48 _after = 1;
         uint48 _until = 100;
         UserOperation memory op = fillOp(0);
-        op.verificationGasLimit = 1000000;
         op.paymasterAndData = abi.encodePacked(paymaster, _after, _until);
         op = signUserOp(op, entryPointAddress, chainId, owner.key);
 
@@ -750,7 +743,6 @@ contract EntryPointTest is TestHelper {
         uint48 _until = 20;
         vm.warp(100);
         UserOperation memory op = fillOp(0);
-        op.verificationGasLimit = 1000000;
         op.paymasterAndData = abi.encodePacked(paymaster, _after, _until);
         op = signUserOp(op, entryPointAddress, chainId, owner.key);
 
@@ -894,5 +886,4 @@ contract EntryPointTest is TestHelper {
         );
         entryPoint.handleOps(userOps, beneficiary);
     }
-
 }
