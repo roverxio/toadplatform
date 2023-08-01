@@ -857,8 +857,7 @@ contract EntryPointTest is TestHelper {
     }
 
     //batch multiple requests
-    //should execute
-    function test_BatchMultipleRequestsExec() public {
+    function batchMultipleRequests() public {
         UserOperation memory op1 = fillOp(0);
         SimpleAccount account1 = accountFactory.createAccount(owner.addr, 1);
         op1.sender = address(account1);
@@ -872,37 +871,28 @@ contract EntryPointTest is TestHelper {
         op2 = signUserOp(op2, entryPointAddress, chainId);
         userOps.push(op2);
         entryPoint.depositTo{value: 1 ether}(op2.sender);
+    }
 
+    //should execute
+    function test_BatchMultipleRequestsExec() public {
+        batchMultipleRequests();
         vm.expectEmit(false, true, false, false);
-        emit UserOperationEvent(bytes32(0), op1.sender, address(0), 0, true, 0, 0);
+        emit UserOperationEvent(bytes32(0), userOps[0].sender, address(0), 0, true, 0, 0);
         vm.expectEmit(false, true, false, false);
-        emit UserOperationEvent(bytes32(0), op2.sender, address(0), 0, true, 0, 0);
+        emit UserOperationEvent(bytes32(0), userOps[1].sender, address(0), 0, true, 0, 0);
         entryPoint.handleOps(userOps, beneficiary);
     }
 
     //should pay for tx
     function test_BatchMultipleRequestsPay() public {
-        UserOperation memory op1 = fillOp(0);
-        SimpleAccount account1 = accountFactory.createAccount(owner.addr, 1);
-        op1.sender = address(account1);
-        op1 = signUserOp(op1, entryPointAddress, chainId);
-        userOps.push(op1);
-        entryPoint.depositTo{value: 1 ether}(op1.sender);
-
-        UserOperation memory op2 = fillOp(0);
-        SimpleAccount account2 = accountFactory.createAccount(owner.addr, 2);
-        op2.sender = address(account2);
-        op2 = signUserOp(op2, entryPointAddress, chainId);
-        userOps.push(op2);
-        entryPoint.depositTo{value: 1 ether}(op2.sender);
-
+        batchMultipleRequests();
         vm.recordLogs();
         entryPoint.handleOps(userOps, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, uint256 actualGasCost1,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         (,, uint256 actualGasCost2,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
-        assertEq(actualGasCost1 + entryPoint.getDepositInfo(address(account1)).deposit, 1 ether);
-        assertEq(actualGasCost2 + entryPoint.getDepositInfo(address(account2)).deposit, 1 ether);
+        assertEq(actualGasCost1 + entryPoint.getDepositInfo(userOps[0].sender).deposit, 1 ether);
+        assertEq(actualGasCost2 + entryPoint.getDepositInfo(userOps[1].sender).deposit, 1 ether);
         assertEq(beneficiary.balance, actualGasCost1 + actualGasCost2);
     }
 }
