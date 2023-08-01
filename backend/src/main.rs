@@ -22,7 +22,7 @@ async fn main() -> std::io::Result<()> {
     println!("Starting server...");
     let service = init_services(&CONFIG.log.level.clone());
     api_server(service.clone(), Server {
-        host: CONFIG.server.url.clone(),
+        host: CONFIG.server.host.clone(),
         port: CONFIG.server.port.clone().to_string(),
         log_level: CONFIG.log.level.clone(),
     }).await

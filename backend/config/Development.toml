@@ -2,7 +2,7 @@ debug = true
 
 [server]
 port = "9090"
-url = "localhost"
+host = "localhost"
 prefix = "app"
 
 [log]
