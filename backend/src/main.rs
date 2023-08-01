@@ -1,4 +1,6 @@
+use lazy_static::lazy_static;
 use crate::models::config::server::Server;
+use crate::models::config::settings::Settings;
 use crate::server::{api_server, init_services};
 
 mod handlers;
@@ -9,13 +11,17 @@ mod models;
 mod helpers;
 mod server;
 
+lazy_static! {
+    static ref CONFIG: Settings = Settings::new().expect("Failed to load config.");
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    println!("Hello, world!");
-    let service = init_services(&"info".to_string());
+    println!("Starting server...");
+    let service = init_services(&CONFIG.log.level.clone());
     api_server(service.clone(), Server {
-        host: "localhost".to_string(),
-        port: "9090".to_string(),
-        log_level: "info".to_string(),
+        host: CONFIG.server.host.clone(),
+        port: CONFIG.server.port.clone().to_string(),
+        log_level: CONFIG.log.level.clone(),
     }).await
 }
