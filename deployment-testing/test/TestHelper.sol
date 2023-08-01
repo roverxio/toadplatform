@@ -53,10 +53,8 @@ contract TestHelper is Test {
     }
 
     function createAccountWithFactory(uint256 _accountSalt) internal returns (SimpleAccount, address) {
-        vm.startBroadcast();
         simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
         address _accountAddress = simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt);
-        vm.stopBroadcast();
         return (SimpleAccount(payable(_accountAddress)), _accountAddress);
     }
 
