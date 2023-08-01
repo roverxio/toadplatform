@@ -1,0 +1,9 @@
+debug = false
+
+[server]
+port = "9090"
+url = "localhost"
+prefix = "app"
+
+[log]
+level = "info"
