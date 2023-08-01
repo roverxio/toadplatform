@@ -13,6 +13,7 @@ contract EntryPointTest is TestHelper {
     uint256 internal _accountSalt;
     BasePaymaster internal paymasterAcceptAll;
     TestExpirePaymaster internal expirePaymaster;
+    address payable internal beneficiary;
 
     event SignatureAggregatorChanged(address indexed aggregator);
     event UserOperationEvent(
@@ -35,6 +36,7 @@ contract EntryPointTest is TestHelper {
 
         paymasterAcceptAll = new TestPaymasterAcceptAll(entryPoint);
         expirePaymaster = new TestExpirePaymaster(entryPoint);
+        beneficiary = payable(makeAddr("beneficiary"));
     }
 
     // Stake Management testing
@@ -109,8 +111,6 @@ contract EntryPointTest is TestHelper {
 
     //should revert on signature failure
     function test_RevertOnSignatureFailure() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
-
         // assign a new owner to sign the User Op
         owner = createAddress("new_owner");
         UserOperation memory op = fillAndSign(chainId, 0);
@@ -124,8 +124,6 @@ contract EntryPointTest is TestHelper {
 
     //account should pay for transaction
     function test_PayForTransaction() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
-
         UserOperation memory op = fillAndSign(chainId, 0);
         entryPoint.depositTo{value: 10 ether}(op.sender);
         userOps.push(op);
@@ -139,11 +137,10 @@ contract EntryPointTest is TestHelper {
 
     //account should pay for high gas usage tx
     function test_PayForGasUse() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
         UserOperation memory op = fillAndSign(chainId, 0);
         userOps.push(op);
 
-        entryPoint.depositTo{value: 10 ether}(op.sender);
+        entryPoint.depositTo{value: 1 ether}(op.sender);
         vm.recordLogs();
         entryPoint.handleOps(userOps, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -153,19 +150,17 @@ contract EntryPointTest is TestHelper {
 
     //account should not pay if too low gas limit was set
     function test_DontPayForLowGasLimit() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
         UserOperation memory op = fillAndSign(chainId, 0);
         userOps.push(op);
 
-        entryPoint.depositTo{value: 10 ether}(op.sender);
+        entryPoint.depositTo{value: 1 ether}(op.sender);
         vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA95 out of gas"));
         entryPoint.handleOps{gas: 0.0001 gwei}(userOps, beneficiary);
-        assertEq(entryPoint.getDepositInfo(op.sender).deposit, 10 ether);
+        assertEq(entryPoint.getDepositInfo(op.sender).deposit, 1 ether);
     }
 
     //if account has a deposit, it should use it to pay
     function test_PayFromDeposit() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
         UserOperation memory op = fillAndSign(chainId, 0);
         userOps.push(op);
 
@@ -184,8 +179,6 @@ contract EntryPointTest is TestHelper {
 
     //should pay for reverted tx
     function test_PayForRevertedTx() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
-
         UserOperation memory op = fillOp(0);
         op.callData = "0xdeadface";
         op = signUserOp(op, entryPointAddress, chainId);
@@ -202,7 +195,6 @@ contract EntryPointTest is TestHelper {
 
     //#handleOp (single)
     function test_SingleOp() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
         UserOperation[] memory userOperations = new UserOperation[](1);
 
         UserOperation memory op = fillAndSign(chainId, 0);
@@ -218,8 +210,6 @@ contract EntryPointTest is TestHelper {
 
     //should fail to call recursively into handleOps
     function test_RecursiveCallToHandleOps() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
-
         UserOperation memory dummyOp = fillAndSign(chainId, 0);
         UserOperation[] memory dummyUserOperations = new UserOperation[](1);
         dummyUserOperations[0] = dummyOp;
@@ -283,8 +273,6 @@ contract EntryPointTest is TestHelper {
     //create account
     //should reject create if sender address is wrong
     function test_CreateWrongSenderAddress() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
-
         UserOperation memory op = fillOp(0);
         bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, _accountSalt));
         op.sender = 0x1111111111111111111111111111111111111111;
@@ -300,7 +288,6 @@ contract EntryPointTest is TestHelper {
 
     //should reject create if account not funded
     function test_RejectCreateIfNotFunded() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
         uint256 salt = 123;
 
         UserOperation memory op = fillOp(0);
@@ -320,7 +307,6 @@ contract EntryPointTest is TestHelper {
 
     //should succeed to create account after prefund
     function test_CreateIfFunded() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
         uint256 salt = 123;
 
         UserOperation memory op = fillOp(0);
@@ -343,8 +329,6 @@ contract EntryPointTest is TestHelper {
 
     //should reject if account already created
     function test_SenderAlreadyCreated() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
-
         UserOperation memory op = fillOp(0);
         bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, _accountSalt));
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
@@ -378,7 +362,6 @@ contract EntryPointTest is TestHelper {
 
     //should fail if paymaster has no deposit
     function test_PaymasterWithNoDeposit() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
         uint256 salt = 123;
 
         UserOperation memory op = fillOp(0);
@@ -398,7 +381,6 @@ contract EntryPointTest is TestHelper {
 
     //paymaster should pay for tx
     function test_PaymasterPaysForTransaction() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
         address paymaster = address(paymasterAcceptAll);
         uint256 salt = 123;
 
@@ -632,7 +614,6 @@ contract EntryPointTest is TestHelper {
 
     //handleOps should revert on expired paymaster request
     function test_RevertExpiredPaymasterRequest() public {
-        address payable beneficiary = payable(createAddress("beneficiary").addr);
         address paymaster = address(expirePaymaster);
         uint48 _after = 10;
         uint48 _until = 20;
@@ -654,7 +635,6 @@ contract EntryPointTest is TestHelper {
     //handleOps should abort on time-range
     //should revert on expired account
     function test_RevertExpiredOwner() public {
-        address payable beneficiary = payable(createAddress("beneficiary").addr);
         TestExpiryAccount testAccount = new TestExpiryAccount(entryPoint);
         Account memory sessionOwner = createAddress("session_owner");
         vm.warp(100);
@@ -677,7 +657,6 @@ contract EntryPointTest is TestHelper {
 
     //should revert on date owner
     function test_RevertDateOwner() public {
-        address payable beneficiary = payable(createAddress("beneficiary").addr);
         TestExpiryAccount testAccount = new TestExpiryAccount(entryPoint);
         Account memory sessionOwner = createAddress("session_owner");
         vm.warp(1);
@@ -701,7 +680,6 @@ contract EntryPointTest is TestHelper {
     //aggregation tests
     //should fail to execute aggregated account without an aggregator
     function test_AggrAccountWithoutAggregator() public {
-        address payable beneficiary = payable(createAddress("beneficiary").addr);
         UserOperation memory op = fillOp(0);
         op.sender = aggrAccountAddress;
         op.verificationGasLimit = 100000000;
@@ -717,7 +695,6 @@ contract EntryPointTest is TestHelper {
 
     //should fail to execute aggregated account with wrong aggregator
     function test_AggrAccountWithWrongAggregator() public {
-        address payable beneficiary = payable(createAddress("beneficiary").addr);
         UserOperation memory op = fillOp(0);
         op.sender = aggrAccountAddress;
         op = signUserOp(op, entryPointAddress, chainId);
@@ -736,7 +713,6 @@ contract EntryPointTest is TestHelper {
 
     //should reject non-contract (address(1)) aggregator
     function test_NonExistentAggregator() public {
-        address payable beneficiary = payable(createAddress("beneficiary").addr);
         UserOperation memory op = fillOp(0);
         op.sender = aggrAccountAddress;
         op = signUserOp(op, entryPointAddress, chainId);
@@ -753,7 +729,6 @@ contract EntryPointTest is TestHelper {
 
     //should fail to execute aggregated account with wrong agg. signature
     function test_WrongAggregateSig() public {
-        address payable beneficiary = payable(createAddress("beneficiary").addr);
         UserOperation memory op = fillOp(0);
         op.sender = aggrAccountAddress;
         op = signUserOp(op, entryPointAddress, chainId);
@@ -770,7 +745,6 @@ contract EntryPointTest is TestHelper {
 
     //should run with multiple aggregators (and non-aggregated-accounts)
     function test_MultipleAggregators() public {
-        address payable beneficiary = payable(createAddress("beneficiary").addr);
         UserOperation[] memory userOpsArr = new UserOperation[](2);
         UserOperation[] memory userOpsAggrArr = new UserOperation[](1);
         UserOperation[] memory userOpsNoAggrArr = new UserOperation[](1);
@@ -866,7 +840,6 @@ contract EntryPointTest is TestHelper {
 
     //should create account in handleOps
     function test_AggrCreateAccount() public {
-        address payable beneficiary = payable(createAddress("beneficiary").addr);
         UserOperation memory op = fillOp(0);
         op.sender = aggrAccountFactory.getAddress(owner.addr, 1);
         bytes memory _initCallData = abi.encodeWithSignature("createAccount(address,uint256)", owner.addr, 1);
@@ -886,8 +859,6 @@ contract EntryPointTest is TestHelper {
     //batch multiple requests
     //should execute
     function test_BatchMultipleRequestsExec() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
-
         UserOperation memory op1 = fillOp(0);
         SimpleAccount account1 = accountFactory.createAccount(owner.addr, 1);
         op1.sender = address(account1);
@@ -911,8 +882,6 @@ contract EntryPointTest is TestHelper {
 
     //should pay for tx
     function test_BatchMultipleRequestsPay() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
-
         UserOperation memory op1 = fillOp(0);
         SimpleAccount account1 = accountFactory.createAccount(owner.addr, 1);
         op1.sender = address(account1);
