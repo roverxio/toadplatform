@@ -20,7 +20,7 @@ contract EntryPointTest is TestHelper {
 
     // Stake Management testing
     // Should deposit for transfer into EntryPoint
-    function testDeposit(address signerAddress) public {
+    function test_Deposit(address signerAddress) public {
         entryPoint.depositTo{value: 1 ether}(signerAddress);
 
         assertEq(entryPoint.balanceOf(signerAddress), 1 ether);
@@ -34,7 +34,7 @@ contract EntryPointTest is TestHelper {
 
     // Without stake
     // Should fail to stake without value
-    function testNoStakeSpecified(uint32 unstakeDelaySec) public {
+    function test_NoStakeSpecified(uint32 unstakeDelaySec) public {
         if (unstakeDelaySec > 0) {
             vm.expectRevert(bytes("no stake specified"));
             entryPoint.addStake(unstakeDelaySec);
@@ -42,20 +42,20 @@ contract EntryPointTest is TestHelper {
     }
 
     // Should fail to stake without delay
-    function testNoDelaySpecified() public {
+    function test_NoDelaySpecified() public {
         vm.expectRevert(bytes("must specify unstake delay"));
         entryPoint.addStake{value: 1 ether}(0);
     }
 
     // Should fail to unlock
-    function testNoStakeUnlock() public {
+    function test_NoStakeUnlock() public {
         vm.expectRevert(bytes("not staked"));
         entryPoint.unlockStake();
     }
 
     // With stake of 2 eth
     // Should report "staked" state
-    function testStakedState(address signerAddress) public {
+    function test_StakedState(address signerAddress) public {
         // add balance to temp address
         vm.deal(signerAddress, 3 ether);
         // set msg.sender to specific address
@@ -71,7 +71,7 @@ contract EntryPointTest is TestHelper {
 
     // With deposit
     // Should be able to withdraw
-    function testWithdrawDeposit() public {
+    function test_WithdrawDeposit() public {
         account.addDeposit{value: 1 ether}();
 
         assertEq(getAccountBalance(), 0);
