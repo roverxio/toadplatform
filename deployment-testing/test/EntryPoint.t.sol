@@ -99,7 +99,7 @@ contract EntryPointTest is TestHelper {
         assertEq(getAccountBalance(), 0);
         assertEq(account.getDeposit(), 1 ether);
 
-        vm.prank(owner.addr);
+        vm.prank(accountOwner.addr);
         account.withdrawDepositTo(payable(accountAddress), 1 ether);
 
         assertEq(getAccountBalance(), 1 ether);

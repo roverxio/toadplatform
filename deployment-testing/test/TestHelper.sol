@@ -8,12 +8,10 @@ import "../src/SimpleAccountFactory.sol";
 
 contract TestHelper is Test {
     Account internal accountOwner;
-    Account internal owner;
     EntryPoint internal entryPoint;
     SimpleAccount internal account;
     SimpleAccount internal implementation;
     SimpleAccountFactory internal simpleAccountFactory;
-    SimpleAccountFactory internal accountFactory;
 
     address internal accountAddress;
     address internal entryPointAddress;
@@ -56,10 +54,10 @@ contract TestHelper is Test {
 
     function createAccountWithFactory(uint256 _accountSalt) internal returns (SimpleAccount, address) {
         vm.startBroadcast();
-        accountFactory.createAccount(owner.addr, _accountSalt);
-        address _accountAddress = accountFactory.getAddress(owner.addr, _accountSalt);
+        simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
+        address _accountAddress = simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt);
         vm.stopBroadcast();
-        return (SimpleAccount(payable(accountAddress)), _accountAddress);
+        return (SimpleAccount(payable(_accountAddress)), _accountAddress);
     }
 
     function fillAndSign(uint256 _chainId, uint256 _nonce) internal view returns (UserOperation memory) {
