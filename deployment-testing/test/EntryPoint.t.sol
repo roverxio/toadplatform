@@ -137,6 +137,18 @@ contract EntryPointTest is TestHelper {
         assertEq(beneficiary.balance, actualGasCost);
     }
 
+    //account should not pay if too low gas limit was set
+    function testDontPayForLowGasLimit() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        UserOperation memory op = fillAndSign(chainId, 0);
+        userOps.push(op);
+
+        entryPoint.depositTo{value: 10 ether}(op.sender);
+        vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA95 out of gas"));
+        entryPoint.handleOps{gas: 0.0001 gwei}(userOps, beneficiary);
+        assertEq(entryPoint.getDepositInfo(op.sender).deposit, 10 ether);
+    }
+
     //if account has a deposit, it should use it to pay
     function testPayFromDeposit() public {
         address payable beneficiary = payable(makeAddr("beneficiary"));
