@@ -359,17 +359,22 @@ contract EntryPointTest is TestHelper {
 
         UserOperation memory op1 = utils.fillAndSign(op, accountOwner1, entryPoint, chainId);
         try entryPoint.simulateValidation{gas: 1e6}(op1) {}
-        catch (bytes memory result) {
-            bytes memory data = utils.getDataFromEncoding(result);
-            (IEntryPoint.ReturnInfo memory r,,,) = abi.decode(
-                data,
-                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
+        catch (bytes memory errorReason) {
+            bytes4 reason;
+            assembly {
+                reason := mload(add(errorReason, 32))
+            }
+            assertEq(
+                reason,
+                bytes4(
+                    keccak256(
+                        "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
+                    )
+                )
             );
-            console.logBool(r.sigFailed);
         }
 
         op1.verificationGasLimit = 1e5;
-
         UserOperation memory op2 = utils.fillAndSign(op1, accountOwner1, entryPoint, chainId);
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA13 initCode failed or OOG"));
         entryPoint.simulateValidation(op2);
