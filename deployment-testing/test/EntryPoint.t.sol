@@ -8,6 +8,7 @@ import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestRevertAccount.sol";
+import "../src/test/TestCounter.sol";
 
 //Utils
 import {Utilities} from "./Utilities.sol";
@@ -37,6 +38,7 @@ contract EntryPointTest is TestHelper {
         entryPointAddress = address(entryPoint);
         (account, simpleAccountFactory) =
             utils.createAccountWithEntryPoint(accountOwner.addr, entryPoint, simpleAccountFactory);
+        accountAddress = address(account);
 
         vm.deal(address(account), 1 ether);
     }
@@ -670,5 +672,28 @@ contract EntryPointTest is TestHelper {
 
         entryPoint.handleOps(ops, payable(beneficiary.addr));
         return (beneficiary, key, keyShifted, _accountAddress);
+    }
+
+    //without paymaster (account pays in eth)
+    //#handleOps
+    function _handleOpsSetUp() public returns (TestCounter counter, bytes memory accountExecFromEntryPoint) {
+        counter = new TestCounter{salt: '123'}();
+        bytes memory count = abi.encodeCall(counter.count, ());
+        accountExecFromEntryPoint = abi.encodeCall(account.execute, (address(counter), 0, count));
+    }
+
+    //should revert on signature failure
+    function test_RevertOnSignatureFailure() public {
+        Account memory wrong_owner = createAddress("wrong_owner");
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op = signUserOp(op, entryPointAddress, chainId, wrong_owner.key);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        vm.expectRevert(
+            abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA24 signature error")
+        );
+        entryPoint.handleOps(ops, beneficiary);
     }
 }

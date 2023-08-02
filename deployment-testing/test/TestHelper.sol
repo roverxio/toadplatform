@@ -84,6 +84,16 @@ contract TestHelper is Test {
         return op;
     }
 
+    function signUserOp(UserOperation memory op, address _entryPoint, uint256 _chainId, uint256 _key)
+        internal
+        pure
+        returns (UserOperation memory)
+    {
+        bytes32 message = getUserOpHash(op, _entryPoint, _chainId);
+        op.signature = signMessage(message, _key);
+        return op;
+    }
+
     function getUserOpHash(UserOperation memory op, address _entryPoint, uint256 _chainId)
         internal
         pure
@@ -128,6 +138,12 @@ contract TestHelper is Test {
     function signMessage(bytes32 message) internal view returns (bytes memory) {
         bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(accountOwner.key, digest);
+        return abi.encodePacked(r, s, v);
+    }
+
+    function signMessage(bytes32 message, uint256 key) internal pure returns (bytes memory) {
+        bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, digest);
         return abi.encodePacked(r, s, v);
     }
 
