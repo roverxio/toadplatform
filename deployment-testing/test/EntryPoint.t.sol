@@ -840,6 +840,7 @@ contract EntryPointTest is TestHelper {
         ops.push(op);
         uint256 countBefore = counter.counters(accountAddress);
 
+        //assertion to ensure ops array contains single op
         assertEq(ops.length, 1);
         vm.recordLogs();
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
