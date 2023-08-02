@@ -677,9 +677,8 @@ contract EntryPointTest is TestHelper {
 
     //without paymaster (account pays in eth)
     //create account
-    function _createAccountSetUp() public returns (bytes memory initCode, address payable beneficiary, uint256 salt) {
+    function _createAccountSetUp(uint256 salt) public returns (bytes memory initCode, address payable beneficiary) {
         beneficiary = payable(makeAddr("beneficiary"));
-        salt = 100;
 
         //adding initCode for use in the following test cases
         bytes memory _initCallData = abi.encodeCall(simpleAccountFactory.createAccount, (accountOwner.addr, salt));
@@ -688,7 +687,7 @@ contract EntryPointTest is TestHelper {
 
     //should reject create if sender address is wrong
     function test_CreateWrongSenderAddress() public {
-        (bytes memory initCode, address payable beneficiary, ) = _createAccountSetUp();
+        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp(0);
 
         UserOperation memory op = _defaultOp;
         op.initCode = initCode;
@@ -703,7 +702,7 @@ contract EntryPointTest is TestHelper {
 
     //should reject create if account not funded
     function test_RejectCreateIfNotFunded() public {
-        (bytes memory initCode, address payable beneficiary, ) = _createAccountSetUp();
+        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp(0);
 
         UserOperation memory op = _defaultOp;
         op.sender = simpleAccountFactory.getAddress(accountOwner.addr, 100);
@@ -713,15 +712,14 @@ contract EntryPointTest is TestHelper {
         ops.push(op);
 
         assertEq(op.sender.balance, 0);
-        vm.expectRevert(
-            abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA21 didn't pay prefund")
-        );
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA21 didn't pay prefund"));
         entryPoint.handleOps(ops, beneficiary);
     }
 
     //should succeed to create account after prefund
     function test_CreateIfFunded() public {
-        (bytes memory initCode, address payable beneficiary, uint256 salt) = _createAccountSetUp();
+        uint256 salt = 100;
+        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp(salt);
         address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
         vm.deal(preAddr, 1 ether);
 
@@ -738,6 +736,30 @@ contract EntryPointTest is TestHelper {
 
         vm.expectEmit(true, true, false, true);
         emit AccountDeployed(userOpHash, createOp.sender, address(simpleAccountFactory), address(0));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //should reject if account already created
+    function test_AccountAlreadyCreated() public {
+        // `salt = 0` corresponds to default account created during setup
+        uint256 salt = 0;
+        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp(salt);
+
+        // The `if` code, added from the hardhat test, is commented out as it is redundant in case `salt = 0`
+        // address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
+        // if(isDeployed(preAddr)) {
+        //     revert();
+        // }
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.initCode = initCode;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.expectRevert(
+            abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA10 sender already constructed")
+        );
         entryPoint.handleOps(ops, beneficiary);
     }
 }
