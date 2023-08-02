@@ -696,4 +696,29 @@ contract EntryPointTest is TestHelper {
         );
         entryPoint.handleOps(ops, beneficiary);
     }
+
+    //account should pay for transaction
+    function test_PayForTransaction() public {
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExecFromEntryPoint;
+        op.verificationGasLimit = 1e6;
+        op.callGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        uint256 countBefore = counter.counters(accountAddress);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+        
+        uint256 countAfter = counter.counters(accountAddress);
+        assertEq(countAfter, countBefore + 1);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+    }
 }
