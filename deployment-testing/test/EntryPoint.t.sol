@@ -711,7 +711,7 @@ contract EntryPointTest is TestHelper {
         op.verificationGasLimit = 2e6;
         op = signUserOp(op, entryPointAddress, chainId);
         ops.push(op);
-        
+
         assertEq(op.sender.balance, 0);
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA21 didn't pay prefund"));
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
@@ -747,7 +747,7 @@ contract EntryPointTest is TestHelper {
         (bytes memory initCode, address payable beneficiary) = _createAccountSetUp(salt);
 
         // The below code snippet, added from the hardhat test, is commented out as it is redundant in case `salt = 0`
-        
+
         // address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
         // if(isDeployed(preAddr)) {
         //     revert();
@@ -759,9 +759,7 @@ contract EntryPointTest is TestHelper {
         op = signUserOp(op, entryPointAddress, chainId);
         ops.push(op);
 
-        vm.expectRevert(
-            abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA10 sender already constructed")
-        );
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA10 sender already constructed"));
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
     }
 }
