@@ -153,43 +153,52 @@ contract EntryPointTest is TestHelper {
     }
 
     //account should pay for high gas usage tx
-    function test_PayForGasUse() public {
-        (TestCounter counter,) = _handleOpsSetUp();
-        UserOperation memory op = fillOp(0);
+    function test_PayForHighGasUse() public {
+        (TestCounter counter, ) = _handleOpsSetUp();
         uint256 iterations = 45;
-        bytes memory counterCallData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, "");
-        op.callData = abi.encodeCall(account.execute, (address(counter), 0, counterCallData));
+        bytes memory countData = abi.encodeCall(counter.gasWaster, (iterations, ''));
+        bytes memory accountExec = abi.encodeCall(account.execute, (address(counter), 0, countData));
+
+        UserOperation memory op = fillOp(0);
+        op.callData = accountExec;
         op.verificationGasLimit = 1e5;
         op.callGasLimit = 11e5;
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
-        entryPoint.depositTo{value: 1 ether}(op.sender);
-
+        address payable beneficiary = payable(makeAddr("beneficiary")); 
         uint256 offsetBefore = counter.offset();
+
         vm.recordLogs();
         entryPoint.handleOps{gas: 13e5}(userOps, beneficiary);
+        
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
+        
         assertEq(counter.offset(), offsetBefore + iterations);
     }
 
     //account should not pay if too low gas limit was set
     function test_DontPayForLowGasLimit() public {
-        (TestCounter counter,) = _handleOpsSetUp();
-        UserOperation memory op = fillOp(0);
+        (TestCounter counter, ) = _handleOpsSetUp();
         uint256 iterations = 45;
-        bytes memory counterCallData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, "");
-        op.callData = abi.encodeCall(account.execute, (address(counter), 0, counterCallData));
+        bytes memory countData = abi.encodeCall(counter.gasWaster, (iterations, ''));
+        bytes memory accountExec = abi.encodeCall(account.execute, (address(counter), 0, countData));
+
+        UserOperation memory op = fillOp(0);
+        op.callData = accountExec;
         op.verificationGasLimit = 1e5;
         op.callGasLimit = 11e5;
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
+        uint256 initialAccountBalance = accountAddress.balance;
+        address payable beneficiary = payable(makeAddr("beneficiary")); 
+        uint256 offsetBefore = counter.offset();
 
-        entryPoint.depositTo{value: 1 ether}(op.sender);
         vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA95 out of gas"));
         entryPoint.handleOps{gas: 12e5}(userOps, beneficiary);
-        assertEq(entryPoint.getDepositInfo(op.sender).deposit, 1 ether);
+        
+        assertEq(accountAddress.balance, initialAccountBalance);
     }
 
     //if account has a deposit, it should use it to pay
