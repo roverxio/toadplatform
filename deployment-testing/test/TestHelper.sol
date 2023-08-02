@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
@@ -7,11 +7,11 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract TestHelper is Test {
-    Account internal owner;
+    Account internal accountOwner;
     EntryPoint internal entryPoint;
     SimpleAccount internal account;
     SimpleAccount internal implementation;
-    SimpleAccountFactory internal accountFactory;
+    SimpleAccountFactory internal simpleAccountFactory;
 
     address internal accountAddress;
     address internal entryPointAddress;
@@ -39,28 +39,23 @@ contract TestHelper is Test {
         return makeAccount(_name);
     }
 
-    function deployEntryPoint(uint256 _salt) internal returns (EntryPoint) {
+    function deployEntryPoint(uint256 _salt) internal {
         entryPoint = new EntryPoint{salt: bytes32(_salt)}();
         entryPointAddress = address(entryPoint);
-        return entryPoint;
     }
 
     function createAccount(uint256 _factorySalt, uint256 _accountSalt) internal {
-        vm.startBroadcast();
-        accountFactory = new SimpleAccountFactory{salt: bytes32(_factorySalt)}(entryPoint);
-        implementation = accountFactory.accountImplementation();
-        accountFactory.createAccount(owner.addr, _accountSalt);
-        accountAddress = accountFactory.getAddress(owner.addr, _accountSalt);
-        vm.stopBroadcast();
+        simpleAccountFactory = new SimpleAccountFactory{salt: bytes32(_factorySalt)}(entryPoint);
+        implementation = simpleAccountFactory.accountImplementation();
+        simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
+        accountAddress = simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt);
         account = SimpleAccount(payable(accountAddress));
     }
 
     function createAccountWithFactory(uint256 _accountSalt) internal returns (SimpleAccount, address) {
-        vm.startBroadcast();
-        accountFactory.createAccount(owner.addr, _accountSalt);
-        address _accountAddress = accountFactory.getAddress(owner.addr, _accountSalt);
-        vm.stopBroadcast();
-        return (SimpleAccount(payable(accountAddress)), _accountAddress);
+        simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
+        address _accountAddress = simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt);
+        return (SimpleAccount(payable(_accountAddress)), _accountAddress);
     }
 
     function fillAndSign(uint256 _chainId, uint256 _nonce) internal view returns (UserOperation memory) {
@@ -132,7 +127,7 @@ contract TestHelper is Test {
 
     function signMessage(bytes32 message) internal view returns (bytes memory) {
         bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner.key, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(accountOwner.key, digest);
         return abi.encodePacked(r, s, v);
     }
 

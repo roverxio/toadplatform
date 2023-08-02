@@ -10,7 +10,7 @@ contract SimpleAccountTest is TestHelper {
     uint256 internal constant gasPrice = 1000000000;
 
     function setUp() public {
-        owner = createAddress("owner");
+        accountOwner = createAddress("owner");
         deployEntryPoint(123456);
         createAccount(123457, 123458);
     }
@@ -20,7 +20,7 @@ contract SimpleAccountTest is TestHelper {
         // add balance to scw
         vm.deal(accountAddress, 3 ether);
         // set msg.sender to owner address
-        vm.prank(owner.addr);
+        vm.prank(accountOwner.addr);
         account.execute(receiver, 1 ether, defaultBytes);
         assertEq(getAccountBalance(), 2 ether);
     }
@@ -67,9 +67,9 @@ contract SimpleAccountTest is TestHelper {
     // Sanity: check deployer
     function testDeployer() public {
         Account memory newOwner = makeAccount("new_owner");
-        address testAccount = accountFactory.getAddress(newOwner.addr, 123471);
+        address testAccount = simpleAccountFactory.getAddress(newOwner.addr, 123471);
         assertEq(isDeployed(testAccount), false);
-        accountFactory.createAccount(newOwner.addr, 123471);
+        simpleAccountFactory.createAccount(newOwner.addr, 123471);
         assertEq(isDeployed(testAccount), true);
     }
 }
