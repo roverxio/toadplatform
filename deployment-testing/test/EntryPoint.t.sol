@@ -30,6 +30,8 @@ contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
     Utilities internal utils;
 
+    event AccountDeployed(bytes32 indexed userOpHash, address indexed sender, address factory, address paymaster);
+
     function setUp() public {
         utils = new Utilities();
         accountOwner = utils.createAccountOwner("accountOwner");
@@ -675,17 +677,18 @@ contract EntryPointTest is TestHelper {
 
     //without paymaster (account pays in eth)
     //create account
-    function _createAccountSetUp() public returns (bytes memory initCode, address payable beneficiary) {
+    function _createAccountSetUp() public returns (bytes memory initCode, address payable beneficiary, uint256 salt) {
         beneficiary = payable(makeAddr("beneficiary"));
+        salt = 100;
 
         //adding initCode for use in the following test cases
-        bytes memory _initCallData = abi.encodeCall(simpleAccountFactory.createAccount, (accountOwner.addr, 100));
+        bytes memory _initCallData = abi.encodeCall(simpleAccountFactory.createAccount, (accountOwner.addr, salt));
         initCode = abi.encodePacked(address(simpleAccountFactory), _initCallData);
     }
 
     //should reject create if sender address is wrong
     function test_CreateWrongSenderAddress() public {
-        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp();
+        (bytes memory initCode, address payable beneficiary, ) = _createAccountSetUp();
 
         UserOperation memory op = _defaultOp;
         op.initCode = initCode;
@@ -700,7 +703,7 @@ contract EntryPointTest is TestHelper {
 
     //should reject create if account not funded
     function test_RejectCreateIfNotFunded() public {
-        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp();
+        (bytes memory initCode, address payable beneficiary, ) = _createAccountSetUp();
 
         UserOperation memory op = _defaultOp;
         op.sender = simpleAccountFactory.getAddress(accountOwner.addr, 100);
@@ -713,6 +716,28 @@ contract EntryPointTest is TestHelper {
         vm.expectRevert(
             abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA21 didn't pay prefund")
         );
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //should succeed to create account after prefund
+    function test_CreateIfFunded() public {
+        (bytes memory initCode, address payable beneficiary, uint256 salt) = _createAccountSetUp();
+        address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
+        vm.deal(preAddr, 1 ether);
+
+        UserOperation memory createOp = _defaultOp;
+        createOp.sender = preAddr;
+        createOp.initCode = initCode;
+        createOp.callGasLimit = 1e6;
+        createOp.verificationGasLimit = 2e6;
+        createOp = signUserOp(createOp, entryPointAddress, chainId);
+        ops.push(createOp);
+
+        assertEq(isDeployed(preAddr), false, "account exists before creation");
+        bytes32 userOpHash = entryPoint.getUserOpHash(createOp);
+
+        vm.expectEmit(true, true, false, true);
+        emit AccountDeployed(userOpHash, createOp.sender, address(simpleAccountFactory), address(0));
         entryPoint.handleOps(ops, beneficiary);
     }
 }
