@@ -842,7 +842,7 @@ contract EntryPointTest is TestHelper {
 
         assertEq(ops.length, 1);
         vm.recordLogs();
-        entryPoint.handleOps(ops, beneficiary);
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
 
         uint256 countAfter = counter.counters(accountAddress);
         assertEq(countAfter, countBefore + 1);
@@ -867,7 +867,7 @@ contract EntryPointTest is TestHelper {
         ops.push(op);
 
         vm.recordLogs();
-        entryPoint.handleOps(ops, beneficiary);
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (, bytes memory revertReason) = abi.decode(entries[2].data, (uint256, bytes));
         assertEq(
