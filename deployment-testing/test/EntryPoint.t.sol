@@ -237,19 +237,19 @@ contract EntryPointTest is TestHelper {
 
     //should pay for reverted tx
     function test_PayForRevertedTx() public {
-        (TestCounter counter,) = _handleOpsSetUp();
         UserOperation memory op = fillOp(0);
         op.callData = "0xdeadface";
         op.verificationGasLimit = 1e6;
         op.callGasLimit = 1e6;
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
-        entryPoint.depositTo{value: 1 ether}(op.sender);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
 
         vm.recordLogs();
         entryPoint.handleOps{gas: 1e7}(userOps, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        (, bool success,,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
+        
+        (, bool success,,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
         assertFalse(success);
         bool balanceGt1 = (beneficiary.balance > 1);
         assertEq(balanceGt1, true);
