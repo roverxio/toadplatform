@@ -806,4 +806,25 @@ contract EntryPointTest is TestHelper {
         (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
     }
+
+    //should pay for reverted tx
+    function test_PayForRevertedTx() public {
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = "0xdeadface";
+        op.verificationGasLimit = 1e6;
+        op.callGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        
+        (, bool success,,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertFalse(success);
+        bool balanceGt1 = (beneficiary.balance > 1);
+        assertEq(balanceGt1, true);
+    }
 }
