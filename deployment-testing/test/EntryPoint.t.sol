@@ -771,4 +771,39 @@ contract EntryPointTest is TestHelper {
         assertEq(accountAddress.balance, initialAccountBalance);
         assertEq(counter.offset(), offsetBefore);
     }
+
+    //if account has a deposit, it should use it to pay
+    function test_PayFromDeposit() public {
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
+        account.addDeposit{value: 1 ether}();
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExecFromEntryPoint;
+        op.verificationGasLimit = 1e6;
+        op.callGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        uint256 countBefore = counter.counters(op.sender);
+        uint256 balBefore = op.sender.balance;
+        uint256 depositBefore = entryPoint.balanceOf(accountAddress);
+        
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        uint256 countAfter = counter.counters(op.sender);
+        assertEq(countAfter, countBefore + 1);
+
+        uint256 balAfter = op.sender.balance;
+        uint256 depositAfter = entryPoint.balanceOf(accountAddress);
+        assertEq(balAfter, balBefore, "should pay from stake, not balance");
+        uint256 depositUsed = depositBefore - depositAfter;
+        assertEq(beneficiary.balance, depositUsed);
+        
+        (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+    }
 }
