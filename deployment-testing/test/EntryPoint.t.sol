@@ -789,7 +789,7 @@ contract EntryPointTest is TestHelper {
         uint256 countBefore = counter.counters(op.sender);
         uint256 balBefore = op.sender.balance;
         uint256 depositBefore = entryPoint.balanceOf(accountAddress);
-        
+
         vm.recordLogs();
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
@@ -802,7 +802,7 @@ contract EntryPointTest is TestHelper {
         assertEq(balAfter, balBefore, "should pay from stake, not balance");
         uint256 depositUsed = depositBefore - depositAfter;
         assertEq(beneficiary.balance, depositUsed);
-        
+
         (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
     }
@@ -821,10 +821,34 @@ contract EntryPointTest is TestHelper {
         vm.recordLogs();
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        
+
         (, bool success,,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
         assertFalse(success);
         bool balanceGt1 = (beneficiary.balance > 1);
         assertEq(balanceGt1, true);
+    }
+
+    //#handleOp (single)
+    function test_SingleOp() public {
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExecFromEntryPoint;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+        uint256 countBefore = counter.counters(accountAddress);
+
+        assertEq(ops.length, 1);
+        vm.recordLogs();
+        entryPoint.handleOps(ops, beneficiary);
+
+        uint256 countAfter = counter.counters(accountAddress);
+        assertEq(countAfter, countBefore + 1);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
     }
 }
