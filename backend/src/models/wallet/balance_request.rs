@@ -9,8 +9,8 @@ pub struct BalanceRequest {
 
 #[derive(Deserialize)]
 pub struct Balance {
-    pub(crate) chain: String,
-    pub(crate) currency: String,
+    pub chain: String,
+    pub currency: String,
 }
 
 impl BalanceRequest {
