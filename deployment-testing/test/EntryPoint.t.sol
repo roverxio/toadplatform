@@ -851,4 +851,29 @@ contract EntryPointTest is TestHelper {
         (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
     }
+
+    //should fail to call recursively into handleOps
+    function test_RecursiveCallToHandleOps() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation[] memory _ops;
+        bytes memory callHandleOps = abi.encodeCall(entryPoint.handleOps, (_ops, beneficiary));
+        bytes memory execHandlePost = abi.encodeCall(account.execute, (entryPointAddress, 0, callHandleOps));
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = execHandlePost;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps(ops, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (, bytes memory revertReason) = abi.decode(entries[2].data, (uint256, bytes));
+        assertEq(
+            revertReason,
+            abi.encodeWithSignature("Error(string)", "ReentrancyGuard: reentrant call"),
+            "execution of handleOps inside a UserOp should revert"
+        );
+    }
 }
