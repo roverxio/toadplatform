@@ -7,3 +7,7 @@ prefix = "app"
 
 [log]
 level = "debug"
+
+[default_chain]
+chain = "Sepolia"
+currency = "native"
