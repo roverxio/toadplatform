@@ -721,4 +721,31 @@ contract EntryPointTest is TestHelper {
         (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
     }
+
+    //account should pay for high gas usage tx
+    function test_PayForHighGasUse() public {
+        (TestCounter counter, ) = _handleOpsSetUp();
+        uint256 iterations = 45;
+        bytes memory countData = abi.encodeCall(counter.gasWaster, (iterations, ''));
+        bytes memory accountExec = abi.encodeCall(account.execute, (address(counter), 0, countData));
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExec;
+        op.verificationGasLimit = 1e5;
+        op.callGasLimit = 11e5;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary")); 
+        uint256 offsetBefore = counter.offset();
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 13e6}(ops, beneficiary);
+        
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+        
+        assertEq(counter.offset(), offsetBefore + iterations);
+    }
 }
