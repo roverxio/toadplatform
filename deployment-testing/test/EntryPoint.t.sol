@@ -37,6 +37,7 @@ contract EntryPointTest is TestHelper {
         entryPointAddress = address(entryPoint);
         (account, simpleAccountFactory) =
             utils.createAccountWithEntryPoint(accountOwner.addr, entryPoint, simpleAccountFactory);
+        accountAddress = address(account);
 
         vm.deal(address(account), 1 ether);
     }
@@ -670,5 +671,30 @@ contract EntryPointTest is TestHelper {
 
         entryPoint.handleOps(ops, payable(beneficiary.addr));
         return (beneficiary, key, keyShifted, _accountAddress);
+    }
+
+    //without paymaster (account pays in eth)
+    //create account
+    function _createAccountSetUp() public returns (bytes memory initCode, address payable beneficiary) {
+        beneficiary = payable(makeAddr("beneficiary"));
+
+        //adding initCode for use in the following test cases
+        bytes memory _initCallData = abi.encodeCall(simpleAccountFactory.createAccount, (accountOwner.addr, 0));
+        initCode = abi.encodePacked(address(simpleAccountFactory), _initCallData);
+    }
+
+    //should reject create if sender address is wrong
+    function test_CreateWrongSenderAddress() public {
+        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp();
+
+        UserOperation memory op = _defaultOp;
+        op.initCode = initCode;
+        op.verificationGasLimit = 2e6;
+        op.sender = 0x1111111111111111111111111111111111111111;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA14 initCode must return sender"));
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
     }
 }
