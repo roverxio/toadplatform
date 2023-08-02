@@ -34,6 +34,7 @@ contract EntryPointTest is TestHelper {
         utils = new Utilities();
         accountOwner = utils.createAccountOwner("accountOwner");
         entryPoint = utils.deployEntryPoint(1234);
+        entryPointAddress = address(entryPoint);
         (account, simpleAccountFactory) =
             utils.createAccountWithEntryPoint(accountOwner.addr, entryPoint, simpleAccountFactory);
 
