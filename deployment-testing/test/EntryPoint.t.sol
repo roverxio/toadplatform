@@ -15,7 +15,7 @@ contract EntryPointTest is TestHelper {
     BasePaymaster internal paymasterAcceptAll;
     TestExpirePaymaster internal expirePaymaster;
     address payable internal beneficiary;
-    UserOperation[] internal userOps;
+    UserOperation[] internal ops;
 
     event SignatureAggregatorChanged(address indexed aggregator);
     event UserOperationEvent(
@@ -120,12 +120,12 @@ contract EntryPointTest is TestHelper {
     function test_RevertOnSignatureFailure() public {
         Account memory wrong_owner = createAddress("new_owner");
         UserOperation memory op = signUserOp(fillOp(0), entryPointAddress, chainId, wrong_owner.key);
-        userOps.push(op);
+        ops.push(op);
         address payable beneficiary = payable(makeAddr("beneficiary"));
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA24 signature error")
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
     }
 
     //account should pay for transaction
@@ -137,12 +137,12 @@ contract EntryPointTest is TestHelper {
         op.verificationGasLimit = 1e6;
         op.callGasLimit = 1e6;
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
         address payable beneficiary = payable(makeAddr("beneficiary"));
         uint256 countBefore = counter.counters(op.sender);
 
         vm.recordLogs();
-        entryPoint.handleOps{gas: 1e7}(userOps, beneficiary);
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
         
         uint256 countAfter = counter.counters(op.sender);
         assertEq(countAfter, countBefore + 1);
@@ -164,12 +164,12 @@ contract EntryPointTest is TestHelper {
         op.verificationGasLimit = 1e5;
         op.callGasLimit = 11e5;
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
         address payable beneficiary = payable(makeAddr("beneficiary")); 
         uint256 offsetBefore = counter.offset();
 
         vm.recordLogs();
-        entryPoint.handleOps{gas: 13e5}(userOps, beneficiary);
+        entryPoint.handleOps{gas: 13e5}(ops, beneficiary);
         
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
@@ -190,13 +190,13 @@ contract EntryPointTest is TestHelper {
         op.verificationGasLimit = 1e5;
         op.callGasLimit = 11e5;
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
         uint256 initialAccountBalance = accountAddress.balance;
         address payable beneficiary = payable(makeAddr("beneficiary")); 
         uint256 offsetBefore = counter.offset();
 
         vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA95 out of gas"));
-        entryPoint.handleOps{gas: 12e5}(userOps, beneficiary);
+        entryPoint.handleOps{gas: 12e5}(ops, beneficiary);
         
         assertEq(accountAddress.balance, initialAccountBalance);
     }
@@ -211,7 +211,7 @@ contract EntryPointTest is TestHelper {
         op.verificationGasLimit = 1e6;
         op.callGasLimit = 1e6;
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
         address payable beneficiary = payable(makeAddr("beneficiary"));
 
         uint256 countBefore = counter.counters(op.sender);
@@ -219,7 +219,7 @@ contract EntryPointTest is TestHelper {
         uint256 depositBefore = entryPoint.balanceOf(accountAddress);
         
         vm.recordLogs();
-        entryPoint.handleOps{gas: 1e7}(userOps, beneficiary);
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
         uint256 countAfter = counter.counters(op.sender);
@@ -242,11 +242,11 @@ contract EntryPointTest is TestHelper {
         op.verificationGasLimit = 1e6;
         op.callGasLimit = 1e6;
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
         address payable beneficiary = payable(makeAddr("beneficiary"));
 
         vm.recordLogs();
-        entryPoint.handleOps{gas: 1e7}(userOps, beneficiary);
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         
         (, bool success,,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
@@ -257,15 +257,16 @@ contract EntryPointTest is TestHelper {
 
     //#handleOp (single)
     function test_SingleOp() public {
-        (TestCounter counter,) = _handleOpsSetUp();
-        UserOperation[] memory userOperations = new UserOperation[](1);
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
+        address payable beneficiary = payable(makeAddr("beneficiary"));
 
-        UserOperation memory op = fillAndSign(chainId, 0);
-        entryPoint.depositTo{value: 1 ether}(op.sender);
-        userOperations[0] = op;
+        UserOperation memory op = fillOp(0);
+        op.callData = accountExecFromEntryPoint;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
 
         vm.recordLogs();
-        entryPoint.handleOps(userOperations, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
@@ -288,11 +289,11 @@ contract EntryPointTest is TestHelper {
 
         op.callData = executeCalldata;
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
         entryPoint.depositTo{value: 1 ether}(op.sender);
 
         vm.recordLogs();
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (, bytes memory revertReason) = abi.decode(entries[1].data, (uint256, bytes));
         assertEq(
@@ -341,12 +342,12 @@ contract EntryPointTest is TestHelper {
         op.sender = 0x1111111111111111111111111111111111111111;
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
 
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA14 initCode must return sender")
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
     }
 
     //should reject create if account not funded
@@ -358,13 +359,13 @@ contract EntryPointTest is TestHelper {
         op.sender = accountFactory.getAddress(owner.addr, salt);
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
 
         assertEq(entryPoint.getDepositInfo(op.sender).deposit, 0);
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA21 didn't pay prefund")
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
     }
 
     //should succeed to create account after prefund
@@ -376,14 +377,14 @@ contract EntryPointTest is TestHelper {
         op.sender = accountFactory.getAddress(owner.addr, salt);
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
 
         entryPoint.depositTo{value: 1 ether}(op.sender);
         bool isFunded = entryPoint.getDepositInfo(op.sender).deposit > 0;
         assertEq(isFunded, true);
 
         vm.recordLogs();
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         assertEq(entries[3].topics[0], keccak256("AccountDeployed(bytes32,address,address,address)"));
     }
@@ -394,12 +395,12 @@ contract EntryPointTest is TestHelper {
         bytes memory _initCallData = abi.encodeCall(SimpleAccountFactory.createAccount, (owner.addr, _accountSalt));
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
 
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA10 sender already constructed")
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
     }
 
     //batch multiple requests
@@ -408,14 +409,14 @@ contract EntryPointTest is TestHelper {
         SimpleAccount account1 = accountFactory.createAccount(owner.addr, 1);
         op1.sender = address(account1);
         op1 = signUserOp(op1, entryPointAddress, chainId);
-        userOps.push(op1);
+        ops.push(op1);
         entryPoint.depositTo{value: 1 ether}(op1.sender);
 
         UserOperation memory op2 = fillOp(0);
         SimpleAccount account2 = accountFactory.createAccount(owner.addr, 2);
         op2.sender = address(account2);
         op2 = signUserOp(op2, entryPointAddress, chainId);
-        userOps.push(op2);
+        ops.push(op2);
         entryPoint.depositTo{value: 1 ether}(op2.sender);
     }
 
@@ -423,22 +424,22 @@ contract EntryPointTest is TestHelper {
     function test_BatchMultipleRequestsExec() public {
         batchMultipleRequests();
         vm.expectEmit(false, true, false, false);
-        emit UserOperationEvent(bytes32(0), userOps[0].sender, address(0), 0, true, 0, 0);
+        emit UserOperationEvent(bytes32(0), ops[0].sender, address(0), 0, true, 0, 0);
         vm.expectEmit(false, true, false, false);
-        emit UserOperationEvent(bytes32(0), userOps[1].sender, address(0), 0, true, 0, 0);
-        entryPoint.handleOps(userOps, beneficiary);
+        emit UserOperationEvent(bytes32(0), ops[1].sender, address(0), 0, true, 0, 0);
+        entryPoint.handleOps(ops, beneficiary);
     }
 
     //should pay for tx
     function test_BatchMultipleRequestsPay() public {
         batchMultipleRequests();
         vm.recordLogs();
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, uint256 actualGasCost1,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         (,, uint256 actualGasCost2,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
-        assertEq(actualGasCost1 + entryPoint.getDepositInfo(userOps[0].sender).deposit, 1 ether);
-        assertEq(actualGasCost2 + entryPoint.getDepositInfo(userOps[1].sender).deposit, 1 ether);
+        assertEq(actualGasCost1 + entryPoint.getDepositInfo(ops[0].sender).deposit, 1 ether);
+        assertEq(actualGasCost2 + entryPoint.getDepositInfo(ops[1].sender).deposit, 1 ether);
         assertEq(beneficiary.balance, actualGasCost1 + actualGasCost2);
     }
 
@@ -448,13 +449,13 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = fillOp(0);
         op.sender = aggrAccountAddress;
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
 
         entryPoint.depositTo{value: 1 ether}(op.sender);
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA24 signature error")
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
     }
 
     //should fail to execute aggregated account with wrong aggregator
@@ -462,11 +463,11 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = fillOp(0);
         op.sender = aggrAccountAddress;
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
 
         IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
         TestSignatureAggregator wrongAggregator = new TestSignatureAggregator();
-        opsPerAggregator[0] = fillAggregatedOp(userOps, wrongAggregator);
+        opsPerAggregator[0] = fillAggregatedOp(ops, wrongAggregator);
 
         entryPoint.depositTo{value: 1 ether}(op.sender);
         vm.expectRevert(
@@ -480,11 +481,11 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = fillOp(0);
         op.sender = aggrAccountAddress;
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
 
         IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
         bytes memory nullSignature = abi.encodePacked(bytes32(0));
-        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(userOps, IAggregator(address(1)), nullSignature);
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, IAggregator(address(1)), nullSignature);
 
         entryPoint.depositTo{value: 1 ether}(op.sender);
         vm.expectRevert("AA96 invalid aggregator");
@@ -496,11 +497,11 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = fillOp(0);
         op.sender = aggrAccountAddress;
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
 
         IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
         bytes memory wrongSignature = abi.encodePacked(uint256(0x123456));
-        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(userOps, aggregator, wrongSignature);
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, aggregator, wrongSignature);
 
         entryPoint.depositTo{value: 1 ether}(op.sender);
         vm.expectRevert(abi.encodeWithSignature("SignatureValidationFailed(address)", aggregator));
@@ -509,38 +510,38 @@ contract EntryPointTest is TestHelper {
 
     //should run with multiple aggregators (and non-aggregated-accounts)
     function test_MultipleAggregators() public {
-        UserOperation[] memory userOpsArr = new UserOperation[](2);
-        UserOperation[] memory userOpsAggrArr = new UserOperation[](1);
-        UserOperation[] memory userOpsNoAggrArr = new UserOperation[](1);
+        UserOperation[] memory opsArr = new UserOperation[](2);
+        UserOperation[] memory opsAggrArr = new UserOperation[](1);
+        UserOperation[] memory opsNoAggrArr = new UserOperation[](1);
         TestSignatureAggregator aggregator3 = new TestSignatureAggregator();
 
         UserOperation memory op1 = fillOp(0);
         op1.sender = aggrAccountAddress;
         op1.signature = aggregator.validateUserOpSignature(op1);
-        userOpsArr[0] = op1;
+        opsArr[0] = op1;
 
         UserOperation memory op2 = fillOp(0);
         aggrAccountFactory.createAccount(owner.addr, 2);
         address aggrAccount2 = aggrAccountFactory.getAddress(owner.addr, 2);
         op2.sender = aggrAccount2;
         op2.signature = aggregator.validateUserOpSignature(op2);
-        userOpsArr[1] = op2;
+        opsArr[1] = op2;
 
         UserOperation memory op3 = fillOp(0);
         TestAggregatedAccountFactory tempAggrAccountFactory =
             new TestAggregatedAccountFactory(entryPoint, address(aggregator3));
         tempAggrAccountFactory.createAccount(owner.addr, 3);
         op3.sender = tempAggrAccountFactory.getAddress(owner.addr, 3);
-        userOpsAggrArr[0] = signUserOp(op3, entryPointAddress, chainId);
+        opsAggrArr[0] = signUserOp(op3, entryPointAddress, chainId);
 
-        userOpsNoAggrArr[0] = fillAndSign(chainId, 0);
+        opsNoAggrArr[0] = fillAndSign(chainId, 0);
 
         IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](3);
-        opsPerAggregator[0] = fillAggregatedOp(userOpsArr, aggregator);
+        opsPerAggregator[0] = fillAggregatedOp(opsArr, aggregator);
         opsPerAggregator[1] =
-            IEntryPoint.UserOpsPerAggregator(userOpsAggrArr, aggregator3, abi.encodePacked(bytes32(0)));
+            IEntryPoint.UserOpsPerAggregator(opsAggrArr, aggregator3, abi.encodePacked(bytes32(0)));
         opsPerAggregator[2] =
-            IEntryPoint.UserOpsPerAggregator(userOpsNoAggrArr, IAggregator(nullAddress), abi.encodePacked(bytes32(0)));
+            IEntryPoint.UserOpsPerAggregator(opsNoAggrArr, IAggregator(nullAddress), abi.encodePacked(bytes32(0)));
 
         entryPoint.depositTo{value: 1 ether}(op1.sender);
         entryPoint.depositTo{value: 1 ether}(op2.sender);
@@ -609,10 +610,10 @@ contract EntryPointTest is TestHelper {
         bytes memory _initCallData = abi.encodeWithSignature("createAccount(address,uint256)", owner.addr, 1);
         op.initCode = abi.encodePacked(address(aggrAccountFactory), _initCallData);
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
 
         IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
-        opsPerAggregator[0] = fillAggregatedOp(userOps, aggregator);
+        opsPerAggregator[0] = fillAggregatedOp(ops, aggregator);
 
         entryPoint.depositTo{value: 1 ether}(op.sender);
         vm.expectEmit(false, true, false, false);
@@ -649,12 +650,12 @@ contract EntryPointTest is TestHelper {
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
         op.paymasterAndData = abi.encodePacked(address(paymasterAcceptAll));
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
 
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA31 paymaster deposit too low")
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
     }
 
     //paymaster should pay for tx
@@ -670,10 +671,10 @@ contract EntryPointTest is TestHelper {
         op.initCode = abi.encodePacked(address(accountFactory), _initCallData);
         op.paymasterAndData = abi.encodePacked(paymaster);
         op = signUserOp(op, entryPointAddress, chainId);
-        userOps.push(op);
+        ops.push(op);
 
         vm.recordLogs();
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         uint256 i;
         for (i = 0; i < entries.length; i++) {
@@ -895,7 +896,7 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = fillOp(0);
         op.paymasterAndData = abi.encodePacked(paymaster, _after, _until);
         op = signUserOp(op, entryPointAddress, chainId, owner.key);
-        userOps.push(op);
+        ops.push(op);
 
         entryPoint.depositTo{value: 1 ether}(paymaster);
         vm.expectRevert(
@@ -903,7 +904,7 @@ contract EntryPointTest is TestHelper {
                 bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA32 paymaster expired or not due"
             )
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
     }
 
     //handleOps should abort on time-range
@@ -920,13 +921,13 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = fillOp(0);
         op.sender = address(testAccount);
         op = signUserOp(op, entryPointAddress, chainId, sessionOwner.key);
-        userOps.push(op);
+        ops.push(op);
 
         entryPoint.depositTo{value: 1 ether}(address(testAccount));
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA22 expired or not due")
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
     }
 
     //should revert on date owner
@@ -942,12 +943,12 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = fillOp(0);
         op.sender = address(testAccount);
         op = signUserOp(op, entryPointAddress, chainId, sessionOwner.key);
-        userOps.push(op);
+        ops.push(op);
 
         entryPoint.depositTo{value: 1 ether}(address(testAccount));
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA22 expired or not due")
         );
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps(ops, beneficiary);
     }
 }
