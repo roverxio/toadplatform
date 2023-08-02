@@ -3,7 +3,7 @@ use actix_web::web::ServiceConfig;
 use crate::CONFIG;
 
 use crate::handlers::hello_world::hello_world;
-use crate::handlers::wallet::{get_address, get_balance};
+use crate::handlers::wallet::{get_address, get_balance, transact};
 
 pub fn routes(cfg: &mut ServiceConfig) {
     cfg.service(
@@ -13,6 +13,7 @@ pub fn routes(cfg: &mut ServiceConfig) {
                     .route("hello", web::get().to(hello_world))
                     .route("address", web::get().to(get_address))
                     .route("balance", web::get().to(get_balance))
+                    .route("transact", web::post().to(transact))
             )
     );
 }
