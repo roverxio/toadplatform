@@ -1,10 +1,5 @@
 use serde::Deserialize;
-
-#[derive(Deserialize)]
-pub struct Metadata {
-    pub currency: String,
-    pub chain: String,
-}
+use crate::models::metadata::Metadata;
 
 #[derive(Deserialize)]
 pub struct PaymasterTopup {
