@@ -876,4 +876,33 @@ contract EntryPointTest is TestHelper {
             "execution of handleOps inside a UserOp should revert"
         );
     }
+
+    //should report failure on insufficient verificationGas after creation
+    function test_InsufficientVerificationGas() public {
+        UserOperation memory op0 = _defaultOp;
+        op0.sender = accountAddress;
+        op0.verificationGasLimit = 5e5;
+        op0 = signUserOp(op0, entryPointAddress, chainId);
+
+        try entryPoint.simulateValidation(op0) {}
+        catch (bytes memory revertReason) {
+            (bytes4 reason,) = getDataFromEncoding(revertReason);
+            assertEq(
+                bytes4(
+                    keccak256(
+                        "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
+                    )
+                ),
+                reason
+            );
+        }
+
+        UserOperation memory op1 = _defaultOp;
+        op1.sender = accountAddress;
+        op1.verificationGasLimit = 10000;
+        op1 = signUserOp(op1, entryPointAddress, chainId);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA23 reverted (or OOG)"));
+        entryPoint.simulateValidation(op1);
+    }
 }
