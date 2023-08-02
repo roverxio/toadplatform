@@ -203,32 +203,36 @@ contract EntryPointTest is TestHelper {
 
     //if account has a deposit, it should use it to pay
     function test_PayFromDeposit() public {
-        (TestCounter counter,) = _handleOpsSetUp();
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
+        account.addDeposit{value: 1 ether}();
+
         UserOperation memory op = fillOp(0);
-        bytes memory counterCallData = abi.encodeWithSignature("count()");
-        op.callData = abi.encodeCall(account.execute, (address(counter), 0, counterCallData));
+        op.callData = accountExecFromEntryPoint;
         op.verificationGasLimit = 1e6;
         op.callGasLimit = 1e6;
         op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
-        entryPoint.depositTo{value: 1 ether}(op.sender);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
 
-        (bool _sent,) = op.sender.call{value: 1 ether}("");
-        require(_sent, "Could not pay op.sender");
-
-        uint256 balanceBefore = op.sender.balance;
-        uint256 depositBefore = entryPoint.getDepositInfo(accountAddress).deposit;
         uint256 countBefore = counter.counters(op.sender);
-
+        uint256 balBefore = op.sender.balance;
+        uint256 depositBefore = entryPoint.balanceOf(accountAddress);
+        
         vm.recordLogs();
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps{gas: 1e7}(userOps, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
 
-        assertEq(counter.counters(op.sender), countBefore + 1);
+        uint256 countAfter = counter.counters(op.sender);
+        assertEq(countAfter, countBefore + 1);
+
+        uint256 balAfter = op.sender.balance;
+        uint256 depositAfter = entryPoint.balanceOf(accountAddress);
+        assertEq(balAfter, balBefore, "should pay from stake, not balance");
+        uint256 depositUsed = depositBefore - depositAfter;
+        assertEq(beneficiary.balance, depositUsed);
+        
         (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
-        assertEq(op.sender.balance, balanceBefore);
-        assertEq(depositBefore - entryPoint.getDepositInfo(op.sender).deposit, beneficiary.balance);
     }
 
     //should pay for reverted tx
