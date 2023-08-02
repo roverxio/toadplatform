@@ -6,6 +6,7 @@ use env_logger::{Env, init_from_env};
 
 use crate::models::config::server::Server;
 use crate::routes::routes;
+use crate::services::balance_service::BalanceService;
 use crate::services::hello_world_service::HelloWorldService;
 use crate::services::wallet_service::WalletService;
 
@@ -13,6 +14,7 @@ use crate::services::wallet_service::WalletService;
 pub struct ToadService {
     pub hello_world_service: HelloWorldService,
     pub wallet_service: WalletService,
+    pub balance_service: BalanceService,
 }
 
 pub fn init_services(
@@ -22,10 +24,12 @@ pub fn init_services(
     // Services
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {};
+    let balance_service = BalanceService {};
 
     ToadService {
         hello_world_service,
-        wallet_service
+        wallet_service,
+        balance_service,
     }
 }
 
@@ -43,6 +47,7 @@ pub async fn api_server(service: ToadService, server: Server) -> std::io::Result
             .configure(routes)
             .app_data(Data::new(service.hello_world_service.clone()))
             .app_data(Data::new(service.wallet_service.clone()))
+            .app_data(Data::new(service.balance_service.clone()))
     })
         .bind(server.url())?
         .run()
