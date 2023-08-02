@@ -8,6 +8,7 @@ import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestRevertAccount.sol";
+import "../src/test/TestCounter.sol";
 
 //Utils
 import {Utilities} from "./Utilities.sol";
@@ -29,6 +30,8 @@ struct StakeInfo {
 contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
     Utilities internal utils;
+    uint256 globalUnstakeDelaySec;
+    uint256 paymasterStake;
 
     function setUp() public {
         utils = new Utilities();
@@ -39,6 +42,8 @@ contract EntryPointTest is TestHelper {
             utils.createAccountWithEntryPoint(accountOwner.addr, entryPoint, simpleAccountFactory);
 
         vm.deal(address(account), 1 ether);
+        globalUnstakeDelaySec = 2;
+        paymasterStake = 2 ether;
     }
 
     // Stake Management testing
@@ -674,4 +679,18 @@ contract EntryPointTest is TestHelper {
 
     //without paymaster (account pays in eth)
     //with paymaster (account with no eth)
+    function _withPaymasterSetUp()
+        returns (
+            TestPaymasterAcceptAll paymaster,
+            TestCounter counter,
+            bytes memory accountExecFromEntryPoint,
+            account2Owner Account
+        )
+    {
+        paymaster = new TestPaymasterAcceptAll(entryPointAddress);
+        paymaster.addStake{value: paymasterStake}(globalUnstakeDelaySec);
+        counter = new TestCounter();
+        bytes memory count = abi.encodeCall(counter.count, ());
+        accountExecFromEntryPoint = abi.encodeCall(account.execute, (address(counter), 0, count));
+    }
 }
