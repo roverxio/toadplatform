@@ -184,20 +184,31 @@ contract EntryPointTest is TestHelper {
 
     //if account has a deposit, it should use it to pay
     function test_PayFromDeposit() public {
-        UserOperation memory op = fillAndSign(chainId, 0);
+        UserOperation memory op = fillOp(0);
+        bytes memory counterCallData = abi.encodeWithSignature("count()");
+        op.callData = abi.encodeCall(account.execute, (address(counter), 0, counterCallData));
+        op.verificationGasLimit = 1e6;
+        op.callGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
-
         entryPoint.depositTo{value: 1 ether}(op.sender);
+
         (bool _sent,) = op.sender.call{value: 1 ether}("");
         require(_sent, "Could not pay op.sender");
+
+        uint256 balanceBefore = op.sender.balance;
+        uint256 depositBefore = entryPoint.getDepositInfo(accountAddress).deposit;
+        uint256 countBefore = counter.counters(op.sender);
 
         vm.recordLogs();
         entryPoint.handleOps(userOps, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        assertEq(counter.counters(op.sender), countBefore + 1);
         (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
-        assertEq(op.sender.balance, 1 ether);
-        assertEq(entryPoint.getDepositInfo(op.sender).deposit + actualGasCost, 1 ether);
+        assertEq(op.sender.balance, balanceBefore);
+        assertEq(depositBefore - entryPoint.getDepositInfo(op.sender).deposit, beneficiary.balance);
     }
 
     //should pay for reverted tx
