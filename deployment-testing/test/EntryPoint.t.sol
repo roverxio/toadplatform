@@ -679,7 +679,7 @@ contract EntryPointTest is TestHelper {
         beneficiary = payable(makeAddr("beneficiary"));
 
         //adding initCode for use in the following test cases
-        bytes memory _initCallData = abi.encodeCall(simpleAccountFactory.createAccount, (accountOwner.addr, 0));
+        bytes memory _initCallData = abi.encodeCall(simpleAccountFactory.createAccount, (accountOwner.addr, 100));
         initCode = abi.encodePacked(address(simpleAccountFactory), _initCallData);
     }
 
@@ -696,5 +696,23 @@ contract EntryPointTest is TestHelper {
 
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA14 initCode must return sender"));
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+    }
+
+    //should reject create if account not funded
+    function test_RejectCreateIfNotFunded() public {
+        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp();
+
+        UserOperation memory op = _defaultOp;
+        op.sender = simpleAccountFactory.getAddress(accountOwner.addr, 100);
+        op.initCode = initCode;
+        op.verificationGasLimit = 2e6;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        assertEq(op.sender.balance, 0);
+        vm.expectRevert(
+            abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA21 didn't pay prefund")
+        );
+        entryPoint.handleOps(ops, beneficiary);
     }
 }
