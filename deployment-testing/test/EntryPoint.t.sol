@@ -167,12 +167,18 @@ contract EntryPointTest is TestHelper {
 
     //account should not pay if too low gas limit was set
     function test_DontPayForLowGasLimit() public {
-        UserOperation memory op = fillAndSign(chainId, 0);
+        UserOperation memory op = fillOp(0);
+        uint256 iterations = 45;
+        bytes memory counterCallData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, '');
+        op.callData = abi.encodeCall(account.execute, (address(counter), 0, counterCallData));
+        op.verificationGasLimit = 1e5;
+        op.callGasLimit = 11e5;
+        op = signUserOp(op, entryPointAddress, chainId);
         userOps.push(op);
 
         entryPoint.depositTo{value: 1 ether}(op.sender);
         vm.expectRevert(abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA95 out of gas"));
-        entryPoint.handleOps{gas: 0.0001 gwei}(userOps, beneficiary);
+        entryPoint.handleOps{gas: 12e5}(userOps, beneficiary);
         assertEq(entryPoint.getDepositInfo(op.sender).deposit, 1 ether);
     }
 
