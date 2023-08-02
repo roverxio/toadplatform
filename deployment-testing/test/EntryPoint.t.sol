@@ -5,6 +5,7 @@ import "./TestHelper.sol";
 import "../src/EntryPoint.sol";
 import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
+import "../src/test/TestCounter.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestExpiryAccount.sol";
 import "../src/test/TestExpirePaymaster.sol";
@@ -13,6 +14,7 @@ contract EntryPointTest is TestHelper {
     uint256 internal _accountSalt;
     BasePaymaster internal paymasterAcceptAll;
     TestExpirePaymaster internal expirePaymaster;
+    TestCounter internal counter;
     address payable internal beneficiary;
     UserOperation[] internal userOps;
 
@@ -38,6 +40,7 @@ contract EntryPointTest is TestHelper {
         paymasterAcceptAll = new TestPaymasterAcceptAll(entryPoint);
         expirePaymaster = new TestExpirePaymaster(entryPoint);
         beneficiary = payable(makeAddr("beneficiary"));
+        counter = new TestCounter();
     }
 
     // Stake Management testing
@@ -124,15 +127,21 @@ contract EntryPointTest is TestHelper {
 
     //account should pay for transaction
     function test_PayForTransaction() public {
-        UserOperation memory op = fillAndSign(chainId, 0);
+        UserOperation memory op = fillOp(0);
+        bytes memory counterCallData = abi.encodeWithSignature("count()");
+        op.callData = abi.encodeCall(account.execute, (address(counter), 0, counterCallData));
+        op = signUserOp(op, entryPointAddress, chainId);
         entryPoint.depositTo{value: 1 ether}(op.sender);
         userOps.push(op);
 
+        counter.count();
+        uint256 countBefore = counter.counters(op.sender);
         vm.recordLogs();
         entryPoint.handleOps(userOps, beneficiary);
         Vm.Log[] memory entries = vm.getRecordedLogs();
         (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
+        assertEq(counter.counters(op.sender), countBefore + 1);
     }
 
     //account should pay for high gas usage tx
