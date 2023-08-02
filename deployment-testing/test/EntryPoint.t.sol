@@ -14,7 +14,6 @@ contract EntryPointTest is TestHelper {
     uint256 internal _accountSalt;
     BasePaymaster internal paymasterAcceptAll;
     TestExpirePaymaster internal expirePaymaster;
-    TestCounter internal counter;
     address payable internal beneficiary;
     UserOperation[] internal userOps;
 
@@ -35,12 +34,12 @@ contract EntryPointTest is TestHelper {
         owner = createAddress("owner_entrypoint");
         deployEntryPoint(123441);
         createAccount(123442, _accountSalt);
+        vm.deal(accountAddress, 1 ether);
         createAggregatedAccount(123456, 123456);
 
         paymasterAcceptAll = new TestPaymasterAcceptAll(entryPoint);
         expirePaymaster = new TestExpirePaymaster(entryPoint);
         beneficiary = payable(makeAddr("beneficiary"));
-        counter = new TestCounter();
     }
 
     // Stake Management testing
@@ -111,14 +110,18 @@ contract EntryPointTest is TestHelper {
 
     //without paymaster (account pays in eth)
     //#handleOps
+    function _handleOpsSetUp() public returns (TestCounter counter, bytes memory accountExecFromEntryPoint) {
+        counter = new TestCounter{salt: '123'}();
+        bytes memory count = abi.encodeCall(counter.count, ());
+        accountExecFromEntryPoint = abi.encodeCall(account.execute, (address(counter), 0, count));
+    }
+
     //should revert on signature failure
     function test_RevertOnSignatureFailure() public {
-        // assign a new owner to sign the User Op
-        Account memory new_owner = createAddress("new_owner");
-        UserOperation memory op = fillOp(0);
-        op = signUserOp(op, entryPointAddress, chainId, new_owner.key);
-        entryPoint.depositTo{value: 1 ether}(op.sender);
+        Account memory wrong_owner = createAddress("new_owner");
+        UserOperation memory op = signUserOp(fillOp(0), entryPointAddress, chainId, wrong_owner.key);
         userOps.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
         vm.expectRevert(
             abi.encodeWithSelector(bytes4(keccak256("FailedOp(uint256,string)")), 0, "AA24 signature error")
         );
@@ -127,28 +130,34 @@ contract EntryPointTest is TestHelper {
 
     //account should pay for transaction
     function test_PayForTransaction() public {
-        UserOperation memory op = fillOp(0);
-        bytes memory counterCallData = abi.encodeWithSignature("count()");
-        op.callData = abi.encodeCall(account.execute, (address(counter), 0, counterCallData));
-        op = signUserOp(op, entryPointAddress, chainId);
-        entryPoint.depositTo{value: 1 ether}(op.sender);
-        userOps.push(op);
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
 
-        counter.count();
+        UserOperation memory op = fillOp(0);
+        op.callData = accountExecFromEntryPoint;
+        op.verificationGasLimit = 1e6;
+        op.callGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId);
+        userOps.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
         uint256 countBefore = counter.counters(op.sender);
+
         vm.recordLogs();
-        entryPoint.handleOps(userOps, beneficiary);
+        entryPoint.handleOps{gas: 1e7}(userOps, beneficiary);
+        
+        uint256 countAfter = counter.counters(op.sender);
+        assertEq(countAfter, countBefore + 1);
+
         Vm.Log[] memory entries = vm.getRecordedLogs();
-        (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
+        (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
         assertEq(beneficiary.balance, actualGasCost);
-        assertEq(counter.counters(op.sender), countBefore + 1);
     }
 
     //account should pay for high gas usage tx
     function test_PayForGasUse() public {
+        (TestCounter counter,) = _handleOpsSetUp();
         UserOperation memory op = fillOp(0);
         uint256 iterations = 45;
-        bytes memory counterCallData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, '');
+        bytes memory counterCallData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, "");
         op.callData = abi.encodeCall(account.execute, (address(counter), 0, counterCallData));
         op.verificationGasLimit = 1e5;
         op.callGasLimit = 11e5;
@@ -167,9 +176,10 @@ contract EntryPointTest is TestHelper {
 
     //account should not pay if too low gas limit was set
     function test_DontPayForLowGasLimit() public {
+        (TestCounter counter,) = _handleOpsSetUp();
         UserOperation memory op = fillOp(0);
         uint256 iterations = 45;
-        bytes memory counterCallData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, '');
+        bytes memory counterCallData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, "");
         op.callData = abi.encodeCall(account.execute, (address(counter), 0, counterCallData));
         op.verificationGasLimit = 1e5;
         op.callGasLimit = 11e5;
@@ -184,6 +194,7 @@ contract EntryPointTest is TestHelper {
 
     //if account has a deposit, it should use it to pay
     function test_PayFromDeposit() public {
+        (TestCounter counter,) = _handleOpsSetUp();
         UserOperation memory op = fillOp(0);
         bytes memory counterCallData = abi.encodeWithSignature("count()");
         op.callData = abi.encodeCall(account.execute, (address(counter), 0, counterCallData));
@@ -213,6 +224,7 @@ contract EntryPointTest is TestHelper {
 
     //should pay for reverted tx
     function test_PayForRevertedTx() public {
+        (TestCounter counter,) = _handleOpsSetUp();
         UserOperation memory op = fillOp(0);
         op.callData = "0xdeadface";
         op.verificationGasLimit = 1e6;
@@ -232,6 +244,7 @@ contract EntryPointTest is TestHelper {
 
     //#handleOp (single)
     function test_SingleOp() public {
+        (TestCounter counter,) = _handleOpsSetUp();
         UserOperation[] memory userOperations = new UserOperation[](1);
 
         UserOperation memory op = fillAndSign(chainId, 0);
@@ -375,7 +388,7 @@ contract EntryPointTest is TestHelper {
         );
         entryPoint.handleOps(userOps, beneficiary);
     }
-    
+
     //batch multiple requests
     function batchMultipleRequests() public {
         UserOperation memory op1 = fillOp(0);
