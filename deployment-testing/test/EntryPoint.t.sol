@@ -8,6 +8,7 @@ import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestRevertAccount.sol";
+import "../src/test/TestCounter.sol";
 
 //Utils
 import {Utilities} from "./Utilities.sol";
@@ -37,6 +38,7 @@ contract EntryPointTest is TestHelper {
         entryPointAddress = address(entryPoint);
         (account, simpleAccountFactory) =
             utils.createAccountWithEntryPoint(accountOwner.addr, entryPoint, simpleAccountFactory);
+        accountAddress = address(account);
 
         vm.deal(address(account), 1 ether);
     }
@@ -670,5 +672,242 @@ contract EntryPointTest is TestHelper {
 
         entryPoint.handleOps(ops, payable(beneficiary.addr));
         return (beneficiary, key, keyShifted, _accountAddress);
+    }
+
+    //without paymaster (account pays in eth)
+    //#handleOps
+    function _handleOpsSetUp() public returns (TestCounter counter, bytes memory accountExecFromEntryPoint) {
+        counter = new TestCounter{salt: '123'}();
+        bytes memory count = abi.encodeWithSignature("count()");
+        accountExecFromEntryPoint =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
+    }
+
+    //should revert on signature failure
+    function test_RevertOnSignatureFailure() public {
+        Account memory wrong_owner = createAddress("wrong_owner");
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op = signUserOp(op, entryPointAddress, chainId, wrong_owner.key);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA24 signature error"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //account should pay for transaction
+    function test_PayForTransaction() public {
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExecFromEntryPoint;
+        op.verificationGasLimit = 1e6;
+        op.callGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        uint256 countBefore = counter.counters(accountAddress);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+
+        uint256 countAfter = counter.counters(accountAddress);
+        assertEq(countAfter, countBefore + 1);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+    }
+
+    //account should pay for high gas usage tx
+    function test_PayForHighGasUse() public {
+        (TestCounter counter,) = _handleOpsSetUp();
+        uint256 iterations = 45;
+        bytes memory countData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, "");
+        bytes memory accountExec =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, countData);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExec;
+        op.verificationGasLimit = 1e5;
+        op.callGasLimit = 11e5;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        uint256 offsetBefore = counter.offset();
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 13e6}(ops, beneficiary);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+
+        assertEq(counter.offset(), offsetBefore + iterations);
+    }
+
+    //account should not pay if too low gas limit was set
+    function test_DontPayForLowGasLimit() public {
+        (TestCounter counter,) = _handleOpsSetUp();
+        uint256 iterations = 45;
+        bytes memory countData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, "");
+        bytes memory accountExec =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, countData);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExec;
+        op.verificationGasLimit = 1e5;
+        op.callGasLimit = 11e5;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+        uint256 initialAccountBalance = accountAddress.balance;
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA95 out of gas"));
+        entryPoint.handleOps{gas: 12e5}(ops, beneficiary);
+
+        assertEq(accountAddress.balance, initialAccountBalance);
+    }
+
+    //if account has a deposit, it should use it to pay
+    function test_PayFromDeposit() public {
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
+        account.addDeposit{value: 1 ether}();
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExecFromEntryPoint;
+        op.verificationGasLimit = 1e6;
+        op.callGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        uint256 countBefore = counter.counters(op.sender);
+        uint256 balBefore = op.sender.balance;
+        uint256 depositBefore = entryPoint.balanceOf(accountAddress);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        uint256 countAfter = counter.counters(op.sender);
+        assertEq(countAfter, countBefore + 1);
+
+        uint256 balAfter = op.sender.balance;
+        uint256 depositAfter = entryPoint.balanceOf(accountAddress);
+        assertEq(balAfter, balBefore, "should pay from stake, not balance");
+        uint256 depositUsed = depositBefore - depositAfter;
+        assertEq(beneficiary.balance, depositUsed);
+
+        (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+    }
+
+    //should pay for reverted tx
+    function test_PayForRevertedTx() public {
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = "0xdeadface";
+        op.verificationGasLimit = 1e6;
+        op.callGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        (, bool success,,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertFalse(success);
+        bool balanceGt1 = (beneficiary.balance > 1);
+        assertEq(balanceGt1, true);
+    }
+
+    //#handleOp (single)
+    function test_SingleOp() public {
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExecFromEntryPoint;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+        uint256 countBefore = counter.counters(accountAddress);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+
+        uint256 countAfter = counter.counters(accountAddress);
+        assertEq(countAfter, countBefore + 1);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+    }
+
+    //should fail to call recursively into handleOps
+    function test_RecursiveCallToHandleOps() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation[] memory _ops;
+        bytes memory callHandleOps = abi.encodeWithSignature(
+            "handleOps((address,uint256,bytes,bytes,uint256,uint256,uint256,uint256,uint256,bytes,bytes)[],address)",
+            _ops,
+            beneficiary
+        );
+        bytes memory execHandlePost =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", entryPointAddress, 0, callHandleOps);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress;
+        op.callData = execHandlePost;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (, bytes memory revertReason) = abi.decode(entries[2].data, (uint256, bytes));
+        assertEq(
+            revertReason,
+            abi.encodeWithSignature("Error(string)", "ReentrancyGuard: reentrant call"),
+            "execution of handleOps inside a UserOp should revert"
+        );
+    }
+
+    //should report failure on insufficient verificationGas after creation
+    function test_InsufficientVerificationGas() public {
+        UserOperation memory op0 = _defaultOp;
+        op0.sender = accountAddress;
+        op0.verificationGasLimit = 5e5;
+        op0 = signUserOp(op0, entryPointAddress, chainId);
+
+        try entryPoint.simulateValidation(op0) {}
+        catch (bytes memory revertReason) {
+            (bytes4 reason,) = getDataFromEncoding(revertReason);
+            assertEq(
+                bytes4(
+                    keccak256(
+                        "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
+                    )
+                ),
+                reason
+            );
+        }
+
+        UserOperation memory op1 = _defaultOp;
+        op1.sender = accountAddress;
+        op1.verificationGasLimit = 10000;
+        op1 = signUserOp(op1, entryPointAddress, chainId);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA23 reverted (or OOG)"));
+        entryPoint.simulateValidation(op1);
     }
 }
