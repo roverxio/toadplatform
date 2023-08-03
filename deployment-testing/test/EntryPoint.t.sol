@@ -9,6 +9,7 @@ import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestRevertAccount.sol";
 import "../src/test/TestExpiryAccount.sol";
+import "../src/test/TestExpirePaymaster.sol";
 
 //Utils
 import {Utilities} from "./Utilities.sol";
@@ -680,13 +681,16 @@ contract EntryPointTest is TestHelper {
         returns (uint256 noW, address payable beneficiary, TestExpiryAccount expAccount, Account memory sessionOwner)
     {
         beneficiary = payable(makeAddr("beneficiary"));
+        vm.deal(accountOwner.addr, 1000 ether);
+        vm.startPrank(accountOwner.addr);
         expAccount = new TestExpiryAccount(entryPoint);
-        expAccount.initialize(address(this));
+        expAccount.initialize(accountOwner.addr);
         payable(address(expAccount)).transfer(0.1 ether);
         vm.warp(1641070800);
         noW = block.timestamp;
         sessionOwner = utils.createAccountOwner("sessionOwner");
         expAccount.addTemporaryOwner(sessionOwner.addr, 100, uint48(noW + 60));
+        vm.stopPrank();
     }
 
     //validateUserOp time-range
@@ -713,6 +717,7 @@ contract EntryPointTest is TestHelper {
         (uint256 noW,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
 
         Account memory expiredOwner = utils.createAccountOwner("expiredOwner");
+        vm.prank(accountOwner.addr);
         expAccount.addTemporaryOwner(expiredOwner.addr, 123, uint48(noW - 60));
 
         UserOperation memory op = _defaultOp;
@@ -726,6 +731,35 @@ contract EntryPointTest is TestHelper {
             (ReturnInfo memory returnInfoFromRevert,,,) =
                 abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
             assertEq(returnInfoFromRevert.validUntil, noW - 60);
+            assertEq(returnInfoFromRevert.validAfter, 123);
+        }
+    }
+
+    //validatePaymasterUserOp with deadline
+    function _validatePaymasterSetUp() public returns (TestExpirePaymaster paymaster) {
+        paymaster = new TestExpirePaymaster(entryPoint);
+        paymaster.addStake{value: paymasterStake}(1);
+        paymaster.deposit{value: 100 ether}();
+    }
+
+    //should accept non-expired paymaster request
+    function test_NonExpiredPaymasterRequest() public {
+        (uint256 noW,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+        (TestExpirePaymaster paymaster) = _validatePaymasterSetUp();
+        bytes memory timeRange = abi.encode(uint48(123), uint48(noW + 60));
+
+        UserOperation memory op = _defaultOp;
+        op.sender = address(expAccount);
+        op.paymasterAndData = abi.encodePacked(address(paymaster), timeRange);
+        op = signUserOp(op, entryPointAddress, chainId, accountOwner.key);
+
+        vm.prank(accountOwner.addr);
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            (, bytes memory data) = getDataFromEncoding(revertReason);
+            (ReturnInfo memory returnInfoFromRevert,,,) =
+                abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+            assertEq(returnInfoFromRevert.validUntil, noW + 60);
             assertEq(returnInfoFromRevert.validAfter, 123);
         }
     }
