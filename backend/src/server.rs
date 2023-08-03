@@ -8,6 +8,7 @@ use crate::models::config::server::Server;
 use crate::routes::routes;
 use crate::services::balance_service::BalanceService;
 use crate::services::hello_world_service::HelloWorldService;
+use crate::services::transfer_service::TransactionService;
 use crate::services::wallet_service::WalletService;
 
 #[derive(Clone)]
@@ -15,6 +16,7 @@ pub struct ToadService {
     pub hello_world_service: HelloWorldService,
     pub wallet_service: WalletService,
     pub balance_service: BalanceService,
+    pub transfer_service: TransactionService,
 }
 
 pub fn init_services(
@@ -25,11 +27,13 @@ pub fn init_services(
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {};
     let balance_service = BalanceService {};
+    let transfer_service = TransactionService {};
 
     ToadService {
         hello_world_service,
         wallet_service,
         balance_service,
+        transfer_service,
     }
 }
 
@@ -48,6 +52,7 @@ pub async fn api_server(service: ToadService, server: Server) -> std::io::Result
             .app_data(Data::new(service.hello_world_service.clone()))
             .app_data(Data::new(service.wallet_service.clone()))
             .app_data(Data::new(service.balance_service.clone()))
+            .app_data(Data::new(service.transfer_service.clone()))
     })
         .bind(server.url())?
         .run()
