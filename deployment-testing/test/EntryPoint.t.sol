@@ -783,4 +783,55 @@ contract EntryPointTest is TestHelper {
             assertEq(returnInfoFromRevert.validAfter, 321);
         }
     }
+
+    //time-range overlap of paymaster and account should intersect
+    //this function contains the setup and helper functions from hardhat tests
+    function simulateWithPaymasterParams(uint48 _after, uint48 _until) public returns (ReturnInfo memory ret) {
+        (,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+        (TestExpirePaymaster paymaster) = _validatePaymasterSetUp();
+
+        // before
+        Account memory owner = utils.createAccountOwner("owner");
+        vm.prank(accountOwner.addr);
+        expAccount.addTemporaryOwner(owner.addr, 100, 500);
+
+        // createOpWithPaymasterParams
+        bytes memory timeRange = abi.encode(_after, _until);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = address(expAccount);
+        op.paymasterAndData = abi.encodePacked(address(paymaster), timeRange);
+        op = signUserOp(op, entryPointAddress, chainId, owner.key);
+
+        // simulateWithPaymasterParams
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            (, bytes memory data) = getDataFromEncoding(revertReason);
+            (ret,,,) = abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+        }
+    }
+
+    //should use lower "after" value of paymaster
+    function test_UseAfterOfPaymaster() public {
+        (ReturnInfo memory ret) = simulateWithPaymasterParams(10, 1000);
+        assertEq(ret.validAfter, 100);
+    }
+
+    //should use lower "after" value of account
+    function test_UseAfterOfAccount() public {
+        (ReturnInfo memory ret) = simulateWithPaymasterParams(200, 1000);
+        assertEq(ret.validAfter, 200);
+    }
+
+    //should use higher "until" value of paymaster
+    function test_UseUntilOfPaymaster() public {
+        (ReturnInfo memory ret) = simulateWithPaymasterParams(10, 400);
+        assertEq(ret.validUntil, 400);
+    }
+
+    //should use higher "until" value of account
+    function test_UseUntilOfAccount() public {
+        (ReturnInfo memory ret) = simulateWithPaymasterParams(200, 600);
+        assertEq(ret.validUntil, 500);
+    }
 }
