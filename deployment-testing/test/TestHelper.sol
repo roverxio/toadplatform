@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
 import "forge-std/Test.sol";
@@ -7,19 +7,19 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract TestHelper is Test {
-    Account internal owner;
+    Account internal accountOwner;
     EntryPoint internal entryPoint;
     SimpleAccount internal account;
     SimpleAccount internal implementation;
-    SimpleAccountFactory internal accountFactory;
+    SimpleAccountFactory internal simpleAccountFactory;
 
     address internal accountAddress;
     address internal entryPointAddress;
 
     uint256 internal chainId = vm.envOr("FOUNDRY_CHAIN_ID", uint256(31337));
-    uint256 constant internal globalUnstakeDelaySec = 2;
-    uint256 constant internal paymasterStake = 2 ether;
-    bytes constant internal defaultBytes = bytes("");
+    uint256 internal constant globalUnstakeDelaySec = 2;
+    uint256 internal constant paymasterStake = 2 ether;
+    bytes internal constant defaultBytes = bytes("");
 
     UserOperation internal _defaultOp = UserOperation({
         sender: accountAddress,
@@ -33,10 +33,10 @@ contract TestHelper is Test {
         maxPriorityFeePerGas: 1,
         paymasterAndData: defaultBytes,
         signature: defaultBytes
-        });
+    });
 
-    function createAddress(string memory _name) internal {
-        owner = makeAccount(_name);
+    function createAddress(string memory _name) internal returns (Account memory) {
+        return makeAccount(_name);
     }
 
     function deployEntryPoint(uint256 _salt) internal {
@@ -45,13 +45,17 @@ contract TestHelper is Test {
     }
 
     function createAccount(uint256 _factorySalt, uint256 _accountSalt) internal {
-        vm.startBroadcast();
-        accountFactory = new SimpleAccountFactory{salt: bytes32(_factorySalt)}(entryPoint);
-        implementation = accountFactory.accountImplementation();
-        accountFactory.createAccount(owner.addr, _accountSalt);
-        accountAddress = accountFactory.getAddress(owner.addr, _accountSalt);
-        vm.stopBroadcast();
+        simpleAccountFactory = new SimpleAccountFactory{salt: bytes32(_factorySalt)}(entryPoint);
+        implementation = simpleAccountFactory.accountImplementation();
+        simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
+        accountAddress = simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt);
         account = SimpleAccount(payable(accountAddress));
+    }
+
+    function createAccountWithFactory(uint256 _accountSalt) internal returns (SimpleAccount, address) {
+        simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
+        address _accountAddress = simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt);
+        return (SimpleAccount(payable(_accountAddress)), _accountAddress);
     }
 
     function fillAndSign(uint256 _chainId, uint256 _nonce) internal view returns (UserOperation memory) {
@@ -71,16 +75,20 @@ contract TestHelper is Test {
     }
 
     function signUserOp(UserOperation memory op, address _entryPoint, uint256 _chainId)
-    internal
-    view
-    returns (UserOperation memory)
+        internal
+        view
+        returns (UserOperation memory)
     {
         bytes32 message = getUserOpHash(op, _entryPoint, _chainId);
         op.signature = signMessage(message);
         return op;
     }
 
-    function getUserOpHash(UserOperation memory op, address _entryPoint, uint256 _chainId) internal pure returns (bytes32) {
+    function getUserOpHash(UserOperation memory op, address _entryPoint, uint256 _chainId)
+        internal
+        pure
+        returns (bytes32)
+    {
         bytes32 userOpHash = keccak256(packUserOp(op, true));
         bytes memory encoded = abi.encode(userOpHash, _entryPoint, _chainId);
         return bytes32(keccak256(encoded));
@@ -119,7 +127,7 @@ contract TestHelper is Test {
 
     function signMessage(bytes32 message) internal view returns (bytes memory) {
         bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(owner.key, digest);
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(accountOwner.key, digest);
         return abi.encodePacked(r, s, v);
     }
 
@@ -127,8 +135,8 @@ contract TestHelper is Test {
         return accountAddress.balance;
     }
 
-    function isDeployed(address addr) public view returns(bool) {
-        uint size;
+    function isDeployed(address addr) public view returns (bool) {
+        uint256 size;
         assembly {
             size := extcodesize(addr)
         }
