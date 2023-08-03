@@ -8,10 +8,12 @@ import "../src/SimpleAccountFactory.sol";
 
 contract TestHelper is Test {
     Account internal accountOwner;
+    Account internal owner;
     EntryPoint internal entryPoint;
     SimpleAccount internal account;
     SimpleAccount internal implementation;
     SimpleAccountFactory internal simpleAccountFactory;
+    SimpleAccountFactory internal accountFactory;
 
     address internal accountAddress;
     address internal entryPointAddress;
@@ -129,10 +131,6 @@ contract TestHelper is Test {
         bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(accountOwner.key, digest);
         return abi.encodePacked(r, s, v);
-    }
-
-    function getEntryPointBalance() internal view returns (uint256) {
-        return entryPointAddress.balance;
     }
 
     function getAccountBalance() internal view returns (uint256) {
