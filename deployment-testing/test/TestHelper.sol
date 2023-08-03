@@ -19,6 +19,21 @@ contract TestHelper is Test {
     uint256 internal chainId = vm.envOr("FOUNDRY_CHAIN_ID", uint256(31337));
     uint256 internal constant globalUnstakeDelaySec = 2;
     uint256 internal constant paymasterStake = 2 ether;
+    bytes public constant defaultBytes = bytes("");
+
+    UserOperation public defaultOp = UserOperation({
+        sender: 0x0000000000000000000000000000000000000000,
+        nonce: 0,
+        initCode: defaultBytes,
+        callData: defaultBytes,
+        callGasLimit: 200000,
+        verificationGasLimit: 100000,
+        preVerificationGas: 21000,
+        maxFeePerGas: 3000000000,
+        maxPriorityFeePerGas: 1,
+        paymasterAndData: defaultBytes,
+        signature: defaultBytes
+    });
 
     function deployEntryPoint(uint256 _salt) internal {
         entryPoint = new EntryPoint{salt: bytes32(_salt)}();
@@ -30,7 +45,7 @@ contract TestHelper is Test {
         implementation = simpleAccountFactory.accountImplementation();
         simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
         accountAddress = payable(simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt));
-        account = SimpleAccount(simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt));
+        account = SimpleAccount(payable(accountAddress));
     }
 
     function createAccountWithFactory(uint256 _accountSalt) internal returns (SimpleAccount, address) {
@@ -38,4 +53,10 @@ contract TestHelper is Test {
         address _accountAddress = simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt);
         return (SimpleAccount(payable(_accountAddress)), _accountAddress);
     }
+
+    function createAccountWithFactory(uint256 _accountSalt, address _ownerAddress) internal returns (SimpleAccount, address) {
+    simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
+    address _accountAddress = simpleAccountFactory.getAddress(_ownerAddress, _accountSalt);
+    return (SimpleAccount(payable(_accountAddress)), _accountAddress);
+}
 }

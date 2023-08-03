@@ -21,21 +21,18 @@ contract SimpleAccountTest is TestHelper {
 
     // Owner should be able to call transfer
     function test_TransferByOwner() public {
-        // add balance to scw
         vm.deal(accountAddress, 3 ether);
         Account memory receiver = makeAccount("receiver");
-        // set msg.sender to owner address
         vm.prank(accountOwner.addr);
-        account.execute(receiver.addr, 1 ether, utils.defaultBytes());
+        account.execute(receiver.addr, 1 ether, defaultBytes);
         assertEq(utils.getBalance(accountAddress), 2 ether);
     }
 
     // Other account should not be able to call transfer
     function test_TransferByNonOwner(address receiver) public {
-        // add balance to scw
         vm.deal(accountAddress, 3 ether);
         vm.expectRevert("account: not Owner or EntryPoint");
-        account.execute(receiver, 1 ether, utils.defaultBytes());
+        account.execute(receiver, 1 ether, defaultBytes);
     }
 
     // #validateUserOp
@@ -43,7 +40,7 @@ contract SimpleAccountTest is TestHelper {
     function test_Payment() public {
         vm.deal(accountAddress, 0.2 ether);
 
-        UserOperation memory userOp = utils.defaultOp();
+        UserOperation memory userOp = defaultOp;
         userOp.sender = accountAddress;
         userOp = utils.signUserOp(userOp, accountOwner.key, entryPointAddress, chainId);
 
@@ -51,7 +48,6 @@ contract SimpleAccountTest is TestHelper {
         bytes32 userOpHash = utils.getUserOpHash(userOp, entryPointAddress, chainId);
         uint256 preBalance = utils.getBalance(accountAddress);
 
-        // set msg.sender to entry point address
         vm.prank(entryPointAddress);
         account.validateUserOp{gas: gasPrice}(userOp, userOpHash, expectedPay);
 
@@ -62,12 +58,11 @@ contract SimpleAccountTest is TestHelper {
     // Should return NO_SIG_VALIDATION on wrong signature
     function test_WrongSignature() public {
         bytes32 zeroHash = 0x0000000000000000000000000000000000000000000000000000000000000000;
-        UserOperation memory op = utils.defaultOp();
+        UserOperation memory op = defaultOp;
         op.sender = accountAddress;
         op.nonce = 1;
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
 
-        // set msg.sender to entry point address
         vm.prank(entryPointAddress);
         uint256 deadline = account.validateUserOp(op, zeroHash, 0);
 

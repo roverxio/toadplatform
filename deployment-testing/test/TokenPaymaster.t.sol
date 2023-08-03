@@ -99,30 +99,25 @@ contract TokenPaymasterTest is TestHelper {
         entryPoint.depositTo{value: 1000 ether}(paymasterAddress);
         paymaster.addStake{value: 2 ether}(1);
         vm.stopPrank();
-        callData = abi.encodeWithSignature("execute(address,uint256,bytes)", accountOwner.addr, 0, utils.defaultBytes());
+        callData = abi.encodeWithSignature("execute(address,uint256,bytes)", accountOwner.addr, 0, defaultBytes);
     }
 
     // Paymaster should reject if account does not have enough tokens or allowance
     function test_NoTokensOrAllowance() public {
         uint256 snapShotId = vm.snapshot();
         bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
-        UserOperation memory op = utils.defaultOp();
+        UserOperation memory op = defaultOp;
         op.sender = accountAddress;
         op.paymasterAndData = paymasterData;
         op.callData = callData;
-        op = utils.signUserOp(op,accountOwner.key, entryPointAddress, chainId);
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
-        vm.expectRevert(
-            utils.failedOp(0, "AA33 reverted: ERC20: insufficient allowance")
-        );
+        vm.expectRevert(utils.failedOp(0, "AA33 reverted: ERC20: insufficient allowance"));
         entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
 
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
-        vm.expectRevert(
-            utils.failedOp(0, "AA33 reverted: ERC20: transfer amount exceeds balance"
-            )
-        );
+        vm.expectRevert(utils.failedOp(0, "AA33 reverted: ERC20: transfer amount exceeds balance"));
         entryPoint.handleOps{gas: 1e7}(ops, beneficiaryAddress);
         vm.revertTo(snapShotId);
     }
@@ -135,7 +130,7 @@ contract TokenPaymasterTest is TestHelper {
         token.transfer(accountAddress, 1 ether);
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
         bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
-        UserOperation memory op = utils.defaultOp();
+        UserOperation memory op = defaultOp;
         op.sender = accountAddress;
         op.callGasLimit = 30754;
         op.verificationGasLimit = 150000;
@@ -144,7 +139,7 @@ contract TokenPaymasterTest is TestHelper {
         op.maxPriorityFeePerGas = 1000000000;
         op.paymasterAndData = paymasterData;
         op.callData = callData;
-        op = utils.signUserOp(op,accountOwner.key,entryPointAddress, chainId);
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
         // Gas price calculation
@@ -185,11 +180,11 @@ contract TokenPaymasterTest is TestHelper {
         nativeAssetOracle.setPrice(initialPriceEther * 10);
 
         bytes memory paymasterAndData = _generatePaymasterData(paymasterAddress, 0);
-        UserOperation memory op = utils.defaultOp();
+        UserOperation memory op = defaultOp;
         op.sender = accountAddress;
         op.paymasterAndData = paymasterAndData;
         op.callData = callData;
-        op = utils.signUserOp(op, accountOwner.key,entryPointAddress, chainId);
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
         uint256 oldExpectedPrice = uint256(int256(priceDenominator) * initialPriceToken / initialPriceEther);
@@ -218,7 +213,7 @@ contract TokenPaymasterTest is TestHelper {
         uint256 currentCachedPrice = paymaster.cachedPrice();
         assertEq((currentCachedPrice * 10) / priceDenominator, 2);
         uint256 overrideTokenPrice = (priceDenominator * 132) / 1000;
-        UserOperation memory op = utils.defaultOp();
+        UserOperation memory op = defaultOp;
         op.sender = accountAddress;
         op.paymasterAndData = _generatePaymasterData(paymasterAddress, overrideTokenPrice);
         op.callData = callData;
@@ -228,7 +223,7 @@ contract TokenPaymasterTest is TestHelper {
         op.maxFeePerGas = 1000000007;
         op.maxPriorityFeePerGas = 1000000000;
 
-        op = utils.signUserOp(op,accountOwner.key, entryPointAddress, chainId);
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
         // TODO: figure out the syntax to set base fee per gas for the next block
@@ -256,7 +251,7 @@ contract TokenPaymasterTest is TestHelper {
         uint256 currentCachedPrice = paymaster.cachedPrice();
         assertEq((currentCachedPrice * 10) / priceDenominator, 2);
         uint256 overrideTokenPrice = (priceDenominator * 50);
-        UserOperation memory op = utils.defaultOp();
+        UserOperation memory op = defaultOp;
         op.sender = accountAddress;
         op.paymasterAndData = _generatePaymasterData(paymasterAddress, overrideTokenPrice);
         op.callData = callData;
@@ -266,7 +261,7 @@ contract TokenPaymasterTest is TestHelper {
         op.maxFeePerGas = 1000000007;
         op.maxPriorityFeePerGas = 1000000000;
 
-        op = utils.signUserOp(op,accountOwner.key, entryPointAddress, chainId);
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
         // TODO: figure out the syntax to set base fee per gas for the next block
@@ -297,7 +292,7 @@ contract TokenPaymasterTest is TestHelper {
 
         vm.warp(blockTime + 200);
 
-        UserOperation memory op = utils.defaultOp();
+        UserOperation memory op = defaultOp;
         op.sender = accountAddress;
         op.paymasterAndData = _generatePaymasterData(paymasterAddress, 0);
         op.callData = callData;
@@ -305,7 +300,7 @@ contract TokenPaymasterTest is TestHelper {
         op.verificationGasLimit = 150000;
         op.maxFeePerGas = 1000000007;
         op.maxPriorityFeePerGas = 1000000000;
-        op = utils.signUserOp(op,accountOwner.key, entryPointAddress, chainId);
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
         vm.recordLogs();
@@ -344,7 +339,7 @@ contract TokenPaymasterTest is TestHelper {
             abi.encodeWithSignature("execute(address,uint256,bytes)", tokenAddress, 0, withdrawTokens);
 
         bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
-        UserOperation memory op = utils.defaultOp();
+        UserOperation memory op = defaultOp;
         op.sender = accountAddress;
         op.paymasterAndData = paymasterData;
         op.callData = _callData;
@@ -353,7 +348,7 @@ contract TokenPaymasterTest is TestHelper {
         op.preVerificationGas = 21000;
         op.maxFeePerGas = 1000000007;
         op.maxPriorityFeePerGas = 1000000000;
-        op = utils.signUserOp(op,accountOwner.key, entryPointAddress, chainId);
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
         vm.recordLogs();
@@ -382,7 +377,7 @@ contract TokenPaymasterTest is TestHelper {
         entryPoint.depositTo{value: minEntryPointBalance}(paymasterAddress);
 
         bytes memory paymasterData = _generatePaymasterData(paymasterAddress, 0);
-        UserOperation memory op = utils.defaultOp();
+        UserOperation memory op = defaultOp;
         op.sender = accountAddress;
         op.paymasterAndData = paymasterData;
         op.callData = callData;
@@ -390,7 +385,7 @@ contract TokenPaymasterTest is TestHelper {
         op.verificationGasLimit = 150000;
         op.maxFeePerGas = 1000000007;
         op.maxPriorityFeePerGas = 1000000000;
-        op = utils.signUserOp(op, accountOwner.key,entryPointAddress, chainId);
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
         vm.recordLogs();

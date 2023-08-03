@@ -8,19 +8,6 @@ import "../src/SimpleAccountFactory.sol";
 
 contract Utilities is Test {
     bytes public constant defaultBytes = bytes("");
-    UserOperation public defaultOp = UserOperation({
-        sender: 0x0000000000000000000000000000000000000000,
-        nonce: 0,
-        initCode: defaultBytes,
-        callData: defaultBytes,
-        callGasLimit: 200000,
-        verificationGasLimit: 100000,
-        preVerificationGas: 21000,
-        maxFeePerGas: 3000000000,
-        maxPriorityFeePerGas: 1,
-        paymasterAndData: defaultBytes,
-        signature: defaultBytes
-    });
 
     function createAddress(string memory _name) public returns (Account memory) {
         return makeAccount(_name);
@@ -42,7 +29,7 @@ contract Utilities is Test {
     }
 
     function getUserOpHash(UserOperation memory op, address _entryPoint, uint256 _chainId)
-        internal
+        public
         pure
         returns (bytes32)
     {
