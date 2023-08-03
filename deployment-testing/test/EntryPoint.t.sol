@@ -8,6 +8,7 @@ import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestRevertAccount.sol";
+import "../src/test/TestCounter.sol";
 
 //Utils
 import {Utilities} from "./Utilities.sol";
@@ -443,6 +444,35 @@ contract EntryPointTest is TestHelper {
 
     //    13. Should not use banned ops during simulateValidation
     function test_shouldNotUseBannedOps() public {}
+
+    // #simulateHandleOp
+    // Should simulate execution
+    function test_ExecutionSimulation() public {
+        Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
+        (, address accountAddress1) = createAccountWithFactory(2131);
+        vm.deal(accountAddress1, 1 ether);
+        TestCounter counter = new TestCounter{salt: bytes32(uint256(1231))}();
+        bytes memory countData = abi.encodeWithSignature("count()");
+        bytes memory callData =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, countData);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = accountAddress1;
+        op.callData = callData;
+
+        op = utils.fillAndSign(op, accountOwner1, entryPoint, chainId);
+
+        vm.recordLogs();
+        try entryPoint.simulateHandleOp(
+            op, address(counter), abi.encodeWithSignature("counters(address)", accountAddress1)
+        ) {} catch (bytes memory revertReason) {
+            bytes memory data = utils.getDataFromEncoding(revertReason);
+            (,,,, bool success, bytes memory result) = abi.decode(data, (uint256, uint256, uint48, uint48, bool, bytes));
+            assertEq(success, true);
+            assertEq(result, abi.encode(1));
+        }
+        assertEq(counter.counters(accountAddress1), 0);
+    }
 
     // 2d nonces
     // Should fail nonce with new key and seq!=0
