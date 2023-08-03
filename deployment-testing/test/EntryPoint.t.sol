@@ -697,4 +697,25 @@ contract EntryPointTest is TestHelper {
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA24 signature error"));
         entryPoint.handleOps(ops, beneficiary);
     }
+
+    //should fail to execute aggregated account with wrong aggregator
+    function test_AggrAccountWithWrongAggregator() public {
+        (address payable beneficiary, TestAggregatedAccount aggrAccount) = _aggregationTestsSetUp();
+
+        UserOperation memory op = _defaultOp;
+        op.sender = address(aggrAccount);
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        TestSignatureAggregator wrongAggregator = new TestSignatureAggregator();
+        bytes32 sig = bytes32(0);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        IEntryPoint.UserOpsPerAggregator memory aggrOp = fillAggregatedOp(ops, wrongAggregator);
+        aggrOp.signature = abi.encodePacked(sig);
+        opsPerAggregator[0] = aggrOp;
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA24 signature error"));
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
 }
