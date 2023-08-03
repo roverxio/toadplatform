@@ -687,11 +687,10 @@ contract EntryPointTest is TestHelper {
     //with paymaster (account with no eth)
     function _withPaymasterSetUp()
         public
-        returns (Account memory account2Owner, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint)
+        returns (Account memory accountOwner2, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint)
     {
-        account2Owner = utils.createAccountOwner("account2Owner");
+        accountOwner2 = utils.createAccountOwner("accountOwner2");
         paymaster = new TestPaymasterAcceptAll(entryPoint);
-        //paymaster.addStake is restricted by onlyOwner
         vm.prank(msg.sender);
         paymaster.addStake{value: paymasterStake}(uint32(globalUnstakeDelaySec));
         TestCounter counter = new TestCounter();
@@ -702,18 +701,18 @@ contract EntryPointTest is TestHelper {
 
     //should fail with nonexistent paymaster
     function test_NonExistenetPaymaster() public {
-        (Account memory account2Owner,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
+        (Account memory accountOwner2,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
         uint256 salt = 123;
         address pm = createAddress("paymaster").addr;
 
         UserOperation memory op = _defaultOp;
-        op.sender = simpleAccountFactory.getAddress(account2Owner.addr, salt);
+        op.sender = simpleAccountFactory.getAddress(accountOwner2.addr, salt);
         op.paymasterAndData = abi.encodePacked(pm);
         op.callData = accountExecFromEntryPoint;
-        op.initCode = getAccountInitCode(account2Owner.addr, salt);
+        op.initCode = getAccountInitCode(accountOwner2.addr, salt);
         op.verificationGasLimit = 3e6;
         op.callGasLimit = 1e6;
-        op = signUserOp(op, entryPointAddress, chainId, account2Owner.key);
+        op = signUserOp(op, entryPointAddress, chainId, accountOwner2.key);
 
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA30 paymaster not deployed"));
         entryPoint.simulateValidation(op);
@@ -721,18 +720,18 @@ contract EntryPointTest is TestHelper {
 
     //should fail if paymaster has no deposit
     function test_PaymasterWithNoDeposit() public {
-        (Account memory account2Owner, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) =
+        (Account memory accountOwner2, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) =
             _withPaymasterSetUp();
         uint256 salt = 123;
 
         UserOperation memory op = _defaultOp;
-        op.sender = simpleAccountFactory.getAddress(account2Owner.addr, salt);
+        op.sender = simpleAccountFactory.getAddress(accountOwner2.addr, salt);
         op.paymasterAndData = abi.encodePacked(address(paymaster));
         op.callData = accountExecFromEntryPoint;
-        op.initCode = getAccountInitCode(account2Owner.addr, salt);
+        op.initCode = getAccountInitCode(accountOwner2.addr, salt);
         op.verificationGasLimit = 3e6;
         op.callGasLimit = 1e6;
-        op = signUserOp(op, entryPointAddress, chainId, account2Owner.key);
+        op = signUserOp(op, entryPointAddress, chainId, accountOwner2.key);
         ops.push(op);
         address payable beneficiary = payable(makeAddr("beneficiary"));
 
@@ -742,19 +741,18 @@ contract EntryPointTest is TestHelper {
 
     //paymaster should pay for tx
     function test_PaymasterPaysForTransaction() public {
-        (Account memory account2Owner, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) =
+        (Account memory accountOwner2, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) =
             _withPaymasterSetUp();
         uint256 salt = 123;
         paymaster.deposit{value: 1 ether}();
 
         UserOperation memory op = _defaultOp;
-        op.sender = simpleAccountFactory.getAddress(account2Owner.addr, salt);
+        op.sender = simpleAccountFactory.getAddress(accountOwner2.addr, salt);
         op.paymasterAndData = abi.encodePacked(address(paymaster));
         op.callData = accountExecFromEntryPoint;
-        op.initCode = getAccountInitCode(account2Owner.addr, salt);
-        //required for account initialization - initCode
+        op.initCode = getAccountInitCode(accountOwner2.addr, salt);
         op.verificationGasLimit = 1e6;
-        op = signUserOp(op, entryPointAddress, chainId, account2Owner.key);
+        op = signUserOp(op, entryPointAddress, chainId, accountOwner2.key);
         ops.push(op);
         address payable beneficiary = payable(makeAddr("beneficiary"));
 
@@ -780,14 +778,12 @@ contract EntryPointTest is TestHelper {
         op.paymasterAndData = abi.encodePacked(address(paymaster));
         op.callData = accountExecFromEntryPoint;
         op.initCode = getAccountInitCode(anOwner.addr, salt);
-        //required for account initialization - initCode
         op.verificationGasLimit = 1e6;
         op = signUserOp(op, entryPointAddress, chainId, anOwner.key);
 
         StakeInfo memory paymasterInfo;
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
-            require(revertReason.length >= 4);
             (, bytes memory data) = getDataFromEncoding(revertReason);
             (,,, paymasterInfo) = abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
         }
