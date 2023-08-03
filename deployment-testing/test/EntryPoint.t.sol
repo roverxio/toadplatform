@@ -30,8 +30,6 @@ struct StakeInfo {
 contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
     Utilities internal utils;
-    uint256 globalUnstakeDelaySec;
-    uint256 paymasterStake;
 
     function setUp() public {
         utils = new Utilities();
@@ -42,8 +40,6 @@ contract EntryPointTest is TestHelper {
             utils.createAccountWithEntryPoint(accountOwner.addr, entryPoint, simpleAccountFactory);
 
         vm.deal(address(account), 1 ether);
-        globalUnstakeDelaySec = 2;
-        paymasterStake = 2 ether;
     }
 
     // Stake Management testing
@@ -680,17 +676,41 @@ contract EntryPointTest is TestHelper {
     //without paymaster (account pays in eth)
     //with paymaster (account with no eth)
     function _withPaymasterSetUp()
+        public
         returns (
+            Account memory account2Owner,
             TestPaymasterAcceptAll paymaster,
             TestCounter counter,
-            bytes memory accountExecFromEntryPoint,
-            account2Owner Account
+            bytes memory accountExecFromEntryPoint
         )
     {
-        paymaster = new TestPaymasterAcceptAll(entryPointAddress);
-        paymaster.addStake{value: paymasterStake}(globalUnstakeDelaySec);
+        account2Owner = utils.createAccountOwner("account2Owner");
+        paymaster = new TestPaymasterAcceptAll(entryPoint);
+        //paymaster.addStake is restricted by onlyOwner
+        vm.prank(msg.sender);
+        paymaster.addStake{value: paymasterStake}(uint32(globalUnstakeDelaySec));
         counter = new TestCounter();
-        bytes memory count = abi.encodeCall(counter.count, ());
-        accountExecFromEntryPoint = abi.encodeCall(account.execute, (address(counter), 0, count));
+        bytes memory count = abi.encodeWithSignature("count()");
+        accountExecFromEntryPoint =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
+    }
+
+    //should fail with nonexistent paymaster
+    function test_NonExistenetPaymaster() public {
+        (Account memory account2Owner,,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
+        uint256 salt = 123;
+        address pm = createAddress("paymaster").addr;
+
+        UserOperation memory op = _defaultOp;
+        op.sender = simpleAccountFactory.getAddress(account2Owner.addr, salt);
+        op.paymasterAndData = abi.encodePacked(pm);
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = getAccountInitCode(account2Owner.addr, salt);
+        op.verificationGasLimit = 3e6;
+        op.callGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId, account2Owner.key);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA30 paymaster not deployed"));
+        entryPoint.simulateValidation(op);
     }
 }
