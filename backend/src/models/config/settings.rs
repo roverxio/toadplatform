@@ -16,6 +16,11 @@ pub struct Server {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct Database {
+    pub file: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct DefaultChain {
     pub chain: String,
     pub currency: String
@@ -36,6 +41,7 @@ impl Chain {
 pub struct Settings {
     pub current_chain: String,
     pub log: Log,
+    pub database: Database,
     pub server: Server,
     pub default_chain: DefaultChain,
     pub chains: Map<String, Chain>,

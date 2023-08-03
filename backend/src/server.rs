@@ -3,6 +3,9 @@ use actix_web::middleware::Logger;
 use actix_web::web::Data;
 use dotenvy::dotenv;
 use env_logger::{Env, init_from_env};
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
+use crate::CONFIG;
 
 use crate::models::config::server::Server;
 use crate::routes::routes;
@@ -22,9 +25,10 @@ pub struct ToadService {
 }
 
 pub fn init_services(
-    log_level: &String,
+    pool: Pool<SqliteConnectionManager>
 ) -> ToadService {
-    init_logging(log_level);
+    println!("pool: {:?}", pool);
+    init_logging();
     // Services
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {};
@@ -41,7 +45,8 @@ pub fn init_services(
     }
 }
 
-fn init_logging(log_level: &String) {
+fn init_logging() {
+    let log_level = CONFIG.log.level.as_str();
     std::env::set_var("RUST_LOG", log_level);
     init_from_env(Env::default().default_filter_or(log_level));
 }
