@@ -16,9 +16,16 @@ pub struct Server {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct DefaultChain {
+    pub chain: String,
+    pub currency: String
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
     pub log: Log,
     pub server: Server,
+    pub default_chain: DefaultChain,
     pub env: ENV,
 }
 

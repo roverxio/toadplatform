@@ -267,6 +267,7 @@ name = "backend"
 version = "0.1.0"
 dependencies = [
  "actix-web",
+ "base64 0.21.2",
  "config",
  "derive_more",
  "dotenvy",
@@ -274,6 +275,7 @@ dependencies = [
  "lazy_static",
  "log",
  "serde",
+ "serde_json",
 ]
 
 [[package]]
