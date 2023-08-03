@@ -1,6 +1,7 @@
 use actix_web::web;
-use actix_web::web::ServiceConfig;
+use actix_web::web::{ServiceConfig};
 use crate::CONFIG;
+use crate::handlers::admin::topup_paymaster_deposit;
 
 use crate::handlers::hello_world::hello_world;
 use crate::handlers::wallet::{get_address, get_balance, transact};
@@ -14,6 +15,7 @@ pub fn routes(cfg: &mut ServiceConfig) {
                     .route("address", web::get().to(get_address))
                     .route("balance", web::get().to(get_balance))
                     .route("transact", web::post().to(transact))
+                    .route("deposit/add", web::post().to(topup_paymaster_deposit))
             )
     );
 }
