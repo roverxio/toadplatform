@@ -692,8 +692,7 @@ contract EntryPointTest is TestHelper {
     //validateUserOp time-range
     //should accept non-expired owner
     function test_AcceptNonExpiredOwner() public {
-        (uint256 noW,, TestExpiryAccount expAccount, Account memory sessionOwner) =
-            _validationTimeRangeSetUp();
+        (uint256 noW,, TestExpiryAccount expAccount, Account memory sessionOwner) = _validationTimeRangeSetUp();
 
         UserOperation memory op = _defaultOp;
         op.sender = address(expAccount);
@@ -706,6 +705,28 @@ contract EntryPointTest is TestHelper {
                 abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
             assertEq(returnInfoFromRevert.validUntil, noW + 60);
             assertEq(returnInfoFromRevert.validAfter, 100);
+        }
+    }
+
+    //should not reject expired owner
+    function test_ShouldNotRejectExpiredOwner() public {
+        (uint256 noW,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+
+        Account memory expiredOwner = utils.createAccountOwner("expiredOwner");
+        expAccount.addTemporaryOwner(expiredOwner.addr, 123, uint48(noW - 60));
+
+        UserOperation memory op = _defaultOp;
+        op.sender = address(expAccount);
+        op = signUserOp(op, entryPointAddress, chainId, expiredOwner.key);
+
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            require(revertReason.length >= 4);
+            (, bytes memory data) = getDataFromEncoding(revertReason);
+            (ReturnInfo memory returnInfoFromRevert,,,) =
+                abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+            assertEq(returnInfoFromRevert.validUntil, noW - 60);
+            assertEq(returnInfoFromRevert.validAfter, 123);
         }
     }
 }
