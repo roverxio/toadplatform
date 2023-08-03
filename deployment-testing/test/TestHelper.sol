@@ -8,12 +8,10 @@ import "../src/SimpleAccountFactory.sol";
 
 contract TestHelper is Test {
     Account internal accountOwner;
-    Account internal owner;
     EntryPoint internal entryPoint;
     SimpleAccount internal account;
     SimpleAccount internal implementation;
     SimpleAccountFactory internal simpleAccountFactory;
-    SimpleAccountFactory internal accountFactory;
 
     address internal accountAddress;
     address internal entryPointAddress;

@@ -37,7 +37,7 @@ contract TokenPaymasterTest is TestHelper {
     );
 
     function setUp() public {
-        createAddress("owner_paymaster");
+        accountOwner = createAddress("owner_paymaster");
         deployEntryPoint(123461);
         createAccount(123462, 123463);
 
@@ -45,10 +45,10 @@ contract TokenPaymasterTest is TestHelper {
         uniswap = new TestUniswap(weth);
 
         vm.deal(accountAddress, 1 ether);
-        vm.deal(owner.addr, 1003 ether);
+        vm.deal(accountOwner.addr, 1003 ether);
         // Check for geth
 
-        vm.startPrank(owner.addr);
+        vm.startPrank(accountOwner.addr);
 
         token = new TestERC20(6);
         tokenAddress = address(token);
@@ -85,17 +85,17 @@ contract TokenPaymasterTest is TestHelper {
             paymasterConfig,
             oracleConfig,
             uniswapConfig,
-            owner.addr);
+            accountOwner.addr);
         paymasterAddress = address(paymaster);
 
-        vm.startPrank(owner.addr);
+        vm.startPrank(accountOwner.addr);
         token.transfer(paymasterAddress, 100);
         vm.warp(blockTime);
         paymaster.updateCachedPrice(true);
         entryPoint.depositTo{value: 1000 ether}(paymasterAddress);
         paymaster.addStake{value: 2 ether}(1);
         vm.stopPrank();
-        callData = abi.encodeWithSignature("execute(address,uint256,bytes)", owner.addr, 0, defaultBytes);
+        callData = abi.encodeWithSignature("execute(address,uint256,bytes)", accountOwner.addr, 0, defaultBytes);
     }
 
     // Paymaster should reject if account does not have enough tokens or allowance
@@ -127,7 +127,7 @@ contract TokenPaymasterTest is TestHelper {
     // Should be able to sponsor the UserOp while charging correct amount of ERC-20 tokens
     function test_SponsorErc20() public {
         uint256 snapShotId = vm.snapshot();
-        vm.startPrank(owner.addr);
+        vm.startPrank(accountOwner.addr);
 
         token.transfer(accountAddress, 1 ether);
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
@@ -174,7 +174,7 @@ contract TokenPaymasterTest is TestHelper {
     // Should update cached token price if the change is above configured percentage
     function test_UpdateCachedTokenPrice() public {
         uint256 snapShotId = vm.snapshot();
-        vm.startPrank(owner.addr);
+        vm.startPrank(accountOwner.addr);
         vm.warp(blockTime + 10);
         token.transfer(accountAddress, 1 ether);
         token.sudoApprove(accountAddress, address(paymaster), type(uint256).max);
@@ -208,7 +208,7 @@ contract TokenPaymasterTest is TestHelper {
     // Should use token price supplied by the client if it is better than cached
     function test_UseSuppliedPriceIfItsBetter() public {
         uint256 snapshotId = vm.snapshot();
-        vm.startPrank(owner.addr);
+        vm.startPrank(accountOwner.addr);
         token.transfer(accountAddress, 1 ether);
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
 
@@ -246,7 +246,7 @@ contract TokenPaymasterTest is TestHelper {
     // Should use cached token price if the one supplied by the client if it is worse
     function test_UseCachedPriceIfItsBetter() public {
         uint256 snapshotId = vm.snapshot();
-        vm.startPrank(owner.addr);
+        vm.startPrank(accountOwner.addr);
         token.transfer(accountAddress, 1 ether);
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
 
@@ -285,8 +285,8 @@ contract TokenPaymasterTest is TestHelper {
     // Should charge the overdraft tokens if the pre-charge ended up lower than the final transaction cost
     function test_chargeOverdraftIfPrechargeIsLowerThanTxnCost() public {
         uint256 snapshotId = vm.snapshot();
-        vm.startPrank(owner.addr);
-        token.transfer(accountAddress, token.balanceOf(owner.addr));
+        vm.startPrank(accountOwner.addr);
+        token.transfer(accountAddress, token.balanceOf(accountOwner.addr));
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
 
         tokenOracle.setPrice(initialPriceToken);
@@ -326,7 +326,7 @@ contract TokenPaymasterTest is TestHelper {
     // Should revert in the first postOp run if the pre-charge ended up lower than the final transaction cost but the client has no tokens to cover the overdraft
     function test_RevertOnNoTokens() public {
         uint256 snapShotId = vm.snapshot();
-        vm.startPrank(owner.addr);
+        vm.startPrank(accountOwner.addr);
 
         token.transfer(accountAddress, 0.01 ether);
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
@@ -368,10 +368,10 @@ contract TokenPaymasterTest is TestHelper {
 
     // should swap tokens for ether if it falls below configured value and deposit it
     function test_SwapEtherTokens() public {
-        vm.startPrank(owner.addr);
-        vm.deal(owner.addr, 1 ether);
+        vm.startPrank(accountOwner.addr);
+        vm.deal(accountOwner.addr, 1 ether);
 
-        token.transfer(accountAddress, token.balanceOf(owner.addr));
+        token.transfer(accountAddress, token.balanceOf(accountOwner.addr));
         token.sudoApprove(accountAddress, paymasterAddress, type(uint256).max);
 
         (uint112 deposit,,,,) = entryPoint.deposits(paymasterAddress);
