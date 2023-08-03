@@ -179,4 +179,19 @@ contract TestHelper is Test {
             }
         }
     }
+
+    function createOpWithPaymasterParams(
+        address _accountAddr,
+        address _paymasterAddr,
+        uint48 _after,
+        uint48 _until,
+        Account memory owner
+    ) public view returns (UserOperation memory op) {
+        bytes memory timeRange = abi.encode(_after, _until);
+
+        op = _defaultOp;
+        op.sender = _accountAddr;
+        op.paymasterAndData = abi.encodePacked(_paymasterAddr, timeRange);
+        op = signUserOp(op, entryPointAddress, chainId, owner.key);
+    }
 }

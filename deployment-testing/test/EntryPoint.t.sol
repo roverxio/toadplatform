@@ -796,12 +796,8 @@ contract EntryPointTest is TestHelper {
         expAccount.addTemporaryOwner(owner.addr, 100, 500);
 
         // createOpWithPaymasterParams
-        bytes memory timeRange = abi.encode(_after, _until);
-
-        UserOperation memory op = _defaultOp;
-        op.sender = address(expAccount);
-        op.paymasterAndData = abi.encodePacked(address(paymaster), timeRange);
-        op = signUserOp(op, entryPointAddress, chainId, owner.key);
+        UserOperation memory op =
+            createOpWithPaymasterParams(address(expAccount), address(paymaster), _after, _until, owner);
 
         // simulateWithPaymasterParams
         try entryPoint.simulateValidation(op) {}
@@ -833,5 +829,20 @@ contract EntryPointTest is TestHelper {
     function test_UseUntilOfAccount() public {
         (ReturnInfo memory ret) = simulateWithPaymasterParams(200, 600);
         assertEq(ret.validUntil, 500);
+    }
+
+    //handleOps should revert on expired paymaster request
+    function test_RevertExpiredPaymasterRequest() public {
+        (uint256 noW, address payable beneficiary, TestExpiryAccount expAccount, Account memory sessionOwner) =
+            _validationTimeRangeSetUp();
+        (TestExpirePaymaster paymaster) = _validatePaymasterSetUp();
+
+        UserOperation memory op = createOpWithPaymasterParams(
+            address(expAccount), address(paymaster), uint48(noW + 100), uint48(noW + 200), sessionOwner
+        );
+        ops.push(op);
+        
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA32 paymaster expired or not due"));
+        entryPoint.handleOps(ops, beneficiary);
     }
 }
