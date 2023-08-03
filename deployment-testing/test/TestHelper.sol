@@ -146,4 +146,9 @@ contract TestHelper is Test {
         }
         return size > 0;
     }
+
+    function getAccountInitCode(address owner, uint256 salt) public view returns (bytes memory initCode) {
+        bytes memory initCallData = abi.encodeWithSignature("createAccount(address,uint256)", owner, salt);
+        initCode = abi.encodePacked(address(simpleAccountFactory), initCallData);
+    }
 }

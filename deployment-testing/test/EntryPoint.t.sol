@@ -677,20 +677,16 @@ contract EntryPointTest is TestHelper {
 
     //without paymaster (account pays in eth)
     //create account
-    function _createAccountSetUp(uint256 salt) public returns (bytes memory initCode, address payable beneficiary) {
+    function _createAccountSetUp() public returns (address payable beneficiary) {
         beneficiary = payable(makeAddr("beneficiary"));
-
-        //adding initCode for use in the following test cases
-        bytes memory _initCallData = abi.encodeCall(simpleAccountFactory.createAccount, (accountOwner.addr, salt));
-        initCode = abi.encodePacked(address(simpleAccountFactory), _initCallData);
     }
 
     //should reject create if sender address is wrong
     function test_RejectCreateIfWrongSender() public {
-        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp(0);
+        (address payable beneficiary) = _createAccountSetUp();
 
         UserOperation memory op = _defaultOp;
-        op.initCode = initCode;
+        op.initCode = getAccountInitCode(accountOwner.addr, 0);
         op.verificationGasLimit = 2e6;
         op.sender = 0x1111111111111111111111111111111111111111;
         op = signUserOp(op, entryPointAddress, chainId);
@@ -702,12 +698,12 @@ contract EntryPointTest is TestHelper {
 
     //should reject create if account not funded
     function test_RejectCreateIfNotFunded() public {
+        (address payable beneficiary) = _createAccountSetUp();
         uint256 salt = 100;
-        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp(salt);
 
         UserOperation memory op = _defaultOp;
         op.sender = simpleAccountFactory.getAddress(accountOwner.addr, salt);
-        op.initCode = initCode;
+        op.initCode = getAccountInitCode(accountOwner.addr, salt);
         op.verificationGasLimit = 2e6;
         op = signUserOp(op, entryPointAddress, chainId);
         ops.push(op);
@@ -719,32 +715,38 @@ contract EntryPointTest is TestHelper {
 
     //should succeed to create account after prefund
     function test_CreateIfFunded() public {
+        (address payable beneficiary) = _createAccountSetUp();
         uint256 salt = 20;
-        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp(salt);
         address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
         vm.deal(preAddr, 1 ether);
 
         UserOperation memory createOp = _defaultOp;
         createOp.sender = preAddr;
-        createOp.initCode = initCode;
+        createOp.initCode = getAccountInitCode(accountOwner.addr, salt);
         createOp.callGasLimit = 1e6;
         createOp.verificationGasLimit = 2e6;
         createOp = signUserOp(createOp, entryPointAddress, chainId);
         ops.push(createOp);
 
         assertEq(isDeployed(preAddr), false, "account exists before creation");
-        bytes32 userOpHash = entryPoint.getUserOpHash(createOp);
 
-        vm.expectEmit(true, true, false, true);
-        emit AccountDeployed(userOpHash, createOp.sender, address(simpleAccountFactory), address(0));
+        bytes32 hash = entryPoint.getUserOpHash(createOp);
+        vm.expectEmit(true, true, true, true);
+        //createOp.initCode.toString().slice(0, 42) gets the address of simpleAccountFactory
+        emit AccountDeployed(hash, createOp.sender, address(simpleAccountFactory), address(0));
+        vm.recordLogs();
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[6].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
     }
 
     //should reject if account already created
     function test_AccountAlreadyCreated() public {
-        // `salt = 0` corresponds to default account created during setup
+        (address payable beneficiary) = _createAccountSetUp();
+        // `salt = 0` corresponds to default `account` created during setup
         uint256 salt = 0;
-        (bytes memory initCode, address payable beneficiary) = _createAccountSetUp(salt);
 
         // The below code snippet, added from the hardhat test, is commented out as it is redundant in case `salt = 0`
 
@@ -753,11 +755,11 @@ contract EntryPointTest is TestHelper {
         //     revert();
         // }
 
-        UserOperation memory op = _defaultOp;
-        op.sender = accountAddress;
-        op.initCode = initCode;
-        op = signUserOp(op, entryPointAddress, chainId);
-        ops.push(op);
+        UserOperation memory createOp = _defaultOp;
+        createOp.sender = accountAddress;
+        createOp.initCode = getAccountInitCode(accountOwner.addr, salt);
+        createOp = signUserOp(createOp, entryPointAddress, chainId);
+        ops.push(createOp);
 
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA10 sender already constructed"));
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
