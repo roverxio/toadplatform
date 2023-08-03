@@ -708,14 +708,33 @@ contract EntryPointTest is TestHelper {
         ops.push(op);
 
         TestSignatureAggregator wrongAggregator = new TestSignatureAggregator();
-        bytes32 sig = bytes32(0);
+        bytes memory sig = abi.encodePacked(bytes32(0));
 
         IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
-        IEntryPoint.UserOpsPerAggregator memory aggrOp = fillAggregatedOp(ops, wrongAggregator);
-        aggrOp.signature = abi.encodePacked(sig);
-        opsPerAggregator[0] = aggrOp;
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, wrongAggregator, sig);
 
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA24 signature error"));
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //should reject non-contract (address(1)) aggregator
+    function test_RejectNonContractAggregator() public {
+        (address payable beneficiary,) = _aggregationTestsSetUp();
+        address address1 = address(1);
+        TestAggregatedAccount aggAccount1 = new TestAggregatedAccount(entryPoint, address1);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = address(aggAccount1);
+        op.maxFeePerGas = 0;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        bytes memory sig = abi.encodePacked(bytes32(0));
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, IAggregator(address(1)), sig);
+
+        vm.expectRevert("AA96 invalid aggregator");
         entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
     }
 }
