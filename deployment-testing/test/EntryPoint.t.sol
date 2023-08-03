@@ -8,6 +8,7 @@ import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestRevertAccount.sol";
+import "../src/test/TestCounter.sol";
 
 //Utils
 import {Utilities} from "./Utilities.sol";
@@ -674,4 +675,54 @@ contract EntryPointTest is TestHelper {
 
     //without paymaster (account pays in eth)
     //batch multiple requests
+    function _batchMultipleRequestsSetUp()
+        public
+        returns (TestCounter counter, address account1, SimpleAccount account2)
+    {
+        uint256 salt = 123;
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
+        Account memory accountOwner2 = utils.createAccountOwner("accountOwner2");
+
+        counter = new TestCounter();
+        bytes memory count = abi.encodeWithSignature("count()");
+        bytes memory accountExecFromEntryPoint =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
+        account1 = simpleAccountFactory.getAddress(accountOwner1.addr, salt);
+        (account2,) = utils.createAccountWithEntryPoint(accountOwner2.addr, entryPoint, simpleAccountFactory);
+        vm.deal(account1, 1 ether);
+        vm.deal(address(account2), 1 ether);
+
+        UserOperation memory op1 = _defaultOp;
+        op1.sender = account1;
+        op1.initCode = getAccountInitCode(accountOwner1.addr, salt);
+        op1.callData = accountExecFromEntryPoint;
+        op1.callGasLimit = 2e6;
+        op1.verificationGasLimit = 2e6;
+        op1 = signUserOp(op1, entryPointAddress, chainId, accountOwner1.key);
+        ops.push(op1);
+
+        UserOperation memory op2 = _defaultOp;
+        op2.callData = accountExecFromEntryPoint;
+        op2.sender = address(account2);
+        op2.callGasLimit = 2e6;
+        op2.verificationGasLimit = 76000;
+        op2 = signUserOp(op2, entryPointAddress, chainId, accountOwner2.key);
+        ops.push(op2);
+
+        vm.expectRevert();
+        entryPoint.simulateValidation{gas: 1e9}(op2);
+
+        vm.deal(op1.sender, 1 ether);
+        vm.deal(address(account2), 1 ether);
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //should execute
+    function test_BatchMultipleRequestsShouldExecute() public {
+        (TestCounter counter, address account1, SimpleAccount account2) = _batchMultipleRequestsSetUp();
+
+        assertEq(counter.counters(account1), 1);
+        assertEq(counter.counters(address(account2)), 1);
+    }
 }
