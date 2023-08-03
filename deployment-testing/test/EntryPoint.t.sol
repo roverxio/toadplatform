@@ -8,6 +8,8 @@ import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestRevertAccount.sol";
+import "../src/test/TestAggregatedAccount.sol";
+import "../src/test/TestSignatureAggregator.sol";
 
 //Utils
 import {Utilities} from "./Utilities.sol";
@@ -674,4 +676,25 @@ contract EntryPointTest is TestHelper {
 
     //without paymaster (account pays in eth)
     //aggregation tests
+    function _aggregationTestsSetUp() public returns (address payable beneficiary, TestAggregatedAccount aggrAccount) {
+        beneficiary = payable(makeAddr("beneficiary"));
+        TestSignatureAggregator aggregator = new TestSignatureAggregator();
+        aggrAccount = new TestAggregatedAccount(entryPoint, address(aggregator));
+        TestAggregatedAccount aggrAccount2 = new TestAggregatedAccount(entryPoint, address(aggregator));
+        payable(address(aggrAccount)).transfer(0.1 ether);
+        payable(address(aggrAccount2)).transfer(0.1 ether);
+    }
+
+    //should fail to execute aggregated account without an aggregator
+    function test_FailToExecAggrAccountWithoutAggregator() public {
+        (address payable beneficiary, TestAggregatedAccount aggrAccount) = _aggregationTestsSetUp();
+
+        UserOperation memory op = _defaultOp;
+        op.sender = address(aggrAccount);
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA24 signature error"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
 }
