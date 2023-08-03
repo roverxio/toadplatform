@@ -449,30 +449,29 @@ contract EntryPointTest is TestHelper {
     // Should simulate execution
     function test_ExecutionSimulation() public {
         Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
-        (SimpleAccount account1,) =
-            utils.createAccountWithEntryPoint(accountOwner.addr, entryPoint, simpleAccountFactory);
-        vm.deal(address(account1), 1 ether);
-        TestCounter counter = new TestCounter();
-
-        bytes memory countData = abi.encodeWithSignature("revertLong()");
+        (, address accountAddress1) = createAccountWithFactory(2131);
+        vm.deal(accountAddress1, 1 ether);
+        TestCounter counter = new TestCounter{salt: bytes32(uint256(1231))}();
+        bytes memory countData = abi.encodeWithSignature("count()");
         bytes memory callData =
             abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, countData);
 
         UserOperation memory op = _defaultOp;
-        op.sender = address(account1);
+        op.sender = accountAddress1;
         op.callData = callData;
 
         op = utils.fillAndSign(op, accountOwner1, entryPoint, chainId);
 
         vm.recordLogs();
         try entryPoint.simulateHandleOp(
-            op, address(counter), abi.encodeWithSignature("counters(address)", address(account1))
+            op, address(counter), abi.encodeWithSignature("counters(address)", accountAddress1)
         ) {} catch (bytes memory revertReason) {
             bytes memory data = utils.getDataFromEncoding(revertReason);
             (,,,, bool success, bytes memory result) = abi.decode(data, (uint256, uint256, uint48, uint48, bool, bytes));
             assertEq(success, true);
-            assertEq(result, abi.encode(0));
+            assertEq(result, abi.encode(1));
         }
+        assertEq(counter.counters(accountAddress1), 0);
     }
 
     // 2d nonces
