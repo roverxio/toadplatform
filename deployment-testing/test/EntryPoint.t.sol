@@ -676,21 +676,24 @@ contract EntryPointTest is TestHelper {
 
     //without paymaster (account pays in eth)
     //aggregation tests
-    function _aggregationTestsSetUp() public returns (address payable beneficiary, TestAggregatedAccount aggrAccount) {
+    function _aggregationTestsSetUp()
+        public
+        returns (address payable beneficiary, TestAggregatedAccount aggAccount, TestSignatureAggregator aggregator)
+    {
         beneficiary = payable(makeAddr("beneficiary"));
-        TestSignatureAggregator aggregator = new TestSignatureAggregator();
-        aggrAccount = new TestAggregatedAccount(entryPoint, address(aggregator));
-        TestAggregatedAccount aggrAccount2 = new TestAggregatedAccount(entryPoint, address(aggregator));
-        payable(address(aggrAccount)).transfer(0.1 ether);
-        payable(address(aggrAccount2)).transfer(0.1 ether);
+        aggregator = new TestSignatureAggregator();
+        aggAccount = new TestAggregatedAccount(entryPoint, address(aggregator));
+        TestAggregatedAccount aggAccount2 = new TestAggregatedAccount(entryPoint, address(aggregator));
+        payable(address(aggAccount)).transfer(0.1 ether);
+        payable(address(aggAccount2)).transfer(0.1 ether);
     }
 
     //should fail to execute aggregated account without an aggregator
     function test_FailToExecAggrAccountWithoutAggregator() public {
-        (address payable beneficiary, TestAggregatedAccount aggrAccount) = _aggregationTestsSetUp();
+        (address payable beneficiary, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
 
         UserOperation memory op = _defaultOp;
-        op.sender = address(aggrAccount);
+        op.sender = address(aggAccount);
         op = signUserOp(op, entryPointAddress, chainId);
         ops.push(op);
 
@@ -700,10 +703,10 @@ contract EntryPointTest is TestHelper {
 
     //should fail to execute aggregated account with wrong aggregator
     function test_FailAggrAccountWithWrongAggregator() public {
-        (address payable beneficiary, TestAggregatedAccount aggrAccount) = _aggregationTestsSetUp();
+        (address payable beneficiary, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
 
         UserOperation memory op = _defaultOp;
-        op.sender = address(aggrAccount);
+        op.sender = address(aggAccount);
         op = signUserOp(op, entryPointAddress, chainId);
         ops.push(op);
 
@@ -719,7 +722,7 @@ contract EntryPointTest is TestHelper {
 
     //should reject non-contract (address(1)) aggregator
     function test_RejectNonContractAggregator() public {
-        (address payable beneficiary,) = _aggregationTestsSetUp();
+        (address payable beneficiary,,) = _aggregationTestsSetUp();
         address address1 = address(1);
         TestAggregatedAccount aggAccount1 = new TestAggregatedAccount(entryPoint, address1);
 
@@ -735,6 +738,26 @@ contract EntryPointTest is TestHelper {
         opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, IAggregator(address(1)), sig);
 
         vm.expectRevert("AA96 invalid aggregator");
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //should fail to execute aggregated account with wrong agg. signature
+    function test_FailToExecuteAggrAccountWithWrongAggregateSig() public {
+        (address payable beneficiary, TestAggregatedAccount aggAccount, TestSignatureAggregator aggregator) =
+            _aggregationTestsSetUp();
+
+        UserOperation memory op = _defaultOp;
+        op.sender = address(aggAccount);
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        bytes memory wrongSignature = abi.encode(uint256(0x123456));
+        address aggAddress = address(aggregator);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, aggregator, wrongSignature);
+
+        vm.expectRevert(abi.encodeWithSignature("SignatureValidationFailed(address)", aggAddress));
         entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
     }
 }
