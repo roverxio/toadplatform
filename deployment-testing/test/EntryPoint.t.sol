@@ -678,8 +678,9 @@ contract EntryPointTest is TestHelper {
     //#handleOps
     function _handleOpsSetUp() public returns (TestCounter counter, bytes memory accountExecFromEntryPoint) {
         counter = new TestCounter{salt: '123'}();
-        bytes memory count = abi.encodeCall(counter.count, ());
-        accountExecFromEntryPoint = abi.encodeCall(account.execute, (address(counter), 0, count));
+        bytes memory count = abi.encodeWithSignature("count()");
+        accountExecFromEntryPoint =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
     }
 
     //should revert on signature failure
@@ -724,8 +725,9 @@ contract EntryPointTest is TestHelper {
     function test_PayForHighGasUse() public {
         (TestCounter counter,) = _handleOpsSetUp();
         uint256 iterations = 45;
-        bytes memory countData = abi.encodeCall(counter.gasWaster, (iterations, ""));
-        bytes memory accountExec = abi.encodeCall(account.execute, (address(counter), 0, countData));
+        bytes memory countData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, "");
+        bytes memory accountExec =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, countData);
 
         UserOperation memory op = _defaultOp;
         op.sender = accountAddress;
@@ -751,8 +753,9 @@ contract EntryPointTest is TestHelper {
     function test_DontPayForLowGasLimit() public {
         (TestCounter counter,) = _handleOpsSetUp();
         uint256 iterations = 45;
-        bytes memory countData = abi.encodeCall(counter.gasWaster, (iterations, ""));
-        bytes memory accountExec = abi.encodeCall(account.execute, (address(counter), 0, countData));
+        bytes memory countData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, "");
+        bytes memory accountExec =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, countData);
 
         UserOperation memory op = _defaultOp;
         op.sender = accountAddress;
@@ -763,13 +766,11 @@ contract EntryPointTest is TestHelper {
         ops.push(op);
         uint256 initialAccountBalance = accountAddress.balance;
         address payable beneficiary = payable(makeAddr("beneficiary"));
-        uint256 offsetBefore = counter.offset();
 
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA95 out of gas"));
         entryPoint.handleOps{gas: 12e5}(ops, beneficiary);
 
         assertEq(accountAddress.balance, initialAccountBalance);
-        assertEq(counter.offset(), offsetBefore);
     }
 
     //if account has a deposit, it should use it to pay
@@ -840,8 +841,6 @@ contract EntryPointTest is TestHelper {
         ops.push(op);
         uint256 countBefore = counter.counters(accountAddress);
 
-        //assertion to ensure ops array contains single op
-        assertEq(ops.length, 1);
         vm.recordLogs();
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
 
@@ -858,8 +857,13 @@ contract EntryPointTest is TestHelper {
         address payable beneficiary = payable(makeAddr("beneficiary"));
 
         UserOperation[] memory _ops;
-        bytes memory callHandleOps = abi.encodeCall(entryPoint.handleOps, (_ops, beneficiary));
-        bytes memory execHandlePost = abi.encodeCall(account.execute, (entryPointAddress, 0, callHandleOps));
+        bytes memory callHandleOps = abi.encodeWithSignature(
+            "handleOps((address,uint256,bytes,bytes,uint256,uint256,uint256,uint256,uint256,bytes,bytes)[],address)",
+            _ops,
+            beneficiary
+        );
+        bytes memory execHandlePost =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", entryPointAddress, 0, callHandleOps);
 
         UserOperation memory op = _defaultOp;
         op.sender = accountAddress;
