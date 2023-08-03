@@ -8,8 +8,8 @@ mod routes;
 mod errors;
 mod services;
 mod models;
-mod helpers;
 mod server;
+mod provider;
 
 lazy_static! {
     static ref CONFIG: Settings = Settings::new().expect("Failed to load config.");

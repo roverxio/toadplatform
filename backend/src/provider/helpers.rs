@@ -1,3 +1,5 @@
+use actix_web::http::header::HeaderName;
+use actix_web::HttpRequest;
 use actix_web::web::Json;
 use serde::Serialize;
 
@@ -12,4 +14,8 @@ pub fn respond_json<T>(data: T) -> Result<Json<BaseResponse<T>>, ApiError>
         data,
         err: Default::default(),
     }))
+}
+
+pub fn get_user(req: HttpRequest) -> String {
+    req.headers().get(HeaderName::from_static("user")).unwrap().to_str().unwrap().to_string()
 }
