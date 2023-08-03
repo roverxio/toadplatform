@@ -677,11 +677,11 @@ contract EntryPointTest is TestHelper {
     //batch multiple requests
     function _batchMultipleRequestsSetUp()
         public
-        returns (TestCounter counter, address account1, SimpleAccount account2)
+        returns (TestCounter counter, address account1, SimpleAccount account2, address payable beneficiary)
     {
         //timeout feature is not implemented in these test cases
         uint256 salt = 123;
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        beneficiary = payable(makeAddr("beneficiary"));
         Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
         Account memory accountOwner2 = utils.createAccountOwner("accountOwner2");
 
@@ -716,13 +716,13 @@ contract EntryPointTest is TestHelper {
 
         vm.deal(op1.sender, 1 ether);
         vm.deal(address(account2), 1 ether);
-        entryPoint.handleOps(ops, beneficiary);
     }
 
     //should execute
     function test_BatchMultipleRequestsShouldExecute() public {
-        (TestCounter counter, address account1, SimpleAccount account2) = _batchMultipleRequestsSetUp();
+        (TestCounter counter, address account1, SimpleAccount account2, address payable beneficiary) = _batchMultipleRequestsSetUp();
 
+        entryPoint.handleOps(ops, beneficiary);
         assertEq(counter.counters(account1), 1);
         assertEq(counter.counters(address(account2)), 1);
     }
