@@ -147,6 +147,23 @@ contract TestHelper is Test {
         return size > 0;
     }
 
+    function getDataFromEncoding(bytes memory encoding) public pure returns (bytes4 sig, bytes memory data) {
+        assembly {
+            let totalLength := mload(encoding)
+            let targetLength := sub(totalLength, 4)
+            sig := mload(add(encoding, 0x20))
+            data := mload(0x40)
+
+            mstore(data, targetLength)
+            mstore(0x40, add(data, add(0x20, targetLength)))
+            mstore(add(data, 0x20), shl(0x20, mload(add(encoding, 0x20))))
+
+            for { let i := 0x1C } lt(i, targetLength) { i := add(i, 0x20) } {
+                mstore(add(add(data, 0x20), i), mload(add(add(encoding, 0x20), add(i, 0x04))))
+            }
+        }
+    }
+
     function fillAggregatedOp(UserOperation[] memory _userOps, IAggregator _aggregator)
         public
         view

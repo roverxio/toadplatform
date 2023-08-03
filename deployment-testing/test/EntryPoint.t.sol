@@ -9,6 +9,7 @@ import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestRevertAccount.sol";
 import "../src/test/TestAggregatedAccount.sol";
+import "../src/test/TestAggregatedAccountFactory.sol";
 import "../src/test/TestSignatureAggregator.sol";
 
 //Utils
@@ -26,6 +27,11 @@ struct ReturnInfo {
 struct StakeInfo {
     uint256 stake;
     uint256 unstakeDelaySec;
+}
+
+struct AggregatorStakeInfo {
+    address aggregator;
+    StakeInfo stakeInfo;
 }
 
 contract EntryPointTest is TestHelper {
@@ -832,5 +838,75 @@ contract EntryPointTest is TestHelper {
         // using beneficiary from setup is causing the compiler to raise too many variables error.
         // So, this variable is created implicitly.
         entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, payable(makeAddr("beneficiary")));
+    }
+
+    //without paymaster (account pays in eth)
+    //aggregation tests
+    //execution ordering
+    function _executionOrderingSetup()
+        public
+        returns (TestSignatureAggregator aggregator, UserOperation memory userOp)
+    {
+        (, TestAggregatedAccount aggAccount, TestAggregatedAccount aggAccount2, TestSignatureAggregator _aggregator) =
+            _aggregationTestsSetUp();
+        aggregator = _aggregator;
+
+        UserOperation memory userOp1;
+        UserOperation memory userOp2;
+
+        userOp1 = _defaultOp;
+        userOp1.sender = address(aggAccount);
+        userOp1 = signUserOp(userOp1, entryPointAddress, chainId);
+
+        userOp2 = _defaultOp;
+        userOp2.sender = address(aggAccount2);
+        userOp2 = signUserOp(userOp2, entryPointAddress, chainId);
+
+        userOp1.signature = defaultBytes;
+        userOp2.signature = defaultBytes;
+
+        TestAggregatedAccountFactory factory = new TestAggregatedAccountFactory(entryPoint, address(aggregator));
+        bytes memory _initCallData = abi.encodeWithSignature("createAccount(address,uint256)", address(0), 0);
+        bytes memory initCode = abi.encodePacked(address(factory), _initCallData);
+        address addr;
+        try entryPoint.getSenderAddress(initCode) {}
+        catch (bytes memory reason) {
+            (, bytes memory data) = getDataFromEncoding(reason);
+            assembly {
+                addr := mload(add(data, 0x20))
+            }
+        }
+        payable(addr).transfer(0.1 ether);
+
+        userOp = _defaultOp;
+        userOp.sender = addr;
+        userOp.verificationGasLimit = 1e6;
+        userOp.initCode = initCode;
+        userOp = signUserOp(userOp, entryPointAddress, chainId);
+    }
+
+    //simulateValidation should return aggregator and its stake
+    function test_AggregatorAndStakeReturned() public {
+        (TestSignatureAggregator aggregator, UserOperation memory userOp) = _executionOrderingSetup();
+
+        aggregator.addStake{value: 2 ether}(entryPoint, 3);
+
+        try entryPoint.simulateValidation(userOp) {}
+        catch (bytes memory reason) {
+            (bytes4 sig, bytes memory data) = getDataFromEncoding(reason);
+            (,,,, AggregatorStakeInfo memory aggrStakeInfo) =
+                abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo, AggregatorStakeInfo));
+            assertEq(
+                sig,
+                bytes4(
+                    keccak256(
+                        "ValidationResultWithAggregation((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256),(address,(uint256,uint256)))"
+                    )
+                )
+            );
+            assertEq(aggrStakeInfo.aggregator, address(aggregator));
+            assertEq(aggrStakeInfo.stakeInfo.stake, 2 ether);
+            assertEq(aggrStakeInfo.stakeInfo.unstakeDelaySec, 3);
+        }
     }
 }
