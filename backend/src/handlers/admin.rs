@@ -8,6 +8,6 @@ use crate::models::transfer::transfer_response::TransactionResponse;
 use crate::services::admin_service::AdminService;
 
 pub async fn topup_paymaster_deposit(service: Data<AdminService>, body: Json<PaymasterTopup>) -> Result<Json<BaseResponse<TransactionResponse>>, ApiError> {
-    let hello = service.topup_paymaster_deposit(body.into_inner())?;
-    respond_json(hello)
+    let response = service.topup_paymaster_deposit(body.into_inner())?;
+    respond_json(response)
 }
