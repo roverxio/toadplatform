@@ -31,6 +31,8 @@ contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
     Utilities internal utils;
 
+    event UserOperationEvent(bytes32 indexed userOpHash, address indexed sender, address indexed paymaster, uint256 nonce, bool success, uint256 actualGasCost, uint256 actualGasUsed);
+
     function setUp() public {
         utils = new Utilities();
         accountOwner = utils.createAccountOwner("accountOwner");
@@ -733,5 +735,33 @@ contract EntryPointTest is TestHelper {
 
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA31 paymaster deposit too low"));
         entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //paymaster should pay for tx
+    function test_PaymasterPaysForTransaction() public {
+        (Account memory account2Owner, TestPaymasterAcceptAll paymaster,, bytes memory accountExecFromEntryPoint) =
+            _withPaymasterSetUp();
+        uint256 salt = 123;
+        paymaster.deposit{value: 1 ether}();
+
+        UserOperation memory op = _defaultOp;
+        op.sender = simpleAccountFactory.getAddress(account2Owner.addr, salt);
+        op.paymasterAndData = abi.encodePacked(address(paymaster));
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = getAccountInitCode(account2Owner.addr, salt);
+        //needed for account initialization
+        op.verificationGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId, account2Owner.key);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        vm.recordLogs();
+        entryPoint.handleOps(ops, beneficiary);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[5].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+        uint256 paymasterPaid = 1 ether - entryPoint.balanceOf(address(paymaster));
+        assertEq(paymasterPaid, actualGasCost);
     }
 }
