@@ -699,7 +699,7 @@ contract EntryPointTest is TestHelper {
     }
 
     //should fail to execute aggregated account with wrong aggregator
-    function test_AggrAccountWithWrongAggregator() public {
+    function test_FailAggrAccountWithWrongAggregator() public {
         (address payable beneficiary, TestAggregatedAccount aggrAccount) = _aggregationTestsSetUp();
 
         UserOperation memory op = _defaultOp;
