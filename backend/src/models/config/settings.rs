@@ -1,4 +1,4 @@
-use config::{Config, ConfigError, File};
+use config::{Config, ConfigError, File, Map};
 use serde::Deserialize;
 
 use crate::models::config::env::ENV;
@@ -22,10 +22,23 @@ pub struct DefaultChain {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct Chain {
+    pub url: String,
+}
+
+impl Chain {
+    pub fn get_url(&self) -> String {
+        format!("{}{}", self.url.clone(), std::env::var("INFURA_KEY").unwrap())
+    }
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
+    pub current_chain: String,
     pub log: Log,
     pub server: Server,
     pub default_chain: DefaultChain,
+    pub chains: Map<String, Chain>,
     pub env: ENV,
 }
 

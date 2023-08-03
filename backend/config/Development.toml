@@ -1,4 +1,5 @@
 debug = true
+current_chain = "sepolia"
 
 [server]
 port = "9090"
@@ -11,3 +12,9 @@ level = "debug"
 [default_chain]
 chain = "Sepolia"
 currency = "native"
+
+[chains.sepolia]
+url = "https://sepolia.infura.io/v3/"
+
+[chains.goerli]
+url = "https://goerli.infura.io/v3/"
