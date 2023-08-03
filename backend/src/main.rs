@@ -13,7 +13,6 @@ mod routes;
 mod errors;
 mod services;
 mod models;
-mod helpers;
 mod server;
 mod provider;
 
