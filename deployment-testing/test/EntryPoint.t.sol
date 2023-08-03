@@ -730,8 +730,8 @@ contract EntryPointTest is TestHelper {
         op.paymasterAndData = abi.encodePacked(address(paymaster));
         op.callData = accountExecFromEntryPoint;
         op.initCode = getAccountInitCode(account2Owner.addr, salt);
-        //needed for account initialization
-        op.verificationGasLimit = 1e6;
+        op.verificationGasLimit = 3e6;
+        op.callGasLimit = 1e6;
         op = signUserOp(op, entryPointAddress, chainId, account2Owner.key);
         ops.push(op);
         address payable beneficiary = payable(makeAddr("beneficiary"));
@@ -752,7 +752,7 @@ contract EntryPointTest is TestHelper {
         op.paymasterAndData = abi.encodePacked(address(paymaster));
         op.callData = accountExecFromEntryPoint;
         op.initCode = getAccountInitCode(account2Owner.addr, salt);
-        //needed for account initialization
+        //required for account initialization - initCode
         op.verificationGasLimit = 1e6;
         op = signUserOp(op, entryPointAddress, chainId, account2Owner.key);
         ops.push(op);
@@ -780,7 +780,7 @@ contract EntryPointTest is TestHelper {
         op.paymasterAndData = abi.encodePacked(address(paymaster));
         op.callData = accountExecFromEntryPoint;
         op.initCode = getAccountInitCode(anOwner.addr, salt);
-        //needed for account initialization
+        //required for account initialization - initCode
         op.verificationGasLimit = 1e6;
         op = signUserOp(op, entryPointAddress, chainId, anOwner.key);
 
