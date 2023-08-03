@@ -845,25 +845,11 @@ contract EntryPointTest is TestHelper {
     //execution ordering
     function _executionOrderingSetup()
         public
-        returns (TestSignatureAggregator aggregator, UserOperation memory userOp)
+        returns (TestSignatureAggregator aggregator, UserOperation memory userOp, address payable beneficiary)
     {
-        (, TestAggregatedAccount aggAccount, TestAggregatedAccount aggAccount2, TestSignatureAggregator _aggregator) =
-            _aggregationTestsSetUp();
+        (address payable _beneficiary,,, TestSignatureAggregator _aggregator) = _aggregationTestsSetUp();
         aggregator = _aggregator;
-
-        UserOperation memory userOp1;
-        UserOperation memory userOp2;
-
-        userOp1 = _defaultOp;
-        userOp1.sender = address(aggAccount);
-        userOp1 = signUserOp(userOp1, entryPointAddress, chainId);
-
-        userOp2 = _defaultOp;
-        userOp2.sender = address(aggAccount2);
-        userOp2 = signUserOp(userOp2, entryPointAddress, chainId);
-
-        userOp1.signature = defaultBytes;
-        userOp2.signature = defaultBytes;
+        beneficiary = _beneficiary;
 
         TestAggregatedAccountFactory factory = new TestAggregatedAccountFactory(entryPoint, address(aggregator));
         bytes memory _initCallData = abi.encodeWithSignature("createAccount(address,uint256)", address(0), 0);
@@ -887,7 +873,7 @@ contract EntryPointTest is TestHelper {
 
     //simulateValidation should return aggregator and its stake
     function test_AggregatorAndStakeReturned() public {
-        (TestSignatureAggregator aggregator, UserOperation memory userOp) = _executionOrderingSetup();
+        (TestSignatureAggregator aggregator, UserOperation memory userOp,) = _executionOrderingSetup();
 
         aggregator.addStake{value: 2 ether}(entryPoint, 3);
 
@@ -908,5 +894,21 @@ contract EntryPointTest is TestHelper {
             assertEq(aggrStakeInfo.stakeInfo.stake, 2 ether);
             assertEq(aggrStakeInfo.stakeInfo.unstakeDelaySec, 3);
         }
+    }
+
+    //should create account in handleOps
+    function test_AggrCreateAccount() public {
+        (TestSignatureAggregator aggregator, UserOperation memory userOp, address payable beneficiary) =
+            _executionOrderingSetup();
+
+        aggregator.validateUserOpSignature(userOp);
+        ops.push(userOp);
+        bytes memory sig = aggregator.aggregateSignatures(ops);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        ops[0].signature = defaultBytes;
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, aggregator, sig);
+
+        entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, beneficiary);
     }
 }
