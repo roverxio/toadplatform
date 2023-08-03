@@ -679,6 +679,7 @@ contract EntryPointTest is TestHelper {
         public
         returns (TestCounter counter, address account1, SimpleAccount account2)
     {
+        //timeout feature is not implemented in these test cases
         uint256 salt = 123;
         address payable beneficiary = payable(makeAddr("beneficiary"));
         Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
