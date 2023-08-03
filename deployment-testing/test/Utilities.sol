@@ -86,11 +86,11 @@ contract Utilities is Test {
         return simpleAccountFactory.getAddress(accountOwner, salt);
     }
 
-    function getBalance(address account) internal view returns (uint256) {
+    function getBalance(address account) public view returns (uint256) {
         return account.balance;
     }
 
-    function isContract(address _addr) internal view returns (bool) {
+    function isContract(address _addr) public view returns (bool) {
         uint256 size;
         assembly {
             size := extcodesize(_addr)
