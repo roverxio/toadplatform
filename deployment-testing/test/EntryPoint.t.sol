@@ -8,6 +8,7 @@ import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestRevertAccount.sol";
+import "../src/test/TestExpiryAccount.sol";
 
 //Utils
 import {Utilities} from "./Utilities.sol";
@@ -674,4 +675,37 @@ contract EntryPointTest is TestHelper {
 
     //without paymaster (account pays in eth)
     //Validation time-range
+    function _validationTimeRangeSetUp()
+        public
+        returns (uint256 noW, address payable beneficiary, TestExpiryAccount expAccount, Account memory sessionOwner)
+    {
+        beneficiary = payable(makeAddr("beneficiary"));
+        expAccount = new TestExpiryAccount(entryPoint);
+        expAccount.initialize(address(this));
+        payable(address(expAccount)).transfer(0.1 ether);
+        vm.warp(1641070800);
+        noW = block.timestamp;
+        sessionOwner = utils.createAccountOwner("sessionOwner");
+        expAccount.addTemporaryOwner(sessionOwner.addr, 100, uint48(noW + 60));
+    }
+
+    //validateUserOp time-range
+    //should accept non-expired owner
+    function test_AcceptNonExpiredOwner() public {
+        (uint256 noW,, TestExpiryAccount expAccount, Account memory sessionOwner) =
+            _validationTimeRangeSetUp();
+
+        UserOperation memory op = _defaultOp;
+        op.sender = address(expAccount);
+        op = signUserOp(op, entryPointAddress, chainId, sessionOwner.key);
+
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            (, bytes memory data) = getDataFromEncoding(revertReason);
+            (ReturnInfo memory returnInfoFromRevert,,,) =
+                abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+            assertEq(returnInfoFromRevert.validUntil, noW + 60);
+            assertEq(returnInfoFromRevert.validAfter, 100);
+        }
+    }
 }
