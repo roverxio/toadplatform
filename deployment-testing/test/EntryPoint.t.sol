@@ -751,9 +751,8 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = _defaultOp;
         op.sender = address(expAccount);
         op.paymasterAndData = abi.encodePacked(address(paymaster), timeRange);
-        op = signUserOp(op, entryPointAddress, chainId, accountOwner.key);
+        op = signUserOp(op, entryPointAddress, chainId);
 
-        vm.prank(accountOwner.addr);
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
             (, bytes memory data) = getDataFromEncoding(revertReason);
@@ -764,5 +763,24 @@ contract EntryPointTest is TestHelper {
         }
     }
 
+    //should not reject expired paymaster request
+    function test_DontRejectExpiredPaymasterRequest() public {
+        (uint256 noW,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+        (TestExpirePaymaster paymaster) = _validatePaymasterSetUp();
+        bytes memory timeRange = abi.encode(uint48(321), uint48(noW - 60));
 
+        UserOperation memory op = _defaultOp;
+        op.sender = address(expAccount);
+        op.paymasterAndData = abi.encodePacked(address(paymaster), timeRange);
+        op = signUserOp(op, entryPointAddress, chainId);
+
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            (, bytes memory data) = getDataFromEncoding(revertReason);
+            (ReturnInfo memory returnInfoFromRevert,,,) =
+                abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+            assertEq(returnInfoFromRevert.validUntil, noW - 60);
+            assertEq(returnInfoFromRevert.validAfter, 321);
+        }
+    }
 }
