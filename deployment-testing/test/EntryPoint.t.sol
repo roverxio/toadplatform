@@ -33,13 +33,10 @@ contract EntryPointTest is TestHelper {
 
     function setUp() public {
         utils = new Utilities();
-        accountOwner = utils.createAccountOwner("accountOwner");
-        entryPoint = utils.deployEntryPoint(1234);
-        entryPointAddress = address(entryPoint);
-        (account, simpleAccountFactory) =
-            utils.createAccountWithEntryPoint(accountOwner.addr, entryPoint, simpleAccountFactory);
-
-        vm.deal(address(account), 1 ether);
+        accountOwner = utils.createAddress("entrypoint_Owner");
+        deployEntryPoint(1101);
+        createAccount(1102, 1103);
+        vm.deal(accountAddress, 1 ether);
     }
 
     // Stake Management testing
@@ -98,56 +95,40 @@ contract EntryPointTest is TestHelper {
     function test_WithdrawDeposit() public {
         account.addDeposit{value: 1 ether}();
 
-        assertEq(getAccountBalance(), 0);
+        assertEq(utils.getAccount(accountAddress), 0);
         assertEq(account.getDeposit(), 1 ether);
 
         vm.prank(accountOwner.addr);
-        account.withdrawDepositTo(payable(accountAddress), 1 ether);
+        account.withdrawDepositTo(accountAddress, 1 ether);
 
-        assertEq(getAccountBalance(), 1 ether);
+        assertEq(utils.getAccount(accountAddress), 1 ether);
         assertEq(account.getDeposit(), 0);
     }
 
     //simulationValidation
     /// @notice 1. Should fail if validateUserOp fails
     function test_FailureOnValidateOpFailure() public {
-        UserOperation memory op;
-        op.sender = address(account);
+        UserOperation memory op = utils.defaultOp();
+        op.sender = accountAddress;
         op.nonce = 1234;
-        op.callData = defaultBytes;
-        op.initCode = defaultBytes;
-        op.callGasLimit = 200000;
-        op.verificationGasLimit = 100000;
-        op.preVerificationGas = 21000;
-        op.maxFeePerGas = 3000000000;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
 
-        UserOperation memory op1 = utils.fillAndSign(op, accountOwner, entryPoint, chainId);
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA25 invalid account nonce"));
+        UserOperation memory op1 = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        vm.expectRevert(utils.failedOp(0, "AA25 invalid account nonce"));
         entryPoint.simulateValidation(op1);
     }
 
     /// @notice 2. Should report signature failure without revert
     function test_reportSignatureFailureWithoutRevert() public {
         IEntryPoint.ReturnInfo memory returnInfo;
-        SimpleAccount account1;
-        Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
-        (account1,) = utils.createAccountWithEntryPoint(accountOwner1.addr, entryPoint, simpleAccountFactory);
+        address account1;
+        Account memory accountOwner1 = utils.createAddress("accountOwner1");
+        (, account1) = createAccountWithFactory(1104);
 
-        UserOperation memory op;
-        op.sender = address(account1);
-        op.nonce = 0;
-        op.callData = defaultBytes;
-        op.initCode = defaultBytes;
-        op.callGasLimit = 200000;
-        op.verificationGasLimit = 100000;
-        op.preVerificationGas = 21000;
+        UserOperation memory op = utils.defaultOp();
+        op.sender = account1;
         op.maxFeePerGas = 0;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
 
-        UserOperation memory op1 = utils.fillAndSign(op, accountOwner, entryPoint, chainId);
+        UserOperation memory op1 = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
 
         try entryPoint.simulateValidation(op1) {}
         catch (bytes memory revertReason) {
@@ -163,64 +144,45 @@ contract EntryPointTest is TestHelper {
 
     /// @notice  3. Should revert if wallet not deployed (and no initCode)
     function test_shouldRevertIfWalletNotDeployed() public {
-        UserOperation memory op;
-        op.sender = utils.createAccountOwner("randomAccount").addr;
-        op.nonce = 0;
-        op.callData = defaultBytes;
-        op.initCode = defaultBytes;
+        UserOperation memory op = utils.defaultOp();
+        op.sender = utils.createAddress("randomAccount").addr;
         op.callGasLimit = 1000;
-        op.verificationGasLimit = 100000;
-        op.preVerificationGas = 21000;
         op.maxFeePerGas = 0;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
 
-        UserOperation memory op1 = utils.fillAndSign(op, accountOwner, entryPoint, chainId);
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA20 account not deployed"));
+        UserOperation memory op1 = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        vm.expectRevert(utils.failedOp(0, "AA20 account not deployed"));
         entryPoint.simulateValidation(op1);
     }
 
     /// @notice  4. Should revert on OOG if not enough verificationGas
     function test_shouldRevertIfNotEnoughGas() public {
-        UserOperation memory op;
-        op.sender = address(account);
-        op.nonce = 0;
-        op.callData = defaultBytes;
-        op.initCode = defaultBytes;
+        UserOperation memory op = utils.defaultOp();
+        op.sender = accountAddress;
         op.callGasLimit = 1000;
         op.verificationGasLimit = 1000;
-        op.preVerificationGas = 21000;
         op.maxFeePerGas = 0;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
 
         UserOperation memory op1 = utils.fillAndSign(op, accountOwner, entryPoint, chainId);
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA23 reverted (or OOG)"));
+        vm.expectRevert(utils.failedOp(0, "AA23 reverted (or OOG)"));
         entryPoint.simulateValidation(op1);
     }
 
     /// @notice 5. Should succeed if validUserOp succeeds: TBD
     function test_shouldSucceedifUserOpSucceeds() public {
         IEntryPoint.ReturnInfo memory returnInfo;
-        SimpleAccount account1;
-        Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
-        (account1,) = utils.createAccountWithEntryPoint(accountOwner1.addr, entryPoint, simpleAccountFactory);
+        address account1;
+        Account memory accountOwner1 = utils.createAddress("accountOwner1");
+        (, account1) = createAccountWithFactory(1105);
 
-        UserOperation memory op;
-        op.sender = address(account1);
-        op.nonce = 0;
-        op.callData = defaultBytes;
-        op.initCode = defaultBytes;
+        UserOperation memory op = utils.defaultOp();
+        op.sender = account1;
         op.callGasLimit = 0;
         op.verificationGasLimit = 150000;
-        op.preVerificationGas = 21000;
         op.maxFeePerGas = 1381937087;
         op.maxPriorityFeePerGas = 1000000000;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
 
-        vm.deal(address(account1), 1 ether);
-        UserOperation memory op1 = utils.fillAndSign(op, accountOwner1, entryPoint, chainId);
+        vm.deal(account1, 1 ether);
+        UserOperation memory op1 = utils.signUserOp(op, accountOwner1.key, entryPointAddress, chainId);
         try entryPoint.simulateValidation(op1) {}
         catch (bytes memory revertReason) {
             bytes memory data = utils.getDataFromEncoding(revertReason);
@@ -234,20 +196,14 @@ contract EntryPointTest is TestHelper {
     /// @notice 6. Should return empty context if no Paymaster
     function test_shouldReturnEmptyContextIfNoPaymaster() public {
         IEntryPoint.ReturnInfo memory returnInfo;
-        UserOperation memory op;
-        op.sender = address(account);
-        op.nonce = 0;
-        op.callData = defaultBytes;
-        op.initCode = defaultBytes;
+        UserOperation memory op = utils.defaultOp();
+        op.sender = accountAddress;
         op.callGasLimit = 0;
         op.verificationGasLimit = 150000;
-        op.preVerificationGas = 21000;
         op.maxFeePerGas = 0;
         op.maxPriorityFeePerGas = 1000000000;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
 
-        UserOperation memory op1 = utils.fillAndSign(op, accountOwner, entryPoint, chainId);
+        UserOperation memory op1 = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         try entryPoint.simulateValidation(op1) {}
         catch (bytes memory revertReason) {
             bytes memory data = utils.getDataFromEncoding(revertReason);
@@ -256,7 +212,7 @@ contract EntryPointTest is TestHelper {
                 (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
             );
         }
-        assertEq(returnInfo.paymasterContext, defaultBytes);
+        assertEq(returnInfo.paymasterContext, utils.defaultBytes());
     }
 
     /// @notice 7. Should return stake of sender
@@ -264,26 +220,18 @@ contract EntryPointTest is TestHelper {
         IStakeManager.StakeInfo memory senderInfo;
         uint256 stakeValue = 123;
         uint32 unstakeDelay = 3;
-        SimpleAccount account2;
-        Account memory accountOwner2 = utils.createAccountOwner("accountOwner2");
-        (account2,) = utils.createAccountWithEntryPoint(accountOwner2.addr, entryPoint, simpleAccountFactory);
-        vm.deal(address(account2), 1 ether);
-        vm.prank(address(accountOwner2.addr));
-        account2.execute(address(entryPoint), stakeValue, abi.encodeWithSignature("addStake(uint32)", unstakeDelay));
+        address account2;
+        Account memory accountOwner2 = utils.createAddress("accountOwner2");
+        (, account2) = createAccountWithFactory(1106);
+        vm.deal(account2, 1 ether);
+        vm.prank(accountOwner2.addr);
+        account2.execute(entryPointAddress, stakeValue, abi.encodeWithSignature("addStake(uint32)", unstakeDelay));
 
-        UserOperation memory op;
-        op.sender = address(account2);
-        op.nonce = 0;
-        op.callData = defaultBytes;
-        op.initCode = defaultBytes;
-        op.callGasLimit = 200000;
-        op.verificationGasLimit = 100000;
-        op.preVerificationGas = 21000;
+        UserOperation memory op = utils.defaultOp();
+        op.sender = account2;
         op.maxFeePerGas = 0;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
 
-        UserOperation memory op1 = utils.fillAndSign(op, accountOwner2, entryPoint, chainId);
+        UserOperation memory op1 = utils.signUserOp(op, accountOwner2.key, entryPointAddress, chainId);
         try entryPoint.simulateValidation(op1) {}
         catch (bytes memory revertReason) {
             bytes memory data = utils.getDataFromEncoding(revertReason);
@@ -299,18 +247,13 @@ contract EntryPointTest is TestHelper {
 
     /// @notice 8. Should prevent overflows: fail if any numeric value is more than 120 bits
     function test_shouldPreventOverflows() public {
-        UserOperation memory op;
-        op.sender = address(account);
-        op.nonce = 0;
-        op.callData = defaultBytes;
-        op.initCode = defaultBytes;
+        UserOperation memory op = utils.defaultOp();
+        op.sender = accountAddress;
         op.callGasLimit = 0;
         op.verificationGasLimit = 150000;
         op.preVerificationGas = 2 ** 130;
         op.maxFeePerGas = 0;
         op.maxPriorityFeePerGas = 1000000000;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
 
         vm.expectRevert("AA94 gas values overflow");
         entryPoint.simulateValidation(op);
@@ -318,27 +261,22 @@ contract EntryPointTest is TestHelper {
 
     /// @notice 9. Should fail creation for wrong sender
     function test_shouldFailCreationOnWrongSender() public {
-        UserOperation memory op;
+        UserOperation memory op = utils.defaultOp();
         op.sender = 0x1111111111111111111111111111111111111111;
-        op.nonce = 0;
-        op.callData = defaultBytes;
         op.initCode = utils.getAccountInitCode(accountOwner.addr, simpleAccountFactory, 0);
         op.callGasLimit = 0;
         op.verificationGasLimit = 3000000;
-        op.preVerificationGas = 21000;
         op.maxFeePerGas = 1381937087;
         op.maxPriorityFeePerGas = 1000000000;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
 
-        UserOperation memory op1 = utils.fillAndSign(op, accountOwner, entryPoint, chainId);
+        UserOperation memory op1 = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA14 initCode must return sender"));
         entryPoint.simulateValidation(op1);
     }
 
     /// @notice 10. Should report failure on insufficient verificationGas for creation
     function test_shouldReportFailureOnInsufficentVerificationGas() public {
-        Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
+        Account memory accountOwner1 = utils.createAddress("accountOwner1");
         address addr;
         bytes memory initCode = utils.getAccountInitCode(accountOwner1.addr, simpleAccountFactory, 0);
 
@@ -350,61 +288,46 @@ contract EntryPointTest is TestHelper {
                 addr := mload(add(data, 0x20))
             }
         }
-        UserOperation memory op;
+        UserOperation memory op = utils.defaultOp();
         op.sender = addr;
         op.nonce = 0;
-        op.callData = defaultBytes;
         op.initCode = initCode;
         op.callGasLimit = 0;
         op.verificationGasLimit = 500000;
         op.preVerificationGas = 0;
         op.maxFeePerGas = 0;
         op.maxPriorityFeePerGas = 1000000000;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
 
-        UserOperation memory op1 = utils.fillAndSign(op, accountOwner1, entryPoint, chainId);
+        UserOperation memory op1 = utils.signUserOp(op, accountOwner1.key, entryPointAddress, chainId);
         try entryPoint.simulateValidation{gas: 1e6}(op1) {}
         catch (bytes memory errorReason) {
             bytes4 reason;
             assembly {
                 reason := mload(add(errorReason, 32))
             }
-            assertEq(
-                reason,
-                bytes4(
-                    keccak256(
-                        "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
-                    )
-                )
-            );
+            assertEq(reason, utils.validationResultEvent());
         }
 
         op1.verificationGasLimit = 1e5;
-        UserOperation memory op2 = utils.fillAndSign(op1, accountOwner1, entryPoint, chainId);
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA13 initCode failed or OOG"));
+        UserOperation memory op2 = utils.signUserOp(op1, accountOwner1.key, entryPointAddress, chainId);
+        vm.expectRevert(utils.failedOp(0, "AA13 initCode failed or OOG"));
         entryPoint.simulateValidation(op2);
     }
 
     /// @notice 11. Should succeed for creating an account
     function test_shouldSucceedCreatingAccount() public {
         IEntryPoint.ReturnInfo memory returnInfo;
-        Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
+        Account memory accountOwner1 = utils.createAddress("accountOwner1");
         address sender = utils.getAccountAddress(accountOwner1.addr, simpleAccountFactory, 0);
 
-        UserOperation memory op;
+        UserOperation memory op = utils.defaultOp();
         op.sender = sender;
-        op.nonce = 0;
-        op.callData = defaultBytes;
         op.initCode = utils.getAccountInitCode(accountOwner1.addr, simpleAccountFactory, 0);
         op.callGasLimit = 0;
         op.verificationGasLimit = 3000000;
-        op.preVerificationGas = 21000;
         op.maxFeePerGas = 1381937087;
         op.maxPriorityFeePerGas = 1000000000;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
-        UserOperation memory op1 = utils.fillAndSign(op, accountOwner1, entryPoint, chainId);
+        UserOperation memory op1 = utils.signUserOp(op, accountOwner1.key, entryPointAddress, chainId);
 
         vm.deal(op1.sender, 1 ether);
         try entryPoint.simulateValidation(op1) {}
@@ -419,26 +342,21 @@ contract EntryPointTest is TestHelper {
 
     //    12. Should not call initCode from EntryPoint
     function test_shouldNotCallInitCodeFromEntryPoint() public {
-        SimpleAccount account1;
-        Account memory sender = utils.createAccountOwner("accountOwner1");
-        (account1,) = utils.createAccountWithEntryPoint(accountOwner.addr, entryPoint, simpleAccountFactory);
+        address account1;
+        Account memory sender = utils.createAddress("accountOwner1");
+        (, account1) = createAccountWithFactory(1107);
         bytes memory initCode = utils.hexConcat(
             abi.encodePacked(account1), abi.encodeWithSignature("execute(address,uint,bytes)", sender, 0, "0x")
         );
-        UserOperation memory op;
+        UserOperation memory op = utils.defaultOp();
         op.sender = sender.addr;
-        op.nonce = 0;
-        op.callData = defaultBytes;
         op.initCode = initCode;
         op.callGasLimit = 0;
         op.verificationGasLimit = 3000000;
-        op.preVerificationGas = 21000;
         op.maxFeePerGas = 1381937087;
         op.maxPriorityFeePerGas = 1000000000;
-        op.paymasterAndData = defaultBytes;
-        op.signature = defaultBytes;
-        UserOperation memory op1 = utils.fillAndSign(op, accountOwner, entryPoint, chainId);
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA13 initCode failed or OOG"));
+        UserOperation memory op1 = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        vm.expectRevert(utils.failedOp(0, "AA13 initCode failed or OOG"));
         entryPoint.simulateValidation(op1);
     }
 
@@ -448,19 +366,19 @@ contract EntryPointTest is TestHelper {
     // #simulateHandleOp
     // Should simulate execution
     function test_ExecutionSimulation() public {
-        Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
-        (, address accountAddress1) = createAccountWithFactory(2131);
+        Account memory accountOwner1 = utils.createAddress("accountOwner1");
+        (, address accountAddress1) = createAccountWithFactory(1108);
         vm.deal(accountAddress1, 1 ether);
-        TestCounter counter = new TestCounter{salt: bytes32(uint256(1231))}();
+        TestCounter counter = new TestCounter{salt: uint256(1109)}();
         bytes memory countData = abi.encodeWithSignature("count()");
         bytes memory callData =
             abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, countData);
 
-        UserOperation memory op = _defaultOp;
+        UserOperation memory op = utils.defaultOp();
         op.sender = accountAddress1;
         op.callData = callData;
 
-        op = utils.fillAndSign(op, accountOwner1, entryPoint, chainId);
+        op = utils.signUserOp(op, accountOwner1.key, entryPointAddress, chainId);
 
         vm.recordLogs();
         try entryPoint.simulateHandleOp(
@@ -477,35 +395,35 @@ contract EntryPointTest is TestHelper {
     // 2d nonces
     // Should fail nonce with new key and seq!=0
     function test_FailNonce() public {
-        (Account memory beneficiary,, uint256 keyShifed, address _accountAddress) = _2dNonceSetup(false);
+        (Account memory beneficiary,, uint256 keyShifted, address _accountAddress) = _2dNonceSetup(false);
 
-        UserOperation memory op = _defaultOp;
+        UserOperation memory op = utils.defaultOp();
         op.sender = _accountAddress;
-        op.nonce = keyShifed + 1;
-        op = signUserOp(op, entryPointAddress, chainId);
+        op.nonce = keyShifted + 1;
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA25 invalid account nonce"));
+        vm.expectRevert(utils.failedOp(0, "AA25 invalid account nonce"));
         entryPoint.handleOps(ops, payable(beneficiary.addr));
     }
 
     // With key=1, seq=1
     // should get next nonce value by getNonce
     function test_GetNonce() public {
-        (, uint256 key, uint256 keyShifed, address _accountAddress) = _2dNonceSetup(true);
+        (, uint256 key, uint256 keyShifted, address _accountAddress) = _2dNonceSetup(true);
 
         uint256 nonce = entryPoint.getNonce(_accountAddress, uint192(key));
-        assertEq(nonce, keyShifed + 1);
+        assertEq(nonce, keyShifted + 1);
     }
 
     // Should allow to increment nonce of different key
     function test_IncrementNonce() public {
         (Account memory beneficiary, uint256 key,, address _accountAddress) = _2dNonceSetup(true);
 
-        UserOperation memory op2 = _defaultOp;
+        UserOperation memory op2 = utils.defaultOp();
         op2.sender = _accountAddress;
         op2.nonce = entryPoint.getNonce(_accountAddress, uint192(key));
-        op2 = signUserOp(op2, entryPointAddress, chainId);
+        op2 = utils.signUserOp(op2, accountOwner.key, entryPointAddress, chainId);
         ops[0] = op2;
 
         entryPoint.handleOps(ops, payable(beneficiary.addr));
@@ -520,11 +438,11 @@ contract EntryPointTest is TestHelper {
         bytes memory callData =
             abi.encodeWithSignature("execute(address,uint256,bytes)", entryPointAddress, 0, increment);
 
-        UserOperation memory op2 = _defaultOp;
+        UserOperation memory op2 = utils.defaultOp();
         op2.sender = _accountAddress;
         op2.callData = callData;
         op2.nonce = entryPoint.getNonce(_accountAddress, uint192(key));
-        op2 = signUserOp(op2, entryPointAddress, chainId);
+        op2 = utils.signUserOp(op2, accountOwner.key, entryPointAddress, chainId);
         ops[0] = op2;
 
         entryPoint.handleOps(ops, payable(beneficiary.addr));
@@ -534,16 +452,16 @@ contract EntryPointTest is TestHelper {
     }
 
     // Should fail with nonsequential seq
-    function test_NonsequentialNonce() public {
-        (Account memory beneficiary,, uint256 keyShifed, address _accountAddress) = _2dNonceSetup(true);
+    function test_NonSequentialNonce() public {
+        (Account memory beneficiary,, uint256 keyShifted, address _accountAddress) = _2dNonceSetup(true);
 
-        UserOperation memory op2 = _defaultOp;
+        UserOperation memory op2 = utils.defaultOp();
         op2.sender = _accountAddress;
-        op2.nonce = keyShifed + 3;
-        op2 = signUserOp(op2, entryPointAddress, chainId);
+        op2.nonce = keyShifted + 3;
+        op2 = utils.signUserOp(op2, accountOwner.key, entryPointAddress, chainId);
         ops[0] = op2;
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA25 invalid account nonce"));
+        vm.expectRevert(utils.failedOp(0, "AA25 invalid account nonce"));
         entryPoint.handleOps(ops, payable(beneficiary.addr));
     }
 
@@ -574,7 +492,7 @@ contract EntryPointTest is TestHelper {
         vm.deal(entryPointAddress, 1 ether);
         TestRevertAccount testAccount = new TestRevertAccount(entryPoint);
         bytes memory revertCallData = abi.encodeWithSignature("revertLong(uint256)", revertLength + 1);
-        UserOperation memory badOp = _defaultOp;
+        UserOperation memory badOp = utils.defaultOp();
         badOp.sender = address(testAccount);
         badOp.callGasLimit = 1e5;
         badOp.maxFeePerGas = 1;
@@ -584,21 +502,14 @@ contract EntryPointTest is TestHelper {
         badOp.maxPriorityFeePerGas = 1e9;
 
         vm.deal(address(testAccount), 0.01 ether);
-        Account memory beneficiary = createAddress("beneficiary");
+        Account memory beneficiary = utils.createAddress("beneficiary");
         try entryPoint.simulateValidation{gas: 3e5}(badOp) {}
         catch (bytes memory errorReason) {
             bytes4 reason;
             assembly {
                 reason := mload(add(errorReason, 32))
             }
-            assertEq(
-                reason,
-                bytes4(
-                    keccak256(
-                        "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
-                    )
-                )
-            );
+            assertEq(reason, utils.validationResultEvent());
         }
         ops.push(badOp);
         vm.recordLogs();
@@ -614,11 +525,11 @@ contract EntryPointTest is TestHelper {
     function test_DetectionThroughGetAggregator() public {
         uint256 TOUCH_GET_AGGREGATOR = 1;
         TestWarmColdAccount testAccount = new TestWarmColdAccount(entryPoint);
-        UserOperation memory badOp = _defaultOp;
+        UserOperation memory badOp = utils.defaultOp();
         badOp.nonce = TOUCH_GET_AGGREGATOR;
         badOp.sender = address(testAccount);
 
-        Account memory beneficiary = createAddress("beneficiary");
+        Account memory beneficiary = utils.createAddress("beneficiary");
 
         try entryPoint.simulateValidation{gas: 1e6}(badOp) {}
         catch (bytes memory revertReason) {
@@ -626,19 +537,11 @@ contract EntryPointTest is TestHelper {
             assembly {
                 reason := mload(add(revertReason, 32))
             }
-            if (
-                reason
-                    == bytes4(
-                        keccak256(
-                            "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
-                        )
-                    )
-            ) {
+            if (reason == utils.validationResultEvent()) {
                 ops.push(badOp);
                 entryPoint.handleOps{gas: 1e6}(ops, payable(beneficiary.addr));
             } else {
-                bytes memory failedOp = abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA23 reverted (or OOG)");
-                assertEq(revertReason, failedOp);
+                assertEq(revertReason, utils.failedOp(0, "AA23 reverted (or OOG)"));
             }
         }
     }
@@ -650,13 +553,13 @@ contract EntryPointTest is TestHelper {
         TestPaymasterAcceptAll paymaster = new TestPaymasterAcceptAll(entryPoint);
         paymaster.deposit{value: 1 ether}();
 
-        UserOperation memory badOp = _defaultOp;
+        UserOperation memory badOp = utils.defaultOp();
         badOp.nonce = TOUCH_PAYMASTER;
         badOp.sender = address(testAccount);
         badOp.paymasterAndData = abi.encodePacked(address(paymaster));
         badOp.verificationGasLimit = 1000;
 
-        Account memory beneficiary = createAddress("beneficiary");
+        Account memory beneficiary = utils.createAddress("beneficiary");
 
         try entryPoint.simulateValidation{gas: 1e6}(badOp) {}
         catch (bytes memory revertReason) {
@@ -664,25 +567,17 @@ contract EntryPointTest is TestHelper {
             assembly {
                 reason := mload(add(revertReason, 32))
             }
-            if (
-                reason
-                    == bytes4(
-                        keccak256(
-                            "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
-                        )
-                    )
-            ) {
+            if (reason == utils.validationResultEvent()) {
                 ops.push(badOp);
                 entryPoint.handleOps{gas: 1e6}(ops, payable(beneficiary.addr));
             } else {
-                bytes memory failedOp = abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA23 reverted (or OOG)");
-                assertEq(revertReason, failedOp);
+                assertEq(revertReason, utils.failedOp(0, "AA23 reverted (or OOG)"));
             }
         }
     }
 
     function _2dNonceSetup(bool triggerHandelOps) internal returns (Account memory, uint256, uint256, address) {
-        Account memory beneficiary = createAddress("beneficiary");
+        Account memory beneficiary = utils.createAddress("beneficiary");
         uint256 key = 1;
         uint256 keyShifted = key * 2 ** 64;
 
@@ -692,10 +587,10 @@ contract EntryPointTest is TestHelper {
         if (!triggerHandelOps) {
             return (beneficiary, key, keyShifted, _accountAddress);
         }
-        UserOperation memory op = _defaultOp;
+        UserOperation memory op = utils.defaultOp();
         op.sender = _accountAddress;
         op.nonce = keyShifted;
-        op = signUserOp(op, entryPointAddress, chainId);
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
         entryPoint.handleOps(ops, payable(beneficiary.addr));
