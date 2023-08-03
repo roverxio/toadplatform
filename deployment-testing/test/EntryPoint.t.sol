@@ -31,6 +31,8 @@ contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
     Utilities internal utils;
 
+    event AccountDeployed(bytes32 indexed userOpHash, address indexed sender, address factory, address paymaster);
+
     function setUp() public {
         utils = new Utilities();
         accountOwner = utils.createAccountOwner("accountOwner");
@@ -909,5 +911,86 @@ contract EntryPointTest is TestHelper {
 
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA23 reverted (or OOG)"));
         entryPoint.simulateValidation(op1);
+    }
+
+    //create account
+    //should reject create if sender address is wrong
+    function test_RejectCreateIfWrongSender() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        UserOperation memory op = _defaultOp;
+        op.initCode = getAccountInitCode(accountOwner.addr, 0);
+        op.verificationGasLimit = 2e6;
+        op.sender = 0x1111111111111111111111111111111111111111;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA14 initCode must return sender"));
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+    }
+
+    //should reject create if account not funded
+    function test_RejectCreateIfNotFunded() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        uint256 salt = 100;
+
+        UserOperation memory op = _defaultOp;
+        op.sender = simpleAccountFactory.getAddress(accountOwner.addr, salt);
+        op.initCode = getAccountInitCode(accountOwner.addr, salt);
+        op.verificationGasLimit = 2e6;
+        op = signUserOp(op, entryPointAddress, chainId);
+        ops.push(op);
+
+        assertEq(op.sender.balance, 0);
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA21 didn't pay prefund"));
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+    }
+
+    //should succeed to create account after prefund
+    function test_CreateIfFunded() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        uint256 salt = 20;
+        address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
+        vm.deal(preAddr, 1 ether);
+
+        UserOperation memory createOp = _defaultOp;
+        createOp.sender = preAddr;
+        createOp.initCode = getAccountInitCode(accountOwner.addr, salt);
+        createOp.callGasLimit = 1e6;
+        createOp.verificationGasLimit = 2e6;
+        createOp = signUserOp(createOp, entryPointAddress, chainId);
+        ops.push(createOp);
+
+        assertEq(isDeployed(preAddr), false, "account exists before creation");
+
+        bytes32 hash = entryPoint.getUserOpHash(createOp);
+        vm.expectEmit(true, true, true, true);
+        //createOp.initCode.toString().slice(0, 42) gets the address of simpleAccountFactory
+        emit AccountDeployed(hash, createOp.sender, address(simpleAccountFactory), address(0));
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[6].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+    }
+
+    //should reject if account already created
+    function test_AccountAlreadyCreated() public {
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        // `salt = 0` corresponds to default `account` created during setup
+        uint256 salt = 0;
+        address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
+
+        if(!isDeployed(preAddr)) {
+            UserOperation memory createOp = _defaultOp;
+            createOp.sender = accountAddress;
+            createOp.initCode = getAccountInitCode(accountOwner.addr, salt);
+            createOp = signUserOp(createOp, entryPointAddress, chainId);
+            ops.push(createOp);
+
+            vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA10 sender already constructed"));
+            entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+        }
     }
 }
