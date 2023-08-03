@@ -32,6 +32,18 @@ contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
     Utilities internal utils;
 
+    event UserOperationEvent(
+        bytes32 indexed userOpHash,
+        address indexed sender,
+        address indexed paymaster,
+        uint256 nonce,
+        bool success,
+        uint256 actualGasCost,
+        uint256 actualGasUsed
+    );
+
+    event SignatureAggregatorChanged(address indexed aggregator);
+
     function setUp() public {
         utils = new Utilities();
         accountOwner = utils.createAccountOwner("accountOwner");
@@ -678,19 +690,24 @@ contract EntryPointTest is TestHelper {
     //aggregation tests
     function _aggregationTestsSetUp()
         public
-        returns (address payable beneficiary, TestAggregatedAccount aggAccount, TestSignatureAggregator aggregator)
+        returns (
+            address payable beneficiary,
+            TestAggregatedAccount aggAccount,
+            TestAggregatedAccount aggAccount2,
+            TestSignatureAggregator aggregator
+        )
     {
         beneficiary = payable(makeAddr("beneficiary"));
         aggregator = new TestSignatureAggregator();
         aggAccount = new TestAggregatedAccount(entryPoint, address(aggregator));
-        TestAggregatedAccount aggAccount2 = new TestAggregatedAccount(entryPoint, address(aggregator));
+        aggAccount2 = new TestAggregatedAccount(entryPoint, address(aggregator));
         payable(address(aggAccount)).transfer(0.1 ether);
         payable(address(aggAccount2)).transfer(0.1 ether);
     }
 
     //should fail to execute aggregated account without an aggregator
     function test_FailToExecAggrAccountWithoutAggregator() public {
-        (address payable beneficiary, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
+        (address payable beneficiary, TestAggregatedAccount aggAccount,,) = _aggregationTestsSetUp();
 
         UserOperation memory op = _defaultOp;
         op.sender = address(aggAccount);
@@ -703,7 +720,7 @@ contract EntryPointTest is TestHelper {
 
     //should fail to execute aggregated account with wrong aggregator
     function test_FailAggrAccountWithWrongAggregator() public {
-        (address payable beneficiary, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
+        (address payable beneficiary, TestAggregatedAccount aggAccount,,) = _aggregationTestsSetUp();
 
         UserOperation memory op = _defaultOp;
         op.sender = address(aggAccount);
@@ -722,7 +739,7 @@ contract EntryPointTest is TestHelper {
 
     //should reject non-contract (address(1)) aggregator
     function test_RejectNonContractAggregator() public {
-        (address payable beneficiary,,) = _aggregationTestsSetUp();
+        (address payable beneficiary,,,) = _aggregationTestsSetUp();
         address address1 = address(1);
         TestAggregatedAccount aggAccount1 = new TestAggregatedAccount(entryPoint, address1);
 
@@ -743,7 +760,7 @@ contract EntryPointTest is TestHelper {
 
     //should fail to execute aggregated account with wrong agg. signature
     function test_FailToExecuteAggrAccountWithWrongAggregateSig() public {
-        (address payable beneficiary, TestAggregatedAccount aggAccount, TestSignatureAggregator aggregator) =
+        (address payable beneficiary, TestAggregatedAccount aggAccount,, TestSignatureAggregator aggregator) =
             _aggregationTestsSetUp();
 
         UserOperation memory op = _defaultOp;
@@ -759,5 +776,61 @@ contract EntryPointTest is TestHelper {
 
         vm.expectRevert(abi.encodeWithSignature("SignatureValidationFailed(address)", aggAddress));
         entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //should run with multiple aggregators (and non-aggregated-accounts)
+    function test_MultipleAggregators() public {
+        (, TestAggregatedAccount aggAccount, TestAggregatedAccount aggAccount2, TestSignatureAggregator aggregator) =
+            _aggregationTestsSetUp();
+
+        UserOperation[] memory opsArr = new UserOperation[](2);
+        UserOperation[] memory opsAggrArr = new UserOperation[](1);
+        UserOperation[] memory opsNoAggrArr = new UserOperation[](1);
+
+        TestSignatureAggregator aggregator3 = new TestSignatureAggregator();
+        TestAggregatedAccount aggAccount3 = new TestAggregatedAccount(entryPoint, address(aggregator3));
+        payable(address(aggAccount3)).transfer(0.1 ether);
+
+        UserOperation memory userOp1 = _defaultOp;
+        userOp1.sender = address(aggAccount);
+
+        UserOperation memory userOp2 = _defaultOp;
+        userOp2.sender = address(aggAccount2);
+
+        UserOperation memory userOp_agg3 = _defaultOp;
+        userOp_agg3.sender = address(aggAccount3);
+
+        UserOperation memory userOp_noAgg = _defaultOp;
+        userOp_noAgg.sender = accountAddress;
+
+        bytes memory sigOp1 = aggregator.validateUserOpSignature(userOp1);
+        bytes memory sigOp2 = aggregator.validateUserOpSignature(userOp2);
+        userOp1.signature = sigOp1;
+        userOp2.signature = sigOp2;
+        opsArr[0] = userOp1;
+        opsArr[1] = userOp2;
+        bytes memory aggSig = aggregator.aggregateSignatures(opsArr);
+
+        opsAggrArr[0] = signUserOp(userOp_agg3, entryPointAddress, chainId);
+        opsNoAggrArr[0] = signUserOp(userOp_noAgg, entryPointAddress, chainId);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](3);
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(opsArr, aggregator, aggSig);
+        opsPerAggregator[1] = IEntryPoint.UserOpsPerAggregator(opsAggrArr, aggregator3, abi.encodePacked(bytes32(0)));
+        opsPerAggregator[2] = IEntryPoint.UserOpsPerAggregator(opsNoAggrArr, IAggregator(address(0)), defaultBytes);
+
+        for (uint256 i = 0; i < opsPerAggregator.length; i++) {
+            vm.expectEmit(true, false, false, false);
+            emit SignatureAggregatorChanged(address(opsPerAggregator[i].aggregator));
+            for (uint256 j = 0; j < opsPerAggregator[i].userOps.length; j++) {
+                vm.expectEmit(false, true, false, false);
+                emit UserOperationEvent(bytes32(0), opsPerAggregator[i].userOps[j].sender, address(0), 0, false, 0, 0);
+            }
+        }
+        vm.expectEmit(true, false, false, false);
+        emit SignatureAggregatorChanged(address(0));
+        // using beneficiary from setup is causing the compiler to raise too many variables error.
+        // So, this variable is created implicitly.
+        entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, payable(makeAddr("beneficiary")));
     }
 }
