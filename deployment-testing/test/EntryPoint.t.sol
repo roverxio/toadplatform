@@ -713,4 +713,25 @@ contract EntryPointTest is TestHelper {
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA30 paymaster not deployed"));
         entryPoint.simulateValidation(op);
     }
+
+    //should fail if paymaster has no deposit
+    function test_PaymasterWithNoDeposit() public {
+        (Account memory account2Owner, TestPaymasterAcceptAll paymaster,, bytes memory accountExecFromEntryPoint) =
+            _withPaymasterSetUp();
+        uint256 salt = 123;
+
+        UserOperation memory op = _defaultOp;
+        op.sender = simpleAccountFactory.getAddress(account2Owner.addr, salt);
+        op.paymasterAndData = abi.encodePacked(address(paymaster));
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = getAccountInitCode(account2Owner.addr, salt);
+        //needed for account initialization
+        op.verificationGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId, account2Owner.key);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA31 paymaster deposit too low"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
 }
