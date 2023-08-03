@@ -687,19 +687,14 @@ contract EntryPointTest is TestHelper {
     //with paymaster (account with no eth)
     function _withPaymasterSetUp()
         public
-        returns (
-            Account memory account2Owner,
-            TestPaymasterAcceptAll paymaster,
-            TestCounter counter,
-            bytes memory accountExecFromEntryPoint
-        )
+        returns (Account memory account2Owner, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint)
     {
         account2Owner = utils.createAccountOwner("account2Owner");
         paymaster = new TestPaymasterAcceptAll(entryPoint);
         //paymaster.addStake is restricted by onlyOwner
         vm.prank(msg.sender);
         paymaster.addStake{value: paymasterStake}(uint32(globalUnstakeDelaySec));
-        counter = new TestCounter();
+        TestCounter counter = new TestCounter();
         bytes memory count = abi.encodeWithSignature("count()");
         accountExecFromEntryPoint =
             abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
@@ -707,7 +702,7 @@ contract EntryPointTest is TestHelper {
 
     //should fail with nonexistent paymaster
     function test_NonExistenetPaymaster() public {
-        (Account memory account2Owner,,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
+        (Account memory account2Owner,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
         uint256 salt = 123;
         address pm = createAddress("paymaster").addr;
 
@@ -726,7 +721,7 @@ contract EntryPointTest is TestHelper {
 
     //should fail if paymaster has no deposit
     function test_PaymasterWithNoDeposit() public {
-        (Account memory account2Owner, TestPaymasterAcceptAll paymaster,, bytes memory accountExecFromEntryPoint) =
+        (Account memory account2Owner, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) =
             _withPaymasterSetUp();
         uint256 salt = 123;
 
@@ -747,7 +742,7 @@ contract EntryPointTest is TestHelper {
 
     //paymaster should pay for tx
     function test_PaymasterPaysForTransaction() public {
-        (Account memory account2Owner, TestPaymasterAcceptAll paymaster,, bytes memory accountExecFromEntryPoint) =
+        (Account memory account2Owner, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) =
             _withPaymasterSetUp();
         uint256 salt = 123;
         paymaster.deposit{value: 1 ether}();
@@ -775,7 +770,7 @@ contract EntryPointTest is TestHelper {
 
     // simulateValidation should return paymaster stake and delay
     function test_ReturnPaymasterStakeInfo() public {
-        (, TestPaymasterAcceptAll paymaster,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
+        (, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
         uint256 salt = 123;
         paymaster.deposit{value: 1 ether}();
         Account memory anOwner = utils.createAccountOwner("anOwner");
@@ -789,15 +784,12 @@ contract EntryPointTest is TestHelper {
         op.verificationGasLimit = 1e6;
         op = signUserOp(op, entryPointAddress, chainId, anOwner.key);
 
-        IStakeManager.StakeInfo memory paymasterInfo;
+        StakeInfo memory paymasterInfo;
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
             require(revertReason.length >= 4);
             (, bytes memory data) = getDataFromEncoding(revertReason);
-            (,,, paymasterInfo) = abi.decode(
-                data,
-                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
-            );
+            (,,, paymasterInfo) = abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
         }
 
         uint256 simRetStake = paymasterInfo.stake;
