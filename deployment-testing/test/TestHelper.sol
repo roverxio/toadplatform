@@ -30,7 +30,7 @@ contract TestHelper is Test {
         implementation = simpleAccountFactory.accountImplementation();
         simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
         accountAddress = payable(simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt));
-        account = SimpleAccount(accountAddress);
+        account = SimpleAccount(simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt));
     }
 
     function createAccountWithFactory(uint256 _accountSalt) internal returns (SimpleAccount, address) {
