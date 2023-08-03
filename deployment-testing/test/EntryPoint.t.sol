@@ -31,7 +31,15 @@ contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
     Utilities internal utils;
 
-    event UserOperationEvent(bytes32 indexed userOpHash, address indexed sender, address indexed paymaster, uint256 nonce, bool success, uint256 actualGasCost, uint256 actualGasUsed);
+    event UserOperationEvent(
+        bytes32 indexed userOpHash,
+        address indexed sender,
+        address indexed paymaster,
+        uint256 nonce,
+        bool success,
+        uint256 actualGasCost,
+        uint256 actualGasUsed
+    );
 
     function setUp() public {
         utils = new Utilities();
@@ -763,5 +771,39 @@ contract EntryPointTest is TestHelper {
         assertEq(beneficiary.balance, actualGasCost);
         uint256 paymasterPaid = 1 ether - entryPoint.balanceOf(address(paymaster));
         assertEq(paymasterPaid, actualGasCost);
+    }
+
+    // simulateValidation should return paymaster stake and delay
+    function test_ReturnPaymasterStakeInfo() public {
+        (, TestPaymasterAcceptAll paymaster,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
+        uint256 salt = 123;
+        paymaster.deposit{value: 1 ether}();
+        Account memory anOwner = utils.createAccountOwner("anOwner");
+
+        UserOperation memory op = _defaultOp;
+        op.sender = simpleAccountFactory.getAddress(anOwner.addr, salt);
+        op.paymasterAndData = abi.encodePacked(address(paymaster));
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = getAccountInitCode(anOwner.addr, salt);
+        //needed for account initialization
+        op.verificationGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId, anOwner.key);
+
+        IStakeManager.StakeInfo memory paymasterInfo;
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            require(revertReason.length >= 4);
+            (, bytes memory data) = getDataFromEncoding(revertReason);
+            (,,, paymasterInfo) = abi.decode(
+                data,
+                (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
+            );
+        }
+
+        uint256 simRetStake = paymasterInfo.stake;
+        uint256 simRetDelay = paymasterInfo.unstakeDelaySec;
+
+        assertEq(simRetStake, paymasterStake);
+        assertEq(simRetDelay, globalUnstakeDelaySec);
     }
 }
