@@ -841,8 +841,43 @@ contract EntryPointTest is TestHelper {
             address(expAccount), address(paymaster), uint48(noW + 100), uint48(noW + 200), sessionOwner
         );
         ops.push(op);
-        
+
         vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA32 paymaster expired or not due"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //handleOps should abort on time-range
+    //should revert on expired account
+    function test_RevertOnExpiredAccount() public {
+        (, address payable beneficiary, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+
+        Account memory expiredOwner = createAddress("expiredOwner");
+        vm.prank(accountOwner.addr);
+        expAccount.addTemporaryOwner(expiredOwner.addr, 1, 2);
+
+        UserOperation memory op = _defaultOp;
+        op.sender = address(expAccount);
+        op = signUserOp(op, entryPointAddress, chainId, expiredOwner.key);
+        ops.push(op);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA22 expired or not due"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //should revert on date owner
+    function test_RevertDateOwner() public {
+        (uint256 noW, address payable beneficiary, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+
+        Account memory futureOwner = createAddress("expiredOwner");
+        vm.prank(accountOwner.addr);
+        expAccount.addTemporaryOwner(futureOwner.addr, uint48(noW + 100), uint48(noW + 200));
+
+        UserOperation memory op = _defaultOp;
+        op.sender = address(expAccount);
+        op = signUserOp(op, entryPointAddress, chainId, futureOwner.key);
+        ops.push(op);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA22 expired or not due"));
         entryPoint.handleOps(ops, beneficiary);
     }
 }
