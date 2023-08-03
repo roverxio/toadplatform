@@ -13,6 +13,9 @@ level = "debug"
 chain = "Sepolia"
 currency = "native"
 
+[database]
+file = "toad.db"
+
 [chains.sepolia]
 url = "https://sepolia.infura.io/v3/"
 
