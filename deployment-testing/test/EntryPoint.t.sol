@@ -720,7 +720,8 @@ contract EntryPointTest is TestHelper {
 
     //should execute
     function test_BatchMultipleRequestsShouldExecute() public {
-        (TestCounter counter, address account1, SimpleAccount account2, address payable beneficiary) = _batchMultipleRequestsSetUp();
+        (TestCounter counter, address account1, SimpleAccount account2, address payable beneficiary) =
+            _batchMultipleRequestsSetUp();
 
         entryPoint.handleOps(ops, beneficiary);
         assertEq(counter.counters(account1), 1);
