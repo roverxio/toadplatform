@@ -93,16 +93,17 @@ contract EntryPointTest is TestHelper {
     // With deposit
     // Should be able to withdraw
     function test_WithdrawDeposit() public {
-        account.addDeposit{value: 1 ether}();
+        (SimpleAccount account1, address accountAddress1) = createAccountWithFactory(1104);
+        account1.addDeposit{value: 1 ether}();
 
-        assertEq(utils.getBalance(accountAddress), 0);
-        assertEq(account.getDeposit(), 1 ether);
+        assertEq(utils.getBalance(accountAddress1), 0);
+        assertEq(account1.getDeposit(), 1 ether);
 
         vm.prank(accountOwner.addr);
-        account.withdrawDepositTo(payable(accountAddress), 1 ether);
+        account1.withdrawDepositTo(payable(accountAddress1), 1 ether);
 
-        assertEq(utils.getBalance(accountAddress), 1 ether);
-        assertEq(account.getDeposit(), 0);
+        assertEq(utils.getBalance(accountAddress1), 1 ether);
+        assertEq(account1.getDeposit(), 0);
     }
 
     //simulationValidation
