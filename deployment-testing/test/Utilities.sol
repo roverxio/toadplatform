@@ -7,8 +7,8 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract Utilities is Test {
-    bytes internal constant defaultBytes = bytes("");
-    UserOperation internal defaultOp = UserOperation({
+    bytes public constant defaultBytes = bytes("");
+    UserOperation public defaultOp = UserOperation({
         sender: 0x0000000000000000000000000000000000000000,
         nonce: 0,
         initCode: defaultBytes,
@@ -24,35 +24,6 @@ contract Utilities is Test {
 
     function createAddress(string memory _name) public returns (Account memory) {
         return makeAccount(_name);
-    }
-
-    function fillAndSign(UserOperation memory op, Account memory accountOwner, EntryPoint entryPoint, uint256 chainId)
-        public
-        pure
-        returns (UserOperation memory)
-    {
-        bytes32 userOpHash = keccak256(
-            abi.encode(
-                op.sender,
-                op.nonce,
-                op.initCode,
-                op.callData,
-                op.callGasLimit,
-                op.verificationGasLimit,
-                op.preVerificationGas,
-                op.maxFeePerGas,
-                op.maxPriorityFeePerGas,
-                op.paymasterAndData
-            )
-        );
-
-        bytes memory encoded = abi.encode(userOpHash, entryPoint, chainId);
-        bytes32 message = bytes32(keccak256(encoded));
-        bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(accountOwner.key, digest);
-        op.signature = abi.encodePacked(r, s, v);
-
-        return op;
     }
 
     function packUserOp(UserOperation memory op) internal pure returns (bytes memory) {
@@ -75,22 +46,22 @@ contract Utilities is Test {
         pure
         returns (bytes32)
     {
-        bytes32 userOpHash = keccak256(packUserOp(op, true));
+        bytes32 userOpHash = keccak256(packUserOp(op));
         bytes memory encoded = abi.encode(userOpHash, _entryPoint, _chainId);
         return bytes32(keccak256(encoded));
     }
 
-    function signUserOp(UserOperation memory op, address _entryPoint, uint256 _chainId)
-        internal
-        view
+    function signUserOp(UserOperation memory op, uint256 _key, address _entryPoint, uint256 _chainId)
+        public
+        pure
         returns (UserOperation memory)
     {
         bytes32 message = getUserOpHash(op, _entryPoint, _chainId);
-        op.signature = signMessage(message, _accountKey);
+        op.signature = signMessage(message, _key);
         return op;
     }
 
-    function signMessage(bytes32 message, uint256 privateKey) internal view returns (bytes memory) {
+    function signMessage(bytes32 message, uint256 privateKey) internal pure returns (bytes memory) {
         bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
         return abi.encodePacked(r, s, v);
@@ -157,5 +128,17 @@ contract Utilities is Test {
                 mstore(add(add(data, 0x20), i), mload(add(add(encoding, 0x20), add(i, 0x04))))
             }
         }
+    }
+
+    function failedOp(uint256 _index, string memory _reason) public pure returns (bytes memory revertEvent) {
+        return abi.encodeWithSignature("FailedOp(uint256,string)", _index, _reason);
+    }
+
+    function validationResultEvent() public pure returns (bytes4) {
+        return bytes4(
+            keccak256(
+                "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
+            )
+        );
     }
 }

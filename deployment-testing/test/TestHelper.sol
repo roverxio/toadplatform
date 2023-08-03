@@ -29,8 +29,8 @@ contract TestHelper is Test {
         simpleAccountFactory = new SimpleAccountFactory{salt: bytes32(_factorySalt)}(entryPoint);
         implementation = simpleAccountFactory.accountImplementation();
         simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
-        accountAddress = simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt);
-        account = SimpleAccount(payable(accountAddress));
+        accountAddress = payable(simpleAccountFactory.getAddress(accountOwner.addr, _accountSalt));
+        account = SimpleAccount(accountAddress);
     }
 
     function createAccountWithFactory(uint256 _accountSalt) internal returns (SimpleAccount, address) {
