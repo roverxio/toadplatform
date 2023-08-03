@@ -13,7 +13,7 @@ pub fn routes(cfg: &mut ServiceConfig) {
                 web::scope("v1")
                     .route("hello", web::get().to(hello_world))
                     .route("address", web::get().to(get_address))
-                    .route("balance", web::get().to(get_balance))
+                    .route("balance/{entity}", web::get().to(get_balance))
                     .route("transact", web::post().to(transact))
                     .route("deposit/add", web::post().to(topup_paymaster_deposit))
             )

@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json, Query};
+use actix_web::web::{Data, Json, Path, Query};
 
 use crate::errors::ApiError;
 use crate::helpers::respond_json;
@@ -17,7 +17,8 @@ pub async fn get_address(service: Data<WalletService>) -> Result<Json<BaseRespon
     respond_json(wallet_address)
 }
 
-pub async fn get_balance(service: Data<BalanceService>, body: Query<BalanceRequest>) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
+pub async fn get_balance(service: Data<BalanceService>, body: Query<BalanceRequest>, entity: Path<String>) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
+    println!("entity: {}", entity.into_inner());
     let balance_request = body.get_balance_request();
     let data = service.get_wallet_balance(&balance_request.chain, &balance_request.currency)?;
     respond_json(data)
