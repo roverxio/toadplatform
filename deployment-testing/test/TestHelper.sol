@@ -55,7 +55,7 @@ contract TestHelper is Test {
     }
 
     function createAccountWithFactory(uint256 _accountSalt, address _ownerAddress) internal returns (SimpleAccount, address) {
-    simpleAccountFactory.createAccount(accountOwner.addr, _accountSalt);
+    simpleAccountFactory.createAccount(_ownerAddress, _accountSalt);
     address _accountAddress = simpleAccountFactory.getAddress(_ownerAddress, _accountSalt);
     return (SimpleAccount(payable(_accountAddress)), _accountAddress);
 }

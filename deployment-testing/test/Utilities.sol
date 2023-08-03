@@ -17,14 +17,14 @@ contract Utilities is Test {
         return abi.encode(
             op.sender,
             op.nonce,
-            op.initCode,
-            op.callData,
+            keccak256(op.initCode),
+            keccak256(op.callData),
             op.callGasLimit,
             op.verificationGasLimit,
             op.preVerificationGas,
             op.maxFeePerGas,
             op.maxPriorityFeePerGas,
-            op.paymasterAndData
+            keccak256(op.paymasterAndData)
         );
     }
 

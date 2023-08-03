@@ -122,7 +122,7 @@ contract EntryPointTest is TestHelper {
         IEntryPoint.ReturnInfo memory returnInfo;
         address account1;
         Account memory accountOwner1 = utils.createAddress("accountOwner1");
-        (, account1) = createAccountWithFactory(1104, accountOwner1.addr);
+        (, account1) = createAccountWithFactory(1105, accountOwner1.addr);
 
         UserOperation memory op = defaultOp;
         op.sender = account1;
@@ -172,7 +172,7 @@ contract EntryPointTest is TestHelper {
         IEntryPoint.ReturnInfo memory returnInfo;
         address account1;
         Account memory accountOwner1 = utils.createAddress("accountOwner1");
-        (, account1) = createAccountWithFactory(1105);
+        (, account1) = createAccountWithFactory(1106);
 
         UserOperation memory op = defaultOp;
         op.sender = account1;
@@ -223,7 +223,7 @@ contract EntryPointTest is TestHelper {
         SimpleAccount account2;
         address accountAddress2;
         Account memory accountOwner2 = utils.createAddress("accountOwner2");
-        (account2, accountAddress2) = createAccountWithFactory(1106);
+        (account2, accountAddress2) = createAccountWithFactory(1107, accountOwner2.addr);
         vm.deal(accountAddress2, 1 ether);
         vm.prank(accountOwner2.addr);
         account2.execute(entryPointAddress, stakeValue, abi.encodeWithSignature("addStake(uint32)", unstakeDelay));
@@ -345,7 +345,7 @@ contract EntryPointTest is TestHelper {
     function test_shouldNotCallInitCodeFromEntryPoint() public {
         address account1;
         Account memory sender = utils.createAddress("accountOwner1");
-        (, account1) = createAccountWithFactory(1107);
+        (, account1) = createAccountWithFactory(1108);
         bytes memory initCode = utils.hexConcat(
             abi.encodePacked(account1), abi.encodeWithSignature("execute(address,uint,bytes)", sender, 0, "0x")
         );
@@ -368,9 +368,9 @@ contract EntryPointTest is TestHelper {
     // Should simulate execution
     function test_ExecutionSimulation() public {
         Account memory accountOwner1 = utils.createAddress("accountOwner1");
-        (, address accountAddress1) = createAccountWithFactory(1108);
+        (, address accountAddress1) = createAccountWithFactory(1109);
         vm.deal(accountAddress1, 1 ether);
-        TestCounter counter = new TestCounter{salt: bytes32(uint256(1109))}();
+        TestCounter counter = new TestCounter{salt: bytes32(uint256(1110))}();
         bytes memory countData = abi.encodeWithSignature("count()");
         bytes memory callData =
             abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, countData);
