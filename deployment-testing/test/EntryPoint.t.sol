@@ -57,6 +57,7 @@ contract EntryPointTest is TestHelper {
         entryPointAddress = address(entryPoint);
         (account, simpleAccountFactory) =
             utils.createAccountWithEntryPoint(accountOwner.addr, entryPoint, simpleAccountFactory);
+        accountAddress = address(account);
 
         vm.deal(address(account), 1 ether);
     }
