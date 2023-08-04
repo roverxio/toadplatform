@@ -32,6 +32,13 @@ impl WalletDao {
         }
         return "".to_string();
     }
+
+    pub async fn create_wallet(&self, user_id: String, wallet_address: String) {
+        let conn  = self.connect().await;
+
+        let mut stmt = conn.prepare("INSERT INTO users (email, wallet_address) VALUES (?, ?)").unwrap();
+        stmt.execute([user_id, wallet_address]).unwrap();
+    }
 }
 
 #[derive(Debug)]
