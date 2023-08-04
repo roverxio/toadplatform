@@ -1,4 +1,5 @@
 use config::{Config, ConfigError, File, Map};
+use ethers::types::Address;
 use serde::Deserialize;
 
 use crate::models::config::env::ENV;
@@ -29,6 +30,7 @@ pub struct DefaultChain {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Chain {
     pub url: String,
+    pub simple_account_factory_address: Address,
 }
 
 impl Chain {
@@ -40,6 +42,7 @@ impl Chain {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
     pub current_chain: String,
+    pub account_owner: Address,
     pub log: Log,
     pub database: Database,
     pub server: Server,

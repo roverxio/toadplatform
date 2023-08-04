@@ -1,5 +1,6 @@
 debug = false
 current_chain = "sepolia"
+account_owner = "0x99e6fE79F94a3744089a1b3982D425406Ad4c55c"
 
 [server]
 port = "9090"
@@ -18,6 +19,8 @@ file = "toad.db"
 
 [chains.sepolia]
 url = "https://sepolia.infura.io/v3/"
+simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
 
 [chains.goerli]
 url = "https://goerli.infura.io/v3/"
+simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
