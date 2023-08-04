@@ -20,7 +20,9 @@ file = "toad.db"
 [chains.sepolia]
 url = "https://sepolia.infura.io/v3/"
 simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
+usdc_address = "0xFa38B962562DF7F9eeD9d8Db3cC261053EFC263B"
 
 [chains.goerli]
 url = "https://goerli.infura.io/v3/"
 simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
+usdc_address = "0x07865c6e87b9f70255377e024ace6630c1eaa37f"

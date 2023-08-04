@@ -33,7 +33,8 @@ pub fn init_services(
     init_logging();
     // contract providers
     let client = Arc::new(PROVIDER.clone());
-    let simple_account_factory_provider = Web3Provider::get_simple_account_factory_abi(&CONFIG.current_chain, client);
+    let simple_account_factory_provider = Web3Provider::get_simple_account_factory_abi(&CONFIG.current_chain, client.clone());
+    let erc20_provider = Web3Provider::get_erc20_abi(&CONFIG.current_chain, client.clone());
     //daos
     let wallet_dao = WalletDao {
         pool: pool.clone(),
@@ -44,7 +45,10 @@ pub fn init_services(
         wallet_dao: wallet_dao.clone(),
         simple_account_factory_provider: simple_account_factory_provider.clone(),
     };
-    let balance_service = BalanceService {};
+    let balance_service = BalanceService {
+        wallet_dao: wallet_dao.clone(),
+        erc20_provider: erc20_provider.clone(),
+    };
     let transfer_service = TransactionService {};
     let admin_service = AdminService {};
 
