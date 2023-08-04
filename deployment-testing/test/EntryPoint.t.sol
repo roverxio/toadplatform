@@ -1293,7 +1293,7 @@ contract EntryPointTest is TestHelper {
     }
 
     //should fail with nonexistent paymaster
-    function test_NonExistenetPaymaster() public {
+    function test_NonExistentPaymaster() public {
         (Account memory accountOwner2,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
         uint256 salt = 123;
         address pm = createAddress("paymaster").addr;
