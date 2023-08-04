@@ -14,8 +14,7 @@ use crate::services::transfer_service::TransactionService;
 use crate::services::wallet_service::WalletService;
 
 pub async fn get_address(service: Data<WalletService>, req: HttpRequest) -> Result<Json<BaseResponse<AddressResponse>>, ApiError> {
-    println!("user -> {}", get_user(req));
-    let wallet_address = service.get_wallet_address()?;
+    let wallet_address = service.get_wallet_address(&get_user(req)).await?;
     respond_json(wallet_address)
 }
 

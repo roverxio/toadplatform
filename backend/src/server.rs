@@ -6,6 +6,7 @@ use env_logger::{Env, init_from_env};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 use crate::CONFIG;
+use crate::db::dao::wallet_dao::WalletDao;
 
 use crate::models::config::server::Server;
 use crate::routes::routes;
@@ -27,11 +28,16 @@ pub struct ToadService {
 pub fn init_services(
     pool: Pool<SqliteConnectionManager>
 ) -> ToadService {
-    println!("pool: {:?}", pool);
     init_logging();
+    //daos
+    let wallet_dao = WalletDao {
+        pool: pool.clone(),
+    };
     // Services
     let hello_world_service = HelloWorldService {};
-    let wallet_service = WalletService {};
+    let wallet_service = WalletService {
+        wallet_dao: wallet_dao.clone(),
+    };
     let balance_service = BalanceService {};
     let transfer_service = TransactionService {};
     let admin_service = AdminService {};
