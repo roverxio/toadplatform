@@ -826,17 +826,17 @@ contract EntryPointTest is TestHelper {
             IEntryPoint.UserOpsPerAggregator(userOp_agg3Arr, aggregator3, abi.encodePacked(bytes32(0)));
         opsPerAggregator[2] = IEntryPoint.UserOpsPerAggregator(userOp_noAggArr, IAggregator(address(0)), defaultBytes);
 
-        for (uint256 i = 0; i < opsPerAggregator.length; i++) {
-            vm.expectEmit(true, false, false, false);
-            emit SignatureAggregatorChanged(address(opsPerAggregator[i].aggregator));
-            for (uint256 j = 0; j < opsPerAggregator[i].userOps.length; j++) {
-                vm.expectEmit(false, true, false, false);
-                emit UserOperationEvent(bytes32(0), opsPerAggregator[i].userOps[j].sender, address(0), 0, false, 0, 0);
-            }
-        }
-        vm.expectEmit(true, false, false, false);
-        emit SignatureAggregatorChanged(address(0));
+        vm.recordLogs();
         entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, payable(makeAddr("beneficiary")));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        assertEq(address(uint160(uint256(logs[5].topics[1]))), address(aggregator));
+        assertEq(address(uint160(uint256(logs[6].topics[2]))), userOp1.sender);
+        assertEq(address(uint160(uint256(logs[7].topics[2]))), userOp2.sender);
+        assertEq(address(uint160(uint256(logs[8].topics[1]))), address(aggregator3));
+        assertEq(address(uint160(uint256(logs[9].topics[2]))), userOp_agg3.sender);
+        assertEq(address(uint160(uint256(logs[10].topics[1]))), address(0));
+        assertEq(address(uint160(uint256(logs[11].topics[2]))), userOp_noAgg.sender);
+        assertEq(address(uint160(uint256(logs[12].topics[1]))), address(0));
     }
 
     //without paymaster (account pays in eth)
@@ -846,9 +846,7 @@ contract EntryPointTest is TestHelper {
         public
         returns (TestSignatureAggregator aggregator, UserOperation memory userOp, address payable beneficiary)
     {
-        (address payable _beneficiary, TestSignatureAggregator _aggregator,,) = _aggregationTestsSetUp();
-        aggregator = _aggregator;
-        beneficiary = _beneficiary;
+        (beneficiary, aggregator,,) = _aggregationTestsSetUp();
 
         // this setup sarts from context create account
         TestAggregatedAccountFactory factory = new TestAggregatedAccountFactory(entryPoint, address(aggregator));
