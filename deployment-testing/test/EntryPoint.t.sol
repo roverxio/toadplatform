@@ -675,22 +675,20 @@ contract EntryPointTest is TestHelper {
 
     //without paymaster (account pays in eth)
     //batch multiple requests
-    function _batchMultipleRequestsSetUp()
-        public
-        returns (TestCounter counter, address account1, SimpleAccount account2, address payable beneficiary)
-    {
+    function test_BatchMultipleRequestsShouldExecute() public {
         //timeout feature is not implemented in these test cases
         uint256 salt = 123;
-        beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = payable(makeAddr("beneficiary"));
         Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
         Account memory accountOwner2 = utils.createAccountOwner("accountOwner2");
 
-        counter = new TestCounter();
+        TestCounter counter = new TestCounter();
         bytes memory count = abi.encodeWithSignature("count()");
         bytes memory accountExecFromEntryPoint =
             abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
-        account1 = simpleAccountFactory.getAddress(accountOwner1.addr, salt);
-        (account2,) = utils.createAccountWithEntryPoint(accountOwner2.addr, entryPoint, simpleAccountFactory);
+        address account1 = simpleAccountFactory.getAddress(accountOwner1.addr, salt);
+        (SimpleAccount account2,) =
+            utils.createAccountWithEntryPoint(accountOwner2.addr, entryPoint, simpleAccountFactory);
         vm.deal(account1, 1 ether);
         vm.deal(address(account2), 1 ether);
 
@@ -716,12 +714,6 @@ contract EntryPointTest is TestHelper {
 
         vm.deal(op1.sender, 1 ether);
         vm.deal(address(account2), 1 ether);
-    }
-
-    //should execute
-    function test_BatchMultipleRequestsShouldExecute() public {
-        (TestCounter counter, address account1, SimpleAccount account2, address payable beneficiary) =
-            _batchMultipleRequestsSetUp();
 
         entryPoint.handleOps(ops, beneficiary);
         assertEq(counter.counters(account1), 1);
