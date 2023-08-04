@@ -44,7 +44,9 @@ pub fn init_services(
         wallet_dao: wallet_dao.clone(),
         simple_account_factory_provider: simple_account_factory_provider.clone(),
     };
-    let balance_service = BalanceService {};
+    let balance_service = BalanceService {
+        wallet_dao: wallet_dao.clone(),
+    };
     let transfer_service = TransactionService {};
     let admin_service = AdminService {};
 
