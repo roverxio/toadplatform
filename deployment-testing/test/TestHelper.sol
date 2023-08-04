@@ -180,6 +180,16 @@ contract TestHelper is Test {
         }
     }
 
+    function fillAggregatedOp(UserOperation[] memory _userOps, IAggregator _aggregator)
+        public
+        view
+        returns (IEntryPoint.UserOpsPerAggregator memory ops)
+    {
+        ops.userOps = _userOps;
+        ops.aggregator = _aggregator;
+        ops.signature = _aggregator.aggregateSignatures(_userOps);
+    }
+
     function getAccountInitCode(address owner, uint256 salt) public view returns (bytes memory initCode) {
         bytes memory initCallData = abi.encodeWithSignature("createAccount(address,uint256)", owner, salt);
         initCode = abi.encodePacked(address(simpleAccountFactory), initCallData);

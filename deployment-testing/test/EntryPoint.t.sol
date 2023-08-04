@@ -8,6 +8,9 @@ import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestRevertAccount.sol";
+import "../src/test/TestAggregatedAccount.sol";
+import "../src/test/TestAggregatedAccountFactory.sol";
+import "../src/test/TestSignatureAggregator.sol";
 import "../src/test/TestCounter.sol";
 
 //Utils
@@ -27,6 +30,11 @@ struct StakeInfo {
     uint256 unstakeDelaySec;
 }
 
+struct AggregatorStakeInfo {
+    address aggregator;
+    StakeInfo stakeInfo;
+}
+
 contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
     Utilities internal utils;
@@ -40,6 +48,8 @@ contract EntryPointTest is TestHelper {
         uint256 actualGasCost,
         uint256 actualGasUsed
     );
+
+    event SignatureAggregatorChanged(address indexed aggregator);
 
     event AccountDeployed(bytes32 indexed userOpHash, address indexed sender, address factory, address paymaster);
 
@@ -1004,6 +1014,221 @@ contract EntryPointTest is TestHelper {
         }
     }
 
+    //aggregation tests
+    function _aggregationTestsSetUp()
+    public
+    returns (
+        address payable beneficiary,
+        TestSignatureAggregator aggregator,
+        TestAggregatedAccount aggAccount,
+        TestAggregatedAccount aggAccount2
+    )
+    {
+        beneficiary = payable(makeAddr("beneficiary"));
+        aggregator = new TestSignatureAggregator();
+        aggAccount = new TestAggregatedAccount(entryPoint, address(aggregator));
+        aggAccount2 = new TestAggregatedAccount(entryPoint, address(aggregator));
+        vm.deal(address(aggAccount), 0.1 ether);
+        vm.deal(address(aggAccount2), 0.1 ether);
+    }
+
+    //should fail to execute aggregated account without an aggregator
+    function test_FailToExecAggregateAccountWithoutAggregator() public {
+        (address payable beneficiary,, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
+
+        UserOperation memory userOp = _defaultOp;
+        userOp.sender = address(aggAccount);
+        userOp = signUserOp(userOp, entryPointAddress, chainId);
+        ops.push(userOp);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA24 signature error"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //should fail to execute aggregated account with wrong aggregator
+    function test_FailAggregateAccountWithWrongAggregator() public {
+        (address payable beneficiary,, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
+
+        UserOperation memory userOp = _defaultOp;
+        userOp.sender = address(aggAccount);
+        userOp = signUserOp(userOp, entryPointAddress, chainId);
+        ops.push(userOp);
+
+        TestSignatureAggregator wrongAggregator = new TestSignatureAggregator();
+        bytes memory sig = abi.encodePacked(bytes32(0));
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, wrongAggregator, sig);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA24 signature error"));
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //should reject non-contract (address(1)) aggregator
+    function test_RejectNonContractAggregator() public {
+        (address payable beneficiary,,,) = _aggregationTestsSetUp();
+        address address1 = address(1);
+        TestAggregatedAccount aggAccount1 = new TestAggregatedAccount(entryPoint, address1);
+
+        UserOperation memory userOp = _defaultOp;
+        userOp.sender = address(aggAccount1);
+        userOp.maxFeePerGas = 0;
+        userOp = signUserOp(userOp, entryPointAddress, chainId);
+        ops.push(userOp);
+
+        bytes memory sig = abi.encodePacked(bytes32(0));
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, IAggregator(address1), sig);
+
+        vm.expectRevert("AA96 invalid aggregator");
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //should fail to execute aggregated account with wrong agg. signature
+    function test_FailToExecuteAggregateAccountWithWrongAggregateSig() public {
+        (address payable beneficiary, TestSignatureAggregator aggregator, TestAggregatedAccount aggAccount,) =
+                        _aggregationTestsSetUp();
+
+        UserOperation memory userOp = _defaultOp;
+        userOp.sender = address(aggAccount);
+        userOp = signUserOp(userOp, entryPointAddress, chainId);
+        ops.push(userOp);
+
+        bytes memory wrongSig = abi.encode(uint256(0x123456));
+        address aggAddress = address(aggregator);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, aggregator, wrongSig);
+
+        vm.expectRevert(abi.encodeWithSignature("SignatureValidationFailed(address)", aggAddress));
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //should run with multiple aggregators (and non-aggregated-accounts)
+    function test_MultipleAggregators() public {
+        (, TestSignatureAggregator aggregator, TestAggregatedAccount aggAccount, TestAggregatedAccount aggAccount2) =
+                        _aggregationTestsSetUp();
+
+        // UserOps initialization
+        UserOperation[] memory userOpArr = new UserOperation[](2);
+        UserOperation[] memory userOp_agg3Arr = new UserOperation[](1);
+        UserOperation[] memory userOp_noAggArr = new UserOperation[](1);
+
+        TestSignatureAggregator aggregator3 = new TestSignatureAggregator();
+        TestAggregatedAccount aggAccount3 = new TestAggregatedAccount(entryPoint, address(aggregator3));
+        vm.deal(address(aggAccount3), 0.1 ether);
+
+        //did not sign the userOps as the signature is overwritten below
+        UserOperation memory userOp1 = _defaultOp;
+        userOp1.sender = address(aggAccount);
+
+        UserOperation memory userOp2 = _defaultOp;
+        userOp2.sender = address(aggAccount2);
+
+        UserOperation memory userOp_agg3 = _defaultOp;
+        userOp_agg3.sender = address(aggAccount3);
+        userOp_agg3Arr[0] = signUserOp(userOp_agg3, entryPointAddress, chainId);
+
+        UserOperation memory userOp_noAgg = _defaultOp;
+        userOp_noAgg.sender = accountAddress;
+        userOp_noAggArr[0] = signUserOp(userOp_noAgg, entryPointAddress, chainId);
+
+        userOp1.signature = aggregator.validateUserOpSignature(userOp1);
+        userOp2.signature = aggregator.validateUserOpSignature(userOp2);
+        userOpArr[0] = userOp1;
+        userOpArr[1] = userOp2;
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](3);
+        opsPerAggregator[0] =
+                            IEntryPoint.UserOpsPerAggregator(userOpArr, aggregator, aggregator.aggregateSignatures(userOpArr));
+        opsPerAggregator[1] =
+                            IEntryPoint.UserOpsPerAggregator(userOp_agg3Arr, aggregator3, abi.encodePacked(bytes32(0)));
+        opsPerAggregator[2] = IEntryPoint.UserOpsPerAggregator(userOp_noAggArr, IAggregator(address(0)), defaultBytes);
+
+        vm.recordLogs();
+        entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, payable(makeAddr("beneficiary")));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        assertEq(address(uint160(uint256(logs[5].topics[1]))), address(aggregator));
+        assertEq(address(uint160(uint256(logs[6].topics[2]))), userOp1.sender);
+        assertEq(address(uint160(uint256(logs[7].topics[2]))), userOp2.sender);
+        assertEq(address(uint160(uint256(logs[8].topics[1]))), address(aggregator3));
+        assertEq(address(uint160(uint256(logs[9].topics[2]))), userOp_agg3.sender);
+        assertEq(address(uint160(uint256(logs[10].topics[1]))), address(0));
+        assertEq(address(uint160(uint256(logs[11].topics[2]))), userOp_noAgg.sender);
+        assertEq(address(uint160(uint256(logs[12].topics[1]))), address(0));
+    }
+
+    //execution ordering
+    function _executionOrderingSetup()
+    public
+    returns (TestSignatureAggregator aggregator, UserOperation memory userOp, address payable beneficiary)
+    {
+        (beneficiary, aggregator,,) = _aggregationTestsSetUp();
+
+        // this setup sarts from context create account
+        TestAggregatedAccountFactory factory = new TestAggregatedAccountFactory(entryPoint, address(aggregator));
+        bytes memory _initCallData = abi.encodeWithSignature("createAccount(address,uint256)", address(0), 0);
+        bytes memory initCode = abi.encodePacked(address(factory), _initCallData);
+        address addr;
+        try entryPoint.getSenderAddress(initCode) {}
+        catch (bytes memory reason) {
+            (, bytes memory data) = getDataFromEncoding(reason);
+            assembly {
+                addr := mload(add(data, 0x20))
+            }
+        }
+        vm.deal(addr, 0.1 ether);
+
+        userOp = _defaultOp;
+        userOp.sender = addr;
+        userOp.verificationGasLimit = 1e6;
+        userOp.initCode = initCode;
+        userOp = signUserOp(userOp, entryPointAddress, chainId);
+    }
+
+    //simulateValidation should return aggregator and its stake
+    function test_AggregatorAndStakeReturned() public {
+        (TestSignatureAggregator aggregator, UserOperation memory userOp,) = _executionOrderingSetup();
+
+        aggregator.addStake{value: 2 ether}(entryPoint, 3);
+
+        try entryPoint.simulateValidation(userOp) {}
+        catch (bytes memory reason) {
+            (bytes4 sig, bytes memory data) = getDataFromEncoding(reason);
+            (,,,, AggregatorStakeInfo memory aggStakeInfo) =
+                                abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo, AggregatorStakeInfo));
+            assertEq(
+                sig,
+                bytes4(
+                    keccak256(
+                        "ValidationResultWithAggregation((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256),(address,(uint256,uint256)))"
+                    )
+                )
+            );
+            assertEq(aggStakeInfo.aggregator, address(aggregator));
+            assertEq(aggStakeInfo.stakeInfo.stake, 2 ether);
+            assertEq(aggStakeInfo.stakeInfo.unstakeDelaySec, 3);
+        }
+    }
+
+    //should create account in handleOps
+    function test_AggregatorCreateAccount() public {
+        (TestSignatureAggregator aggregator, UserOperation memory userOp, address payable beneficiary) =
+                        _executionOrderingSetup();
+
+        // returns defualt bytes, but not used
+        aggregator.validateUserOpSignature(userOp);
+        ops.push(userOp);
+        bytes memory sig = aggregator.aggregateSignatures(ops);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        ops[0].signature = defaultBytes;
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, aggregator, sig);
+
+        entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, beneficiary);
+    }
+
     //batch multiple requests
     function test_BatchMultipleRequestsShouldExecute() public {
         //timeout feature is not implemented in these test cases
@@ -1068,7 +1293,7 @@ contract EntryPointTest is TestHelper {
     }
 
     //should fail with nonexistent paymaster
-    function test_NonExistenetPaymaster() public {
+    function test_NonExistentPaymaster() public {
         (Account memory accountOwner2,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
         uint256 salt = 123;
         address pm = createAddress("paymaster").addr;
