@@ -31,6 +31,7 @@ pub struct DefaultChain {
 pub struct Chain {
     pub url: String,
     pub simple_account_factory_address: Address,
+    pub usdc_address: Address,
 }
 
 impl Chain {
