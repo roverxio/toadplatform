@@ -163,11 +163,6 @@ contract TestHelper is Test {
         return size > 0;
     }
 
-    function getAccountInitCode(address owner, uint256 salt) public view returns (bytes memory initCode) {
-        bytes memory initCallData = abi.encodeWithSignature("createAccount(address,uint256)", owner, salt);
-        initCode = abi.encodePacked(address(simpleAccountFactory), initCallData);
-    }
-
     function getDataFromEncoding(bytes memory encoding) public pure returns (bytes4 sig, bytes memory data) {
         assembly {
             let totalLength := mload(encoding)
@@ -183,5 +178,10 @@ contract TestHelper is Test {
                 mstore(add(add(data, 0x20), i), mload(add(add(encoding, 0x20), add(i, 0x04))))
             }
         }
+    }
+
+    function getAccountInitCode(address owner, uint256 salt) public view returns (bytes memory initCode) {
+        bytes memory initCallData = abi.encodeWithSignature("createAccount(address,uint256)", owner, salt);
+        initCode = abi.encodePacked(address(simpleAccountFactory), initCallData);
     }
 }
