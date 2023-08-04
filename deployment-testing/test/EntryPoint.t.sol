@@ -690,9 +690,11 @@ contract EntryPointTest is TestHelper {
         returns (Account memory accountOwner2, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint)
     {
         accountOwner2 = utils.createAccountOwner("accountOwner2");
+        vm.deal(accountOwner.addr, 10 ether);
+        vm.startPrank(accountOwner.addr, accountOwner.addr);
         paymaster = new TestPaymasterAcceptAll(entryPoint);
-        vm.prank(msg.sender);
         paymaster.addStake{value: paymasterStake}(uint32(globalUnstakeDelaySec));
+        vm.stopPrank();
         TestCounter counter = new TestCounter();
         bytes memory count = abi.encodeWithSignature("count()");
         accountExecFromEntryPoint =
