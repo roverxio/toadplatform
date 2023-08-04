@@ -31,6 +31,16 @@ contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
     Utilities internal utils;
 
+    event UserOperationEvent(
+        bytes32 indexed userOpHash,
+        address indexed sender,
+        address indexed paymaster,
+        uint256 nonce,
+        bool success,
+        uint256 actualGasCost,
+        uint256 actualGasUsed
+    );
+
     event AccountDeployed(bytes32 indexed userOpHash, address indexed sender, address factory, address paymaster);
 
     function setUp() public {
@@ -1038,5 +1048,118 @@ contract EntryPointTest is TestHelper {
         entryPoint.handleOps(ops, beneficiary);
         assertEq(counter.counters(account1), 1);
         assertEq(counter.counters(address(account2)), 1);
+    }
+
+    // With paymaster (account with no eth)
+    function _withPaymasterSetUp()
+        public
+        returns (Account memory accountOwner2, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint)
+    {
+        accountOwner2 = utils.createAccountOwner("accountOwner2");
+        vm.deal(accountOwner.addr, 10 ether);
+        vm.startPrank(accountOwner.addr, accountOwner.addr);
+        paymaster = new TestPaymasterAcceptAll(entryPoint);
+        paymaster.addStake{value: paymasterStake}(uint32(globalUnstakeDelaySec));
+        vm.stopPrank();
+        TestCounter counter = new TestCounter();
+        bytes memory count = abi.encodeWithSignature("count()");
+        accountExecFromEntryPoint =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
+    }
+
+    //should fail with nonexistent paymaster
+    function test_NonExistenetPaymaster() public {
+        (Account memory accountOwner2,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
+        uint256 salt = 123;
+        address pm = createAddress("paymaster").addr;
+
+        UserOperation memory op = _defaultOp;
+        op.sender = simpleAccountFactory.getAddress(accountOwner2.addr, salt);
+        op.paymasterAndData = abi.encodePacked(pm);
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = getAccountInitCode(accountOwner2.addr, salt);
+        op.verificationGasLimit = 3e6;
+        op.callGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId, accountOwner2.key);
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA30 paymaster not deployed"));
+        entryPoint.simulateValidation(op);
+    }
+
+    //should fail if paymaster has no deposit
+    function test_PaymasterWithNoDeposit() public {
+        (Account memory accountOwner2, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) =
+            _withPaymasterSetUp();
+        uint256 salt = 123;
+
+        UserOperation memory op = _defaultOp;
+        op.sender = simpleAccountFactory.getAddress(accountOwner2.addr, salt);
+        op.paymasterAndData = abi.encodePacked(address(paymaster));
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = getAccountInitCode(accountOwner2.addr, salt);
+        op.verificationGasLimit = 3e6;
+        op.callGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId, accountOwner2.key);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA31 paymaster deposit too low"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //paymaster should pay for tx
+    function test_PaymasterPaysForTransaction() public {
+        (Account memory accountOwner2, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) =
+            _withPaymasterSetUp();
+        uint256 salt = 123;
+        paymaster.deposit{value: 1 ether}();
+
+        UserOperation memory op = _defaultOp;
+        op.sender = simpleAccountFactory.getAddress(accountOwner2.addr, salt);
+        op.paymasterAndData = abi.encodePacked(address(paymaster));
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = getAccountInitCode(accountOwner2.addr, salt);
+        op.verificationGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId, accountOwner2.key);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        vm.recordLogs();
+        entryPoint.handleOps(ops, beneficiary);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[5].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+        uint256 paymasterPaid = 1 ether - entryPoint.balanceOf(address(paymaster));
+        assertEq(paymasterPaid, actualGasCost);
+    }
+
+    // simulateValidation should return paymaster stake and delay
+    function test_ReturnPaymasterStakeInfo() public {
+        (, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
+        uint256 salt = 123;
+        paymaster.deposit{value: 1 ether}();
+        Account memory anOwner = utils.createAccountOwner("anOwner");
+
+        UserOperation memory op = _defaultOp;
+        op.sender = simpleAccountFactory.getAddress(anOwner.addr, salt);
+        op.paymasterAndData = abi.encodePacked(address(paymaster));
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = getAccountInitCode(anOwner.addr, salt);
+        op.verificationGasLimit = 1e6;
+        op = signUserOp(op, entryPointAddress, chainId, anOwner.key);
+
+        StakeInfo memory paymasterInfo;
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            (, bytes memory data) = getDataFromEncoding(revertReason);
+            (,,, paymasterInfo) = abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+        }
+
+        uint256 simRetStake = paymasterInfo.stake;
+        uint256 simRetDelay = paymasterInfo.unstakeDelaySec;
+
+        assertEq(simRetStake, paymasterStake);
+        assertEq(simRetDelay, globalUnstakeDelaySec);
     }
 }
