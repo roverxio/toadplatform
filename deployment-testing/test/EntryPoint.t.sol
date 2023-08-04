@@ -708,12 +708,12 @@ contract EntryPointTest is TestHelper {
         aggregator = new TestSignatureAggregator();
         aggAccount = new TestAggregatedAccount(entryPoint, address(aggregator));
         aggAccount2 = new TestAggregatedAccount(entryPoint, address(aggregator));
-        payable(address(aggAccount)).transfer(0.1 ether);
-        payable(address(aggAccount2)).transfer(0.1 ether);
+        vm.deal(address(aggAccount), 0.1 ether);
+        vm.deal(address(aggAccount2), 0.1 ether);
     }
 
     //should fail to execute aggregated account without an aggregator
-    function test_FailToExecAggrAccountWithoutAggregator() public {
+    function test_FailToExecAggregateAccountWithoutAggregator() public {
         (address payable beneficiary,, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
 
         UserOperation memory userOp = _defaultOp;
@@ -726,7 +726,7 @@ contract EntryPointTest is TestHelper {
     }
 
     //should fail to execute aggregated account with wrong aggregator
-    function test_FailAggrAccountWithWrongAggregator() public {
+    function test_FailAggregateAccountWithWrongAggregator() public {
         (address payable beneficiary,, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
 
         UserOperation memory userOp = _defaultOp;
@@ -737,7 +737,6 @@ contract EntryPointTest is TestHelper {
         TestSignatureAggregator wrongAggregator = new TestSignatureAggregator();
         bytes memory sig = abi.encodePacked(bytes32(0));
 
-        //Aggregated UserOps struct for entryPoint handleAggregatedOps
         IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
         opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, wrongAggregator, sig);
 
@@ -767,7 +766,7 @@ contract EntryPointTest is TestHelper {
     }
 
     //should fail to execute aggregated account with wrong agg. signature
-    function test_FailToExecuteAggrAccountWithWrongAggregateSig() public {
+    function test_FailToExecuteAggregateAccountWithWrongAggregateSig() public {
         (address payable beneficiary, TestSignatureAggregator aggregator, TestAggregatedAccount aggAccount,) =
             _aggregationTestsSetUp();
 
@@ -798,7 +797,7 @@ contract EntryPointTest is TestHelper {
 
         TestSignatureAggregator aggregator3 = new TestSignatureAggregator();
         TestAggregatedAccount aggAccount3 = new TestAggregatedAccount(entryPoint, address(aggregator3));
-        payable(address(aggAccount3)).transfer(0.1 ether);
+        vm.deal(address(aggAccount3), 0.1 ether);
 
         //did not sign the userOps as the signature is overwritten below
         UserOperation memory userOp1 = _defaultOp;
@@ -815,12 +814,10 @@ contract EntryPointTest is TestHelper {
         userOp_noAgg.sender = accountAddress;
         userOp_noAggArr[0] = signUserOp(userOp_noAgg, entryPointAddress, chainId);
 
-        //sigOp1 and sigOp2 were ommited to avoid too many variables
         userOp1.signature = aggregator.validateUserOpSignature(userOp1);
         userOp2.signature = aggregator.validateUserOpSignature(userOp2);
         userOpArr[0] = userOp1;
         userOpArr[1] = userOp2;
-        //aggSig was owmmited to avoid too many variables
 
         IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](3);
         opsPerAggregator[0] =
@@ -839,7 +836,6 @@ contract EntryPointTest is TestHelper {
         }
         vm.expectEmit(true, false, false, false);
         emit SignatureAggregatorChanged(address(0));
-        // beneficiary created implicitly to avoid too many variables error
         entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, payable(makeAddr("beneficiary")));
     }
 
@@ -866,7 +862,7 @@ contract EntryPointTest is TestHelper {
                 addr := mload(add(data, 0x20))
             }
         }
-        payable(addr).transfer(0.1 ether);
+        vm.deal(addr, 0.1 ether);
 
         userOp = _defaultOp;
         userOp.sender = addr;
@@ -884,7 +880,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.simulateValidation(userOp) {}
         catch (bytes memory reason) {
             (bytes4 sig, bytes memory data) = getDataFromEncoding(reason);
-            (,,,, AggregatorStakeInfo memory aggrStakeInfo) =
+            (,,,, AggregatorStakeInfo memory aggStakeInfo) =
                 abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo, AggregatorStakeInfo));
             assertEq(
                 sig,
@@ -894,14 +890,14 @@ contract EntryPointTest is TestHelper {
                     )
                 )
             );
-            assertEq(aggrStakeInfo.aggregator, address(aggregator));
-            assertEq(aggrStakeInfo.stakeInfo.stake, 2 ether);
-            assertEq(aggrStakeInfo.stakeInfo.unstakeDelaySec, 3);
+            assertEq(aggStakeInfo.aggregator, address(aggregator));
+            assertEq(aggStakeInfo.stakeInfo.stake, 2 ether);
+            assertEq(aggStakeInfo.stakeInfo.unstakeDelaySec, 3);
         }
     }
 
     //should create account in handleOps
-    function test_AggrCreateAccount() public {
+    function test_AggregatorCreateAccount() public {
         (TestSignatureAggregator aggregator, UserOperation memory userOp, address payable beneficiary) =
             _executionOrderingSetup();
 
