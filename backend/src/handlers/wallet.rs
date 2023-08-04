@@ -14,16 +14,14 @@ use crate::services::transfer_service::TransactionService;
 use crate::services::wallet_service::WalletService;
 
 pub async fn get_address(service: Data<WalletService>, req: HttpRequest) -> Result<Json<BaseResponse<AddressResponse>>, ApiError> {
-    println!("user -> {}", get_user(req));
-    let wallet_address = service.get_wallet_address()?;
+    let wallet_address = service.get_wallet_address(&get_user(req)).await?;
     respond_json(wallet_address)
 }
 
 pub async fn get_balance(service: Data<BalanceService>, body: Query<BalanceRequest>, entity: Path<String>, req: HttpRequest) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
-    println!("entity: {}", entity.into_inner());
-    println!("user -> {}", get_user(req));
+    println!("entity: {}", entity.into_inner()); // will be relevant while building admin APIs
     let balance_request = body.get_balance_request();
-    let data = service.get_wallet_balance(&balance_request.chain, &balance_request.currency)?;
+    let data = service.get_wallet_balance(&balance_request.chain, &balance_request.currency.to_lowercase(), &get_user(req)).await?;
     respond_json(data)
 }
 
