@@ -1,12 +1,24 @@
+use std::sync::Arc;
+
 use ethers::{
     providers::{Http, Provider},
 };
+use ethers::prelude::abigen;
+
+use crate::CONFIG;
 
 pub struct Web3Provider {}
+
+abigen!(SimpleAccountFactory, "abi/SimpleAccountFactory.json");
 
 impl Web3Provider {
     pub fn new(chain_url: String) -> Provider<Http> {
         let provider = Provider::try_from(chain_url).unwrap();
         provider
+    }
+
+    pub fn get_simple_account_factory_abi(current_chain: &str, client: Arc<Provider<Http>>) -> SimpleAccountFactory<Provider<Http>> {
+        let contract: SimpleAccountFactory<Provider<Http>> = SimpleAccountFactory::new(CONFIG.chains[current_chain].simple_account_factory_address, client);
+        contract
     }
 }

@@ -1,3 +1,4 @@
+use std::sync::Arc;
 use actix_web::{App, HttpServer};
 use actix_web::middleware::Logger;
 use actix_web::web::Data;
@@ -5,9 +6,11 @@ use dotenvy::dotenv;
 use env_logger::{Env, init_from_env};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
-use crate::CONFIG;
+use crate::{CONFIG, PROVIDER};
+use crate::db::dao::wallet_dao::WalletDao;
 
 use crate::models::config::server::Server;
+use crate::provider::web3_provider::Web3Provider;
 use crate::routes::routes;
 use crate::services::admin_service::AdminService;
 use crate::services::balance_service::BalanceService;
@@ -27,11 +30,20 @@ pub struct ToadService {
 pub fn init_services(
     pool: Pool<SqliteConnectionManager>
 ) -> ToadService {
-    println!("pool: {:?}", pool);
     init_logging();
+    // contract providers
+    let client = Arc::new(PROVIDER.clone());
+    let simple_account_factory_provider = Web3Provider::get_simple_account_factory_abi(&CONFIG.current_chain, client);
+    //daos
+    let wallet_dao = WalletDao {
+        pool: pool.clone(),
+    };
     // Services
     let hello_world_service = HelloWorldService {};
-    let wallet_service = WalletService {};
+    let wallet_service = WalletService {
+        wallet_dao: wallet_dao.clone(),
+        simple_account_factory_provider: simple_account_factory_provider.clone(),
+    };
     let balance_service = BalanceService {};
     let transfer_service = TransactionService {};
     let admin_service = AdminService {};
