@@ -993,4 +993,50 @@ contract EntryPointTest is TestHelper {
             entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
         }
     }
+
+    //batch multiple requests
+    function test_BatchMultipleRequestsShouldExecute() public {
+        //timeout feature is not implemented in these test cases
+        uint256 salt = 123;
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+        Account memory accountOwner1 = utils.createAccountOwner("accountOwner1");
+        Account memory accountOwner2 = utils.createAccountOwner("accountOwner2");
+
+        TestCounter counter = new TestCounter();
+        bytes memory count = abi.encodeWithSignature("count()");
+        bytes memory accountExecFromEntryPoint =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
+        address account1 = simpleAccountFactory.getAddress(accountOwner1.addr, salt);
+        (SimpleAccount account2,) =
+            utils.createAccountWithEntryPoint(accountOwner2.addr, entryPoint, simpleAccountFactory);
+        vm.deal(account1, 1 ether);
+        vm.deal(address(account2), 1 ether);
+
+        UserOperation memory op1 = _defaultOp;
+        op1.sender = account1;
+        op1.initCode = getAccountInitCode(accountOwner1.addr, salt);
+        op1.callData = accountExecFromEntryPoint;
+        op1.callGasLimit = 2e6;
+        op1.verificationGasLimit = 2e6;
+        op1 = signUserOp(op1, entryPointAddress, chainId, accountOwner1.key);
+        ops.push(op1);
+
+        UserOperation memory op2 = _defaultOp;
+        op2.callData = accountExecFromEntryPoint;
+        op2.sender = address(account2);
+        op2.callGasLimit = 2e6;
+        op2.verificationGasLimit = 76000;
+        op2 = signUserOp(op2, entryPointAddress, chainId, accountOwner2.key);
+        ops.push(op2);
+
+        vm.expectRevert();
+        entryPoint.simulateValidation{gas: 1e9}(op2);
+
+        vm.deal(op1.sender, 1 ether);
+        vm.deal(address(account2), 1 ether);
+
+        entryPoint.handleOps(ops, beneficiary);
+        assertEq(counter.counters(account1), 1);
+        assertEq(counter.counters(address(account2)), 1);
+    }
 }
