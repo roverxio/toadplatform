@@ -18,6 +18,8 @@ file = "toad.db"
 
 [chains.sepolia]
 url = "https://sepolia.infura.io/v3/"
+currency = "SepoliaETH"
 
 [chains.goerli]
 url = "https://goerli.infura.io/v3/"
+currency = "GoerliETH"

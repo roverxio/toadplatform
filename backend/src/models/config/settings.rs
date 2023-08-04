@@ -29,6 +29,7 @@ pub struct DefaultChain {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Chain {
     pub url: String,
+    pub currency: String,
 }
 
 impl Chain {
