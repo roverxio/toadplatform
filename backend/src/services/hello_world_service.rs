@@ -11,3 +11,16 @@ impl HelloWorldService {
         })
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+        use super::*;
+        #[test]
+        fn test_hello() {
+               let hello_service = HelloWorldService{};
+               assert_eq!(hello_service.hello_world(), Ok(HelloWorld {
+                        name: "Hello world!".to_string(),
+               }));
+        }
+}

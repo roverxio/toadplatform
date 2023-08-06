@@ -3,6 +3,7 @@ use derive_more::Display;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Display)]
+#[derive(PartialEq)]
 #[allow(dead_code)]
 pub enum ApiError {
     BadRequest(String),
