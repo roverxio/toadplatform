@@ -130,6 +130,22 @@ contract EntryPointTest is TestHelper {
         vm.stopPrank();
     }
 
+    // should report unstake state
+    function test_ReportUnstakeState() public {
+        vm.deal(accountOwner.addr, 10 ether);
+        vm.startPrank(accountOwner.addr);
+        // setup
+        entryPoint.addStake{value: 2 ether}(2);
+        entryPoint.unlockStake();
+
+        uint48 withdrawTime1 = uint48(block.timestamp + globalUnstakeDelaySec);
+        IStakeManager.DepositInfo memory info = entryPoint.getDepositInfo(accountOwner.addr);
+        // assertEq(info.stake, 3 ether);
+        assertEq(info.staked, false);
+        assertEq(info.unstakeDelaySec, 2);
+        assertEq(info.withdrawTime, withdrawTime1);
+    }
+
     // With deposit
     // Should be able to withdraw
     function test_WithdrawDeposit() public {
