@@ -16,7 +16,7 @@ impl BalanceService {
     pub async fn get_wallet_balance(&self, chain: &String, currency: &String, user: &str) -> Result<BalanceResponse, ApiError> {
         println!("Chain: {:?}", chain); // will be relevant when we add support for multiple chains
         let mut balance: String = "0".to_string();
-        let address = self.wallet_dao.get_wallet(user.to_string()).await;
+        let address = self.wallet_dao.get_wallet_address(user.to_string()).await;
         if address.is_empty() {
             return Err(ApiError::NotFound("Wallet not found".to_string()));
         }
