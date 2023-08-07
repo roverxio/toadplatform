@@ -678,7 +678,7 @@ contract EntryPointTest is TestHelper {
     //Validation time-range
     function _validationTimeRangeSetUp()
         public
-        returns (uint256 noW, address payable beneficiary, TestExpiryAccount expAccount, Account memory sessionOwner)
+        returns (uint256 _now, address payable beneficiary, TestExpiryAccount expAccount, Account memory sessionOwner)
     {
         beneficiary = payable(makeAddr("beneficiary"));
         vm.deal(accountOwner.addr, 1000 ether);
@@ -686,18 +686,18 @@ contract EntryPointTest is TestHelper {
         // the account variable in hardhat tests is renamed as expAccount, so as to not confuse with the default `account` creates in TestHelper
         expAccount = new TestExpiryAccount(entryPoint);
         expAccount.initialize(accountOwner.addr);
-        payable(address(expAccount)).transfer(0.1 ether);
+        vm.deal(address(expAccount), 0.1 ether);
         vm.warp(1641070800);
-        noW = block.timestamp;
+        _now = block.timestamp;
         sessionOwner = utils.createAccountOwner("sessionOwner");
-        expAccount.addTemporaryOwner(sessionOwner.addr, 100, uint48(noW + 60));
+        expAccount.addTemporaryOwner(sessionOwner.addr, 100, uint48(_now + 60));
         vm.stopPrank();
     }
 
     //validateUserOp time-range
     //should accept non-expired owner
     function test_AcceptNonExpiredOwner() public {
-        (uint256 noW,, TestExpiryAccount expAccount, Account memory sessionOwner) = _validationTimeRangeSetUp();
+        (uint256 _now,, TestExpiryAccount expAccount, Account memory sessionOwner) = _validationTimeRangeSetUp();
 
         UserOperation memory op = _defaultOp;
         op.sender = address(expAccount);
@@ -709,18 +709,18 @@ contract EntryPointTest is TestHelper {
             (ReturnInfo memory returnInfoFromRevert,,,) =
                 abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
 
-            assertEq(returnInfoFromRevert.validUntil, noW + 60);
+            assertEq(returnInfoFromRevert.validUntil, _now + 60);
             assertEq(returnInfoFromRevert.validAfter, 100);
         }
     }
 
     //should not reject expired owner
     function test_ShouldNotRejectExpiredOwner() public {
-        (uint256 noW,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+        (uint256 _now,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
 
         Account memory expiredOwner = utils.createAccountOwner("expiredOwner");
         vm.prank(accountOwner.addr);
-        expAccount.addTemporaryOwner(expiredOwner.addr, 123, uint48(noW - 60));
+        expAccount.addTemporaryOwner(expiredOwner.addr, 123, uint48(_now - 60));
 
         UserOperation memory op = _defaultOp;
         op.sender = address(expAccount);
@@ -733,7 +733,7 @@ contract EntryPointTest is TestHelper {
             (ReturnInfo memory returnInfoFromRevert,,,) =
                 abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
 
-            assertEq(returnInfoFromRevert.validUntil, noW - 60);
+            assertEq(returnInfoFromRevert.validUntil, _now - 60);
             assertEq(returnInfoFromRevert.validAfter, 123);
         }
     }
@@ -743,18 +743,18 @@ contract EntryPointTest is TestHelper {
         // not implementing the timeout feature
         paymaster = new TestExpirePaymaster(entryPoint);
         paymaster.addStake{value: paymasterStake}(1);
-        paymaster.deposit{value: 100 ether}();
-        // using noW created in the validation time range setup
+        paymaster.deposit{value: 0.1 ether}();
+        // using _now created in the validation time range setup
     }
 
     //should accept non-expired paymaster request
     function test_AcceptNonExpiredPaymasterRequest() public {
-        (uint256 noW,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+        (uint256 _now,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
         (TestExpirePaymaster paymaster) = _validatePaymasterSetUp();
 
         //timeRange directly sent to the helper function
         UserOperation memory op =
-            createOpWithPaymasterParams(address(expAccount), address(paymaster), 123, uint48(noW + 60), accountOwner);
+            createOpWithPaymasterParams(address(expAccount), address(paymaster), 123, uint48(_now + 60), accountOwner);
 
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
@@ -762,26 +762,26 @@ contract EntryPointTest is TestHelper {
             (ReturnInfo memory returnInfoFromRevert,,,) =
                 abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
 
-            assertEq(returnInfoFromRevert.validUntil, noW + 60);
+            assertEq(returnInfoFromRevert.validUntil, _now + 60);
             assertEq(returnInfoFromRevert.validAfter, 123);
         }
     }
 
     //should not reject expired paymaster request
     function test_DontRejectExpiredPaymasterRequest() public {
-        (uint256 noW,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+        (uint256 _now,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
         (TestExpirePaymaster paymaster) = _validatePaymasterSetUp();
 
         //timeRange directly sent to the helper function
         UserOperation memory op =
-            createOpWithPaymasterParams(address(expAccount), address(paymaster), 321, uint48(noW - 60), accountOwner);
+            createOpWithPaymasterParams(address(expAccount), address(paymaster), 321, uint48(_now - 60), accountOwner);
 
         try entryPoint.simulateValidation(op) {}
         catch (bytes memory revertReason) {
             (, bytes memory data) = getDataFromEncoding(revertReason);
             (ReturnInfo memory returnInfoFromRevert,,,) =
                 abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
-            assertEq(returnInfoFromRevert.validUntil, noW - 60);
+            assertEq(returnInfoFromRevert.validUntil, _now - 60);
             assertEq(returnInfoFromRevert.validAfter, 321);
         }
     }
@@ -835,12 +835,12 @@ contract EntryPointTest is TestHelper {
 
     //handleOps should revert on expired paymaster request
     function test_RevertExpiredPaymasterRequest() public {
-        (uint256 noW, address payable beneficiary, TestExpiryAccount expAccount, Account memory sessionOwner) =
+        (uint256 _now, address payable beneficiary, TestExpiryAccount expAccount, Account memory sessionOwner) =
             _validationTimeRangeSetUp();
         (TestExpirePaymaster paymaster) = _validatePaymasterSetUp();
 
         UserOperation memory op = createOpWithPaymasterParams(
-            address(expAccount), address(paymaster), uint48(noW + 100), uint48(noW + 200), sessionOwner
+            address(expAccount), address(paymaster), uint48(_now + 100), uint48(_now + 200), sessionOwner
         );
         ops.push(op);
 
@@ -868,11 +868,11 @@ contract EntryPointTest is TestHelper {
 
     //should revert on date owner
     function test_RevertDateOwner() public {
-        (uint256 noW, address payable beneficiary, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+        (uint256 _now, address payable beneficiary, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
 
         Account memory futureOwner = createAddress("futureOwner");
         vm.prank(accountOwner.addr);
-        expAccount.addTemporaryOwner(futureOwner.addr, uint48(noW + 100), uint48(noW + 200));
+        expAccount.addTemporaryOwner(futureOwner.addr, uint48(_now + 100), uint48(_now + 200));
 
         UserOperation memory op = _defaultOp;
         op.sender = address(expAccount);
