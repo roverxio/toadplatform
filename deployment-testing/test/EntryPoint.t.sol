@@ -296,7 +296,7 @@ contract EntryPointTest is TestHelper {
         op.maxPriorityFeePerGas = 1000000000;
 
         UserOperation memory op1 = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA14 initCode must return sender"));
+        vm.expectRevert(utils.failedOp(0, "AA14 initCode must return sender"));
         entryPoint.simulateValidation(op1);
     }
 
@@ -477,7 +477,7 @@ contract EntryPointTest is TestHelper {
         assertEq(nonce, (incNonceKey * 2 ** 64) + 1);
     }
 
-    // Should fail with nonsequential seq
+    // Should fail with nonSequential seq
     function test_NonSequentialNonce() public {
         (Account memory beneficiary,, uint256 keyShifted, address _accountAddress) = _2dNonceSetup(true);
 
@@ -611,7 +611,7 @@ contract EntryPointTest is TestHelper {
         ops.push(op);
         address payable beneficiary = payable(makeAddr("beneficiary"));
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA24 signature error"));
+        vm.expectRevert(utils.failedOp(0, "AA24 signature error"));
         entryPoint.handleOps(ops, beneficiary);
     }
 
@@ -626,7 +626,7 @@ contract EntryPointTest is TestHelper {
         op.callGasLimit = 1e6;
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
         uint256 countBefore = counter.counters(accountAddress);
 
         vm.recordLogs();
@@ -655,7 +655,7 @@ contract EntryPointTest is TestHelper {
         op.callGasLimit = 11e5;
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
         uint256 offsetBefore = counter.offset();
 
         vm.recordLogs();
@@ -684,9 +684,9 @@ contract EntryPointTest is TestHelper {
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
         uint256 initialAccountBalance = accountAddress.balance;
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA95 out of gas"));
+        vm.expectRevert(utils.failedOp(0, "AA95 out of gas"));
         entryPoint.handleOps{gas: 12e5}(ops, beneficiary);
 
         assertEq(accountAddress.balance, initialAccountBalance);
@@ -704,7 +704,7 @@ contract EntryPointTest is TestHelper {
         op.callGasLimit = 1e6;
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
 
         uint256 countBefore = counter.counters(op.sender);
         uint256 balBefore = op.sender.balance;
@@ -736,7 +736,7 @@ contract EntryPointTest is TestHelper {
         op.callGasLimit = 1e6;
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
 
         vm.recordLogs();
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
@@ -751,7 +751,7 @@ contract EntryPointTest is TestHelper {
     //#handleOp (single)
     function test_SingleOp() public {
         (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
 
         UserOperation memory op = defaultOp;
         op.sender = accountAddress;
@@ -773,7 +773,7 @@ contract EntryPointTest is TestHelper {
 
     //should fail to call recursively into handleOps
     function test_RecursiveCallToHandleOps() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
 
         UserOperation[] memory _ops;
         bytes memory callHandleOps = abi.encodeWithSignature(
@@ -811,14 +811,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.simulateValidation(op0) {}
         catch (bytes memory revertReason) {
             (bytes4 reason,) = utils.getDataFromEncoding(revertReason);
-            assertEq(
-                bytes4(
-                    keccak256(
-                        "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
-                    )
-                ),
-                reason
-            );
+            assertEq(utils.validationResultEvent(), reason);
         }
 
         UserOperation memory op1 = defaultOp;
@@ -826,14 +819,14 @@ contract EntryPointTest is TestHelper {
         op1.verificationGasLimit = 10000;
         op1 = utils.signUserOp(op1, accountOwner.key, entryPointAddress, chainId);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA23 reverted (or OOG)"));
+        vm.expectRevert(utils.failedOp(0, "AA23 reverted (or OOG)"));
         entryPoint.simulateValidation(op1);
     }
 
     //create account
     //should reject create if sender address is wrong
     function test_RejectCreateIfWrongSender() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
 
         UserOperation memory op = defaultOp;
         op.initCode = utils.getAccountInitCode(accountOwner.addr, simpleAccountFactory, 0);
@@ -842,13 +835,13 @@ contract EntryPointTest is TestHelper {
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA14 initCode must return sender"));
+        vm.expectRevert(utils.failedOp(0, "AA14 initCode must return sender"));
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
     }
 
     //should reject create if account not funded
     function test_RejectCreateIfNotFunded() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
         uint256 salt = 100;
 
         UserOperation memory op = defaultOp;
@@ -859,13 +852,13 @@ contract EntryPointTest is TestHelper {
         ops.push(op);
 
         assertEq(op.sender.balance, 0);
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA21 didn't pay prefund"));
+        vm.expectRevert(utils.failedOp(0, "AA21 didn't pay prefund"));
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
     }
 
     //should succeed to create account after prefund
     function test_CreateIfFunded() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
         uint256 salt = 20;
         address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
         vm.deal(preAddr, 1 ether);
@@ -894,7 +887,7 @@ contract EntryPointTest is TestHelper {
 
     //should reject if account already created
     function test_AccountAlreadyCreated() public {
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
         // `salt = 0` corresponds to default `account` created during setup
         uint256 salt = 0;
         address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
@@ -906,7 +899,7 @@ contract EntryPointTest is TestHelper {
             createOp = utils.signUserOp(createOp, accountOwner.key, entryPointAddress, chainId);
             ops.push(createOp);
 
-            vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA10 sender already constructed"));
+            vm.expectRevert(utils.failedOp(0, "AA10 sender already constructed"));
             entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
         }
     }
@@ -920,7 +913,7 @@ contract EntryPointTest is TestHelper {
         userOp = utils.signUserOp(userOp, accountOwner.key, entryPointAddress, chainId);
         ops.push(userOp);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA24 signature error"));
+        vm.expectRevert(utils.failedOp(0, "AA24 signature error"));
         entryPoint.handleOps(ops, beneficiary);
     }
 
@@ -939,7 +932,7 @@ contract EntryPointTest is TestHelper {
         IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
         opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, wrongAggregator, sig);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA24 signature error"));
+        vm.expectRevert(utils.failedOp(0, "AA24 signature error"));
         entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
     }
 
@@ -1026,7 +1019,7 @@ contract EntryPointTest is TestHelper {
         opsPerAggregator[2] = IEntryPoint.UserOpsPerAggregator(userOp_noAggArr, IAggregator(address(0)), defaultBytes);
 
         vm.recordLogs();
-        entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, payable(makeAddr("beneficiary")));
+        entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, utils.createAddress("beneficiary").addr);
         Vm.Log[] memory logs = vm.getRecordedLogs();
         assertEq(address(uint160(uint256(logs[5].topics[1]))), address(aggregator));
         assertEq(address(uint160(uint256(logs[6].topics[2]))), userOp1.sender);
@@ -1049,14 +1042,7 @@ contract EntryPointTest is TestHelper {
             (bytes4 sig, bytes memory data) = utils.getDataFromEncoding(reason);
             (,,,, AggregatorStakeInfo memory aggStakeInfo) =
                 abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo, AggregatorStakeInfo));
-            assertEq(
-                sig,
-                bytes4(
-                    keccak256(
-                        "ValidationResultWithAggregation((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256),(address,(uint256,uint256)))"
-                    )
-                )
-            );
+            assertEq(sig, utils.validationResultEvent());
             assertEq(aggStakeInfo.aggregator, address(aggregator));
             assertEq(aggStakeInfo.stakeInfo.stake, 2 ether);
             assertEq(aggStakeInfo.stakeInfo.unstakeDelaySec, 3);
@@ -1084,7 +1070,7 @@ contract EntryPointTest is TestHelper {
     function test_BatchMultipleRequestsShouldExecute() public {
         //timeout feature is not implemented in these test cases
         uint256 salt = 123;
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
         Account memory accountOwner1 = utils.createAddress("accountOwner1");
         Account memory accountOwner2 = utils.createAddress("accountOwner2");
 
@@ -1140,7 +1126,7 @@ contract EntryPointTest is TestHelper {
         op.callGasLimit = 1e6;
         op = utils.signUserOp(op, accountOwner2.key, entryPointAddress, chainId);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA30 paymaster not deployed"));
+        vm.expectRevert(utils.failedOp(0, "AA30 paymaster not deployed"));
         entryPoint.simulateValidation(op);
     }
 
@@ -1159,9 +1145,9 @@ contract EntryPointTest is TestHelper {
         op.callGasLimit = 1e6;
         op = utils.signUserOp(op, accountOwner2.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA31 paymaster deposit too low"));
+        vm.expectRevert(utils.failedOp(0, "AA31 paymaster deposit too low"));
         entryPoint.handleOps(ops, beneficiary);
     }
 
@@ -1180,7 +1166,7 @@ contract EntryPointTest is TestHelper {
         op.verificationGasLimit = 1e6;
         op = utils.signUserOp(op, accountOwner2.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = payable(makeAddr("beneficiary"));
+        address payable beneficiary = utils.createAddress("beneficiary").addr;
 
         vm.recordLogs();
         entryPoint.handleOps(ops, beneficiary);
@@ -1339,7 +1325,7 @@ contract EntryPointTest is TestHelper {
         );
         ops.push(op);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA32 paymaster expired or not due"));
+        vm.expectRevert(utils.failedOp(0, "AA32 paymaster expired or not due"));
         entryPoint.handleOps(ops, beneficiary);
     }
 
@@ -1357,7 +1343,7 @@ contract EntryPointTest is TestHelper {
         op = utils.signUserOp(op, expiredOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA22 expired or not due"));
+        vm.expectRevert(utils.failedOp(0, "AA22 expired or not due"));
         entryPoint.handleOps(ops, beneficiary);
     }
 
@@ -1374,7 +1360,7 @@ contract EntryPointTest is TestHelper {
         op = utils.signUserOp(op, futureOwner.key, entryPointAddress, chainId);
         ops.push(op);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA22 expired or not due"));
+        vm.expectRevert(utils.failedOp(0, "AA22 expired or not due"));
         entryPoint.handleOps(ops, beneficiary);
     }
 
@@ -1435,7 +1421,7 @@ contract EntryPointTest is TestHelper {
             TestAggregatedAccount aggAccount2
         )
     {
-        beneficiary = payable(makeAddr("beneficiary"));
+        beneficiary = utils.createAddress("beneficiary").addr;
         aggregator = new TestSignatureAggregator();
         aggAccount = new TestAggregatedAccount(entryPoint, address(aggregator));
         aggAccount2 = new TestAggregatedAccount(entryPoint, address(aggregator));
