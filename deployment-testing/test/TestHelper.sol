@@ -84,13 +84,13 @@ contract TestHelper is Test {
         return op;
     }
 
-    function signUserOp(UserOperation memory op, address _entryPoint, uint256 _chainId, uint256 key)
+    function signUserOp(UserOperation memory op, address _entryPoint, uint256 _chainId, uint256 _key)
         internal
         pure
         returns (UserOperation memory)
     {
         bytes32 message = getUserOpHash(op, _entryPoint, _chainId);
-        op.signature = signMessage(message, key);
+        op.signature = signMessage(message, _key);
         return op;
     }
 
@@ -178,6 +178,21 @@ contract TestHelper is Test {
                 mstore(add(add(data, 0x20), i), mload(add(add(encoding, 0x20), add(i, 0x04))))
             }
         }
+    }
+
+    function fillAggregatedOp(UserOperation[] memory _userOps, IAggregator _aggregator)
+        public
+        view
+        returns (IEntryPoint.UserOpsPerAggregator memory ops)
+    {
+        ops.userOps = _userOps;
+        ops.aggregator = _aggregator;
+        ops.signature = _aggregator.aggregateSignatures(_userOps);
+    }
+
+    function getAccountInitCode(address owner, uint256 salt) public view returns (bytes memory initCode) {
+        bytes memory initCallData = abi.encodeWithSignature("createAccount(address,uint256)", owner, salt);
+        initCode = abi.encodePacked(address(simpleAccountFactory), initCallData);
     }
 
     function createOpWithPaymasterParams(
