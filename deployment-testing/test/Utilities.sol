@@ -7,7 +7,6 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract Utilities is Test {
-
     function createAddress(string memory _name) public returns (Account memory) {
         return makeAccount(_name);
     }
@@ -100,7 +99,6 @@ contract Utilities is Test {
         return combined;
     }
 
-
     function getDataFromEncoding(bytes memory encoding) public pure returns (bytes4 sig, bytes memory data) {
         assembly {
             let totalLength := mload(encoding)
@@ -131,9 +129,9 @@ contract Utilities is Test {
     }
 
     function fillAggregatedOp(UserOperation[] memory _userOps, IAggregator _aggregator)
-    public
-    view
-    returns (IEntryPoint.UserOpsPerAggregator memory ops)
+        public
+        view
+        returns (IEntryPoint.UserOpsPerAggregator memory ops)
     {
         ops.userOps = _userOps;
         ops.aggregator = _aggregator;
