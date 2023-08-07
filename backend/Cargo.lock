@@ -344,6 +344,7 @@ dependencies = [
  "dotenvy",
  "env_logger",
  "ethers",
+ "ethers-signers",
  "lazy_static",
  "log",
  "r2d2",
