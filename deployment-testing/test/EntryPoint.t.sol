@@ -105,6 +105,18 @@ contract EntryPointTest is TestHelper {
         vm.stopPrank();
     }
 
+    // should fail to withdraw before unlock
+    function test_FailToWithdrawBeforeUnlock() public {
+        vm.deal(accountOwner.addr, 10 ether);
+        vm.startPrank(accountOwner.addr);
+        // setup
+        entryPoint.addStake{value: 2 ether}(2);
+
+        vm.expectRevert("must call unlockStake() first");
+        entryPoint.withdrawStake(payable(address(0)));
+        vm.stopPrank();
+    }
+
     // With deposit
     // Should be able to withdraw
     function test_WithdrawDeposit() public {
