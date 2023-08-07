@@ -7,76 +7,51 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract Utilities is Test {
-    function createAccountOwner(string memory _name) public returns (Account memory) {
+    bytes public constant defaultBytes = bytes("");
+
+    function createAddress(string memory _name) public returns (Account memory) {
         return makeAccount(_name);
     }
 
-    function createAccountWithEntryPoint(
-        address accountOwner,
-        EntryPoint entryPoint,
-        SimpleAccountFactory _simpleAccountFactory
-    ) public returns (SimpleAccount, SimpleAccountFactory) {
-        SimpleAccountFactory simpleAccountFactory;
-
-        if (!isContract(address(_simpleAccountFactory))) {
-            simpleAccountFactory = new SimpleAccountFactory{salt: bytes32(0)}(entryPoint);
-        } else {
-            simpleAccountFactory = _simpleAccountFactory;
-        }
-        simpleAccountFactory.createAccount(accountOwner, 0);
-        address accountAddress = simpleAccountFactory.getAddress(accountOwner, 0);
-        SimpleAccount proxy = SimpleAccount(payable(accountAddress));
-
-        return (proxy, simpleAccountFactory);
+    function packUserOp(UserOperation memory op) internal pure returns (bytes memory) {
+        return abi.encode(
+            op.sender,
+            op.nonce,
+            keccak256(op.initCode),
+            keccak256(op.callData),
+            op.callGasLimit,
+            op.verificationGasLimit,
+            op.preVerificationGas,
+            op.maxFeePerGas,
+            op.maxPriorityFeePerGas,
+            keccak256(op.paymasterAndData)
+        );
     }
 
-    function createAccount(address accountOwner, SimpleAccountFactory _simpleAccountFactory)
+    function getUserOpHash(UserOperation memory op, address _entryPoint, uint256 _chainId)
         public
-        view
-        returns (SimpleAccount)
+        pure
+        returns (bytes32)
     {
-        SimpleAccountFactory simpleAccountFactory;
-        if (!isContract(address(_simpleAccountFactory))) {
-            simpleAccountFactory = _simpleAccountFactory;
-        }
-        address accountAddress = simpleAccountFactory.getAddress(accountOwner, 0);
-        SimpleAccount proxy = SimpleAccount(payable(accountAddress));
-
-        return proxy;
+        bytes32 userOpHash = keccak256(packUserOp(op));
+        bytes memory encoded = abi.encode(userOpHash, _entryPoint, _chainId);
+        return bytes32(keccak256(encoded));
     }
 
-    function deployEntryPoint(uint256 _salt) public returns (EntryPoint) {
-        EntryPoint entryPoint = new EntryPoint{salt: bytes32(_salt)}();
-        return entryPoint;
-    }
-
-    function fillAndSign(UserOperation memory op, Account memory accountOwner, EntryPoint entryPoint, uint256 chainId)
+    function signUserOp(UserOperation memory op, uint256 _key, address _entryPoint, uint256 _chainId)
         public
         pure
         returns (UserOperation memory)
     {
-        bytes32 userOpHash = keccak256(
-            abi.encode(
-                op.sender,
-                op.nonce,
-                op.initCode,
-                op.callData,
-                op.callGasLimit,
-                op.verificationGasLimit,
-                op.preVerificationGas,
-                op.maxFeePerGas,
-                op.maxPriorityFeePerGas,
-                op.paymasterAndData
-            )
-        );
-
-        bytes memory encoded = abi.encode(userOpHash, entryPoint, chainId);
-        bytes32 message = bytes32(keccak256(encoded));
-        bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(accountOwner.key, digest);
-        op.signature = abi.encodePacked(r, s, v);
-
+        bytes32 message = getUserOpHash(op, _entryPoint, _chainId);
+        op.signature = signMessage(message, _key);
         return op;
+    }
+
+    function signMessage(bytes32 message, uint256 privateKey) internal pure returns (bytes memory) {
+        bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
+        return abi.encodePacked(r, s, v);
     }
 
     function getAccountInitCode(address accountOwner, SimpleAccountFactory simpleAccountFactory, uint256 salt)
@@ -98,7 +73,11 @@ contract Utilities is Test {
         return simpleAccountFactory.getAddress(accountOwner, salt);
     }
 
-    function isContract(address _addr) internal view returns (bool) {
+    function getBalance(address account) public view returns (uint256) {
+        return account.balance;
+    }
+
+    function isContract(address _addr) public view returns (bool) {
         uint256 size;
         assembly {
             size := extcodesize(_addr)
@@ -136,5 +115,17 @@ contract Utilities is Test {
                 mstore(add(add(data, 0x20), i), mload(add(add(encoding, 0x20), add(i, 0x04))))
             }
         }
+    }
+
+    function failedOp(uint256 _index, string memory _reason) public pure returns (bytes memory revertEvent) {
+        return abi.encodeWithSignature("FailedOp(uint256,string)", _index, _reason);
+    }
+
+    function validationResultEvent() public pure returns (bytes4) {
+        return bytes4(
+            keccak256(
+                "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
+            )
+        );
     }
 }
