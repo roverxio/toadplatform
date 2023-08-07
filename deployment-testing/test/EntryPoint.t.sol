@@ -144,6 +144,20 @@ contract EntryPointTest is TestHelper {
         assertEq(info.staked, false);
         assertEq(info.unstakeDelaySec, 2);
         assertEq(info.withdrawTime, withdrawTime1);
+        vm.stopPrank();
+    }
+
+    // should fail to withdraw before unlock timeout
+    function test_FailToWithdrawBeforeUnlockTimeout() public {
+        vm.deal(accountOwner.addr, 10 ether);
+        vm.startPrank(accountOwner.addr);
+        // setup
+        entryPoint.addStake{value: 2 ether}(2);
+        entryPoint.unlockStake();
+
+        vm.expectRevert("Stake withdrawal is not due");
+        entryPoint.withdrawStake(payable(address(0)));
+        vm.stopPrank();
     }
 
     // With deposit
