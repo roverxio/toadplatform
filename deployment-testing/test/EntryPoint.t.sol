@@ -626,7 +626,7 @@ contract EntryPointTest is TestHelper {
         op.callGasLimit = 1e6;
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
         uint256 countBefore = counter.counters(accountAddress);
 
         vm.recordLogs();
@@ -655,7 +655,7 @@ contract EntryPointTest is TestHelper {
         op.callGasLimit = 11e5;
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
         uint256 offsetBefore = counter.offset();
 
         vm.recordLogs();
@@ -684,7 +684,7 @@ contract EntryPointTest is TestHelper {
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
         uint256 initialAccountBalance = accountAddress.balance;
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
 
         vm.expectRevert(utils.failedOp(0, "AA95 out of gas"));
         entryPoint.handleOps{gas: 12e5}(ops, beneficiary);
@@ -704,7 +704,7 @@ contract EntryPointTest is TestHelper {
         op.callGasLimit = 1e6;
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
 
         uint256 countBefore = counter.counters(op.sender);
         uint256 balBefore = op.sender.balance;
@@ -736,7 +736,7 @@ contract EntryPointTest is TestHelper {
         op.callGasLimit = 1e6;
         op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
 
         vm.recordLogs();
         entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
@@ -751,7 +751,7 @@ contract EntryPointTest is TestHelper {
     //#handleOp (single)
     function test_SingleOp() public {
         (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
 
         UserOperation memory op = defaultOp;
         op.sender = accountAddress;
@@ -773,7 +773,7 @@ contract EntryPointTest is TestHelper {
 
     //should fail to call recursively into handleOps
     function test_RecursiveCallToHandleOps() public {
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
 
         UserOperation[] memory _ops;
         bytes memory callHandleOps = abi.encodeWithSignature(
@@ -826,7 +826,7 @@ contract EntryPointTest is TestHelper {
     //create account
     //should reject create if sender address is wrong
     function test_RejectCreateIfWrongSender() public {
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
 
         UserOperation memory op = defaultOp;
         op.initCode = utils.getAccountInitCode(accountOwner.addr, simpleAccountFactory, 0);
@@ -841,7 +841,7 @@ contract EntryPointTest is TestHelper {
 
     //should reject create if account not funded
     function test_RejectCreateIfNotFunded() public {
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
         uint256 salt = 100;
 
         UserOperation memory op = defaultOp;
@@ -858,7 +858,7 @@ contract EntryPointTest is TestHelper {
 
     //should succeed to create account after prefund
     function test_CreateIfFunded() public {
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
         uint256 salt = 20;
         address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
         vm.deal(preAddr, 1 ether);
@@ -887,7 +887,7 @@ contract EntryPointTest is TestHelper {
 
     //should reject if account already created
     function test_AccountAlreadyCreated() public {
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
         // `salt = 0` corresponds to default `account` created during setup
         uint256 salt = 0;
         address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
@@ -1019,7 +1019,7 @@ contract EntryPointTest is TestHelper {
         opsPerAggregator[2] = IEntryPoint.UserOpsPerAggregator(userOp_noAggArr, IAggregator(address(0)), defaultBytes);
 
         vm.recordLogs();
-        entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, utils.createAddress("beneficiary").addr);
+        entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, payable(utils.createAddress("beneficiary").addr));
         Vm.Log[] memory logs = vm.getRecordedLogs();
         assertEq(address(uint160(uint256(logs[5].topics[1]))), address(aggregator));
         assertEq(address(uint160(uint256(logs[6].topics[2]))), userOp1.sender);
@@ -1070,7 +1070,7 @@ contract EntryPointTest is TestHelper {
     function test_BatchMultipleRequestsShouldExecute() public {
         //timeout feature is not implemented in these test cases
         uint256 salt = 123;
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
         Account memory accountOwner1 = utils.createAddress("accountOwner1");
         Account memory accountOwner2 = utils.createAddress("accountOwner2");
 
@@ -1145,7 +1145,7 @@ contract EntryPointTest is TestHelper {
         op.callGasLimit = 1e6;
         op = utils.signUserOp(op, accountOwner2.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
 
         vm.expectRevert(utils.failedOp(0, "AA31 paymaster deposit too low"));
         entryPoint.handleOps(ops, beneficiary);
@@ -1166,7 +1166,7 @@ contract EntryPointTest is TestHelper {
         op.verificationGasLimit = 1e6;
         op = utils.signUserOp(op, accountOwner2.key, entryPointAddress, chainId);
         ops.push(op);
-        address payable beneficiary = utils.createAddress("beneficiary").addr;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
 
         vm.recordLogs();
         entryPoint.handleOps(ops, beneficiary);
@@ -1421,7 +1421,7 @@ contract EntryPointTest is TestHelper {
             TestAggregatedAccount aggAccount2
         )
     {
-        beneficiary = utils.createAddress("beneficiary").addr;
+        beneficiary = payable(utils.createAddress("beneficiary").addr);
         aggregator = new TestSignatureAggregator();
         aggAccount = new TestAggregatedAccount(entryPoint, address(aggregator));
         aggAccount2 = new TestAggregatedAccount(entryPoint, address(aggregator));
