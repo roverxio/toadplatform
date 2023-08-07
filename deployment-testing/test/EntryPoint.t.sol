@@ -8,6 +8,11 @@ import "../src/SimpleAccountFactory.sol";
 import "../src/test/TestWarmColdAccount.sol";
 import "../src/test/TestPaymasterAcceptAll.sol";
 import "../src/test/TestRevertAccount.sol";
+import "../src/test/TestExpiryAccount.sol";
+import "../src/test/TestExpirePaymaster.sol";
+import "../src/test/TestAggregatedAccount.sol";
+import "../src/test/TestAggregatedAccountFactory.sol";
+import "../src/test/TestSignatureAggregator.sol";
 import "../src/test/TestCounter.sol";
 
 //Utils
@@ -27,9 +32,28 @@ struct StakeInfo {
     uint256 unstakeDelaySec;
 }
 
+struct AggregatorStakeInfo {
+    address aggregator;
+    StakeInfo stakeInfo;
+}
+
 contract EntryPointTest is TestHelper {
     UserOperation[] internal ops;
     Utilities internal utils;
+
+    event UserOperationEvent(
+        bytes32 indexed userOpHash,
+        address indexed sender,
+        address indexed paymaster,
+        uint256 nonce,
+        bool success,
+        uint256 actualGasCost,
+        uint256 actualGasUsed
+    );
+
+    event SignatureAggregatorChanged(address indexed aggregator);
+
+    event AccountDeployed(bytes32 indexed userOpHash, address indexed sender, address factory, address paymaster);
 
     function setUp() public {
         utils = new Utilities();
@@ -133,7 +157,7 @@ contract EntryPointTest is TestHelper {
 
         try entryPoint.simulateValidation(op1) {}
         catch (bytes memory revertReason) {
-            bytes memory data = utils.getDataFromEncoding(revertReason);
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
             (returnInfo,,,) = abi.decode(
                 data,
                 (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
@@ -186,7 +210,7 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op1 = utils.signUserOp(op, accountOwner1.key, entryPointAddress, chainId);
         try entryPoint.simulateValidation(op1) {}
         catch (bytes memory revertReason) {
-            bytes memory data = utils.getDataFromEncoding(revertReason);
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
             (returnInfo,,,) = abi.decode(
                 data,
                 (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
@@ -207,7 +231,7 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op1 = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
         try entryPoint.simulateValidation(op1) {}
         catch (bytes memory revertReason) {
-            bytes memory data = utils.getDataFromEncoding(revertReason);
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
             (returnInfo,,,) = abi.decode(
                 data,
                 (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
@@ -236,7 +260,7 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op1 = utils.signUserOp(op, accountOwner2.key, entryPointAddress, chainId);
         try entryPoint.simulateValidation(op1) {}
         catch (bytes memory revertReason) {
-            bytes memory data = utils.getDataFromEncoding(revertReason);
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
             (, senderInfo,,) = abi.decode(
                 data,
                 (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
@@ -272,7 +296,7 @@ contract EntryPointTest is TestHelper {
         op.maxPriorityFeePerGas = 1000000000;
 
         UserOperation memory op1 = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA14 initCode must return sender"));
+        vm.expectRevert(utils.failedOp(0, "AA14 initCode must return sender"));
         entryPoint.simulateValidation(op1);
     }
 
@@ -285,7 +309,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.getSenderAddress(initCode) {}
         catch (bytes memory reason) {
             require(reason.length >= 4);
-            bytes memory data = utils.getDataFromEncoding(reason);
+            (, bytes memory data) = utils.getDataFromEncoding(reason);
             assembly {
                 addr := mload(add(data, 0x20))
             }
@@ -334,7 +358,7 @@ contract EntryPointTest is TestHelper {
         vm.deal(op1.sender, 1 ether);
         try entryPoint.simulateValidation(op1) {}
         catch (bytes memory revertReason) {
-            bytes memory data = utils.getDataFromEncoding(revertReason);
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
             (returnInfo,,,) = abi.decode(
                 data,
                 (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
@@ -386,7 +410,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.simulateHandleOp(
             op, address(counter), abi.encodeWithSignature("counters(address)", accountAddress1)
         ) {} catch (bytes memory revertReason) {
-            bytes memory data = utils.getDataFromEncoding(revertReason);
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
             (,,,, bool success, bytes memory result) = abi.decode(data, (uint256, uint256, uint48, uint48, bool, bytes));
             assertEq(success, true);
             assertEq(result, abi.encode(1));
@@ -453,7 +477,7 @@ contract EntryPointTest is TestHelper {
         assertEq(nonce, (incNonceKey * 2 ** 64) + 1);
     }
 
-    // Should fail with nonsequential seq
+    // Should fail with nonSequential seq
     function test_NonSequentialNonce() public {
         (Account memory beneficiary,, uint256 keyShifted, address _accountAddress) = _2dNonceSetup(true);
 
@@ -578,6 +602,792 @@ contract EntryPointTest is TestHelper {
         }
     }
 
+    //should revert on signature failure
+    function test_RevertOnSignatureFailure() public {
+        Account memory wrong_owner = utils.createAddress("wrong_owner");
+        UserOperation memory op = defaultOp;
+        op.sender = accountAddress;
+        op = utils.signUserOp(op, wrong_owner.key, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(makeAddr("beneficiary"));
+
+        vm.expectRevert(utils.failedOp(0, "AA24 signature error"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //account should pay for transaction
+    function test_PayForTransaction() public {
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
+
+        UserOperation memory op = defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExecFromEntryPoint;
+        op.verificationGasLimit = 1e6;
+        op.callGasLimit = 1e6;
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+        uint256 countBefore = counter.counters(accountAddress);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+
+        uint256 countAfter = counter.counters(accountAddress);
+        assertEq(countAfter, countBefore + 1);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+    }
+
+    //account should pay for high gas usage tx
+    function test_PayForHighGasUse() public {
+        (TestCounter counter,) = _handleOpsSetUp();
+        uint256 iterations = 45;
+        bytes memory countData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, "");
+        bytes memory accountExec =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, countData);
+
+        UserOperation memory op = defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExec;
+        op.verificationGasLimit = 1e5;
+        op.callGasLimit = 11e5;
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+        uint256 offsetBefore = counter.offset();
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 13e6}(ops, beneficiary);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+
+        assertEq(counter.offset(), offsetBefore + iterations);
+    }
+
+    //account should not pay if too low gas limit was set
+    function test_DontPayForLowGasLimit() public {
+        (TestCounter counter,) = _handleOpsSetUp();
+        uint256 iterations = 45;
+        bytes memory countData = abi.encodeWithSignature("gasWaster(uint256,string)", iterations, "");
+        bytes memory accountExec =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, countData);
+
+        UserOperation memory op = defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExec;
+        op.verificationGasLimit = 1e5;
+        op.callGasLimit = 11e5;
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        ops.push(op);
+        uint256 initialAccountBalance = accountAddress.balance;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+
+        vm.expectRevert(utils.failedOp(0, "AA95 out of gas"));
+        entryPoint.handleOps{gas: 12e5}(ops, beneficiary);
+
+        assertEq(accountAddress.balance, initialAccountBalance);
+    }
+
+    //if account has a deposit, it should use it to pay
+    function test_PayFromDeposit() public {
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
+        account.addDeposit{value: 1 ether}();
+
+        UserOperation memory op = defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExecFromEntryPoint;
+        op.verificationGasLimit = 1e6;
+        op.callGasLimit = 1e6;
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+
+        uint256 countBefore = counter.counters(op.sender);
+        uint256 balBefore = op.sender.balance;
+        uint256 depositBefore = entryPoint.balanceOf(accountAddress);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        uint256 countAfter = counter.counters(op.sender);
+        assertEq(countAfter, countBefore + 1);
+
+        uint256 balAfter = op.sender.balance;
+        uint256 depositAfter = entryPoint.balanceOf(accountAddress);
+        assertEq(balAfter, balBefore, "should pay from stake, not balance");
+        uint256 depositUsed = depositBefore - depositAfter;
+        assertEq(beneficiary.balance, depositUsed);
+
+        (,, uint256 actualGasCost,) = abi.decode(entries[1].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+    }
+
+    //should pay for reverted tx
+    function test_PayForRevertedTx() public {
+        UserOperation memory op = defaultOp;
+        op.sender = accountAddress;
+        op.callData = "0xdeadface";
+        op.verificationGasLimit = 1e6;
+        op.callGasLimit = 1e6;
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+
+        (, bool success,,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertFalse(success);
+        bool balanceGt1 = (beneficiary.balance > 1);
+        assertEq(balanceGt1, true);
+    }
+
+    //#handleOp (single)
+    function test_SingleOp() public {
+        (TestCounter counter, bytes memory accountExecFromEntryPoint) = _handleOpsSetUp();
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+
+        UserOperation memory op = defaultOp;
+        op.sender = accountAddress;
+        op.callData = accountExecFromEntryPoint;
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        ops.push(op);
+        uint256 countBefore = counter.counters(accountAddress);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+
+        uint256 countAfter = counter.counters(accountAddress);
+        assertEq(countAfter, countBefore + 1);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+    }
+
+    //should fail to call recursively into handleOps
+    function test_RecursiveCallToHandleOps() public {
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+
+        UserOperation[] memory _ops;
+        bytes memory callHandleOps = abi.encodeWithSignature(
+            "handleOps((address,uint256,bytes,bytes,uint256,uint256,uint256,uint256,uint256,bytes,bytes)[],address)",
+            _ops,
+            beneficiary
+        );
+        bytes memory execHandlePost =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", entryPointAddress, 0, callHandleOps);
+
+        UserOperation memory op = defaultOp;
+        op.sender = accountAddress;
+        op.callData = execHandlePost;
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (, bytes memory revertReason) = abi.decode(entries[2].data, (uint256, bytes));
+        assertEq(
+            revertReason,
+            abi.encodeWithSignature("Error(string)", "ReentrancyGuard: reentrant call"),
+            "execution of handleOps inside a UserOp should revert"
+        );
+    }
+
+    //should report failure on insufficient verificationGas after creation
+    function test_InsufficientVerificationGas() public {
+        UserOperation memory op0 = defaultOp;
+        op0.sender = accountAddress;
+        op0.verificationGasLimit = 5e5;
+        op0 = utils.signUserOp(op0, accountOwner.key, entryPointAddress, chainId);
+
+        try entryPoint.simulateValidation(op0) {}
+        catch (bytes memory revertReason) {
+            (bytes4 reason,) = utils.getDataFromEncoding(revertReason);
+            assertEq(utils.validationResultEvent(), reason);
+        }
+
+        UserOperation memory op1 = defaultOp;
+        op1.sender = accountAddress;
+        op1.verificationGasLimit = 10000;
+        op1 = utils.signUserOp(op1, accountOwner.key, entryPointAddress, chainId);
+
+        vm.expectRevert(utils.failedOp(0, "AA23 reverted (or OOG)"));
+        entryPoint.simulateValidation(op1);
+    }
+
+    //create account
+    //should reject create if sender address is wrong
+    function test_RejectCreateIfWrongSender() public {
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+
+        UserOperation memory op = defaultOp;
+        op.initCode = utils.getAccountInitCode(accountOwner.addr, simpleAccountFactory, 0);
+        op.verificationGasLimit = 2e6;
+        op.sender = 0x1111111111111111111111111111111111111111;
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.expectRevert(utils.failedOp(0, "AA14 initCode must return sender"));
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+    }
+
+    //should reject create if account not funded
+    function test_RejectCreateIfNotFunded() public {
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+        uint256 salt = 100;
+
+        UserOperation memory op = defaultOp;
+        op.sender = simpleAccountFactory.getAddress(accountOwner.addr, salt);
+        op.initCode = utils.getAccountInitCode(accountOwner.addr, simpleAccountFactory, salt);
+        op.verificationGasLimit = 2e6;
+        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        ops.push(op);
+
+        assertEq(op.sender.balance, 0);
+        vm.expectRevert(utils.failedOp(0, "AA21 didn't pay prefund"));
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+    }
+
+    //should succeed to create account after prefund
+    function test_CreateIfFunded() public {
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+        uint256 salt = 20;
+        address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
+        vm.deal(preAddr, 1 ether);
+
+        UserOperation memory createOp = defaultOp;
+        createOp.sender = preAddr;
+        createOp.initCode = utils.getAccountInitCode(accountOwner.addr, simpleAccountFactory, salt);
+        createOp.callGasLimit = 1e6;
+        createOp.verificationGasLimit = 2e6;
+        createOp = utils.signUserOp(createOp, accountOwner.key, entryPointAddress, chainId);
+        ops.push(createOp);
+
+        assertEq(utils.isContract(preAddr), false, "account exists before creation");
+
+        bytes32 hash = entryPoint.getUserOpHash(createOp);
+        vm.expectEmit(true, true, true, true);
+        //createOp.initCode.toString().slice(0, 42) gets the address of simpleAccountFactory
+        emit AccountDeployed(hash, createOp.sender, address(simpleAccountFactory), address(0));
+        vm.recordLogs();
+        entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[6].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+    }
+
+    //should reject if account already created
+    function test_AccountAlreadyCreated() public {
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+        // `salt = 0` corresponds to default `account` created during setup
+        uint256 salt = 0;
+        address preAddr = simpleAccountFactory.getAddress(accountOwner.addr, salt);
+
+        if (!utils.isContract(preAddr)) {
+            UserOperation memory createOp = defaultOp;
+            createOp.sender = accountAddress;
+            createOp.initCode = utils.getAccountInitCode(accountOwner.addr, simpleAccountFactory, salt);
+            createOp = utils.signUserOp(createOp, accountOwner.key, entryPointAddress, chainId);
+            ops.push(createOp);
+
+            vm.expectRevert(utils.failedOp(0, "AA10 sender already constructed"));
+            entryPoint.handleOps{gas: 1e7}(ops, beneficiary);
+        }
+    }
+
+    //should fail to execute aggregated account without an aggregator
+    function test_FailToExecAggregateAccountWithoutAggregator() public {
+        (address payable beneficiary,, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
+
+        UserOperation memory userOp = defaultOp;
+        userOp.sender = address(aggAccount);
+        userOp = utils.signUserOp(userOp, accountOwner.key, entryPointAddress, chainId);
+        ops.push(userOp);
+
+        vm.expectRevert(utils.failedOp(0, "AA24 signature error"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //should fail to execute aggregated account with wrong aggregator
+    function test_FailAggregateAccountWithWrongAggregator() public {
+        (address payable beneficiary,, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
+
+        UserOperation memory userOp = defaultOp;
+        userOp.sender = address(aggAccount);
+        userOp = utils.signUserOp(userOp, accountOwner.key, entryPointAddress, chainId);
+        ops.push(userOp);
+
+        TestSignatureAggregator wrongAggregator = new TestSignatureAggregator();
+        bytes memory sig = abi.encodePacked(bytes32(0));
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, wrongAggregator, sig);
+
+        vm.expectRevert(utils.failedOp(0, "AA24 signature error"));
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //should reject non-contract (address(1)) aggregator
+    function test_RejectNonContractAggregator() public {
+        (address payable beneficiary,,,) = _aggregationTestsSetUp();
+        address address1 = address(1);
+        TestAggregatedAccount aggAccount1 = new TestAggregatedAccount(entryPoint, address1);
+
+        UserOperation memory userOp = defaultOp;
+        userOp.sender = address(aggAccount1);
+        userOp.maxFeePerGas = 0;
+        userOp = utils.signUserOp(userOp, accountOwner.key, entryPointAddress, chainId);
+        ops.push(userOp);
+
+        bytes memory sig = abi.encodePacked(bytes32(0));
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, IAggregator(address1), sig);
+
+        vm.expectRevert("AA96 invalid aggregator");
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //should fail to execute aggregated account with wrong agg. signature
+    function test_FailToExecuteAggregateAccountWithWrongAggregateSig() public {
+        (address payable beneficiary, TestSignatureAggregator aggregator, TestAggregatedAccount aggAccount,) =
+            _aggregationTestsSetUp();
+
+        UserOperation memory userOp = defaultOp;
+        userOp.sender = address(aggAccount);
+        userOp = utils.signUserOp(userOp, accountOwner.key, entryPointAddress, chainId);
+        ops.push(userOp);
+
+        bytes memory wrongSig = abi.encode(uint256(0x123456));
+        address aggAddress = address(aggregator);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, aggregator, wrongSig);
+
+        vm.expectRevert(abi.encodeWithSignature("SignatureValidationFailed(address)", aggAddress));
+        entryPoint.handleAggregatedOps(opsPerAggregator, beneficiary);
+    }
+
+    //should run with multiple aggregators (and non-aggregated-accounts)
+    function test_MultipleAggregators() public {
+        (, TestSignatureAggregator aggregator, TestAggregatedAccount aggAccount, TestAggregatedAccount aggAccount2) =
+            _aggregationTestsSetUp();
+
+        // UserOps initialization
+        UserOperation[] memory userOpArr = new UserOperation[](2);
+        UserOperation[] memory userOp_agg3Arr = new UserOperation[](1);
+        UserOperation[] memory userOp_noAggArr = new UserOperation[](1);
+
+        TestSignatureAggregator aggregator3 = new TestSignatureAggregator();
+        TestAggregatedAccount aggAccount3 = new TestAggregatedAccount(entryPoint, address(aggregator3));
+        vm.deal(address(aggAccount3), 0.1 ether);
+
+        //did not sign the userOps as the signature is overwritten below
+        UserOperation memory userOp1 = defaultOp;
+        userOp1.sender = address(aggAccount);
+
+        UserOperation memory userOp2 = defaultOp;
+        userOp2.sender = address(aggAccount2);
+
+        UserOperation memory userOp_agg3 = defaultOp;
+        userOp_agg3.sender = address(aggAccount3);
+        userOp_agg3Arr[0] = utils.signUserOp(userOp_agg3, accountOwner.key, entryPointAddress, chainId);
+
+        UserOperation memory userOp_noAgg = defaultOp;
+        userOp_noAgg.sender = accountAddress;
+        userOp_noAggArr[0] = utils.signUserOp(userOp_noAgg, accountOwner.key, entryPointAddress, chainId);
+
+        userOp1.signature = aggregator.validateUserOpSignature(userOp1);
+        userOp2.signature = aggregator.validateUserOpSignature(userOp2);
+        userOpArr[0] = userOp1;
+        userOpArr[1] = userOp2;
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](3);
+        opsPerAggregator[0] =
+            IEntryPoint.UserOpsPerAggregator(userOpArr, aggregator, aggregator.aggregateSignatures(userOpArr));
+        opsPerAggregator[1] =
+            IEntryPoint.UserOpsPerAggregator(userOp_agg3Arr, aggregator3, abi.encodePacked(bytes32(0)));
+        opsPerAggregator[2] = IEntryPoint.UserOpsPerAggregator(userOp_noAggArr, IAggregator(address(0)), defaultBytes);
+
+        vm.recordLogs();
+        entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, payable(utils.createAddress("beneficiary").addr));
+        Vm.Log[] memory logs = vm.getRecordedLogs();
+        assertEq(address(uint160(uint256(logs[5].topics[1]))), address(aggregator));
+        assertEq(address(uint160(uint256(logs[6].topics[2]))), userOp1.sender);
+        assertEq(address(uint160(uint256(logs[7].topics[2]))), userOp2.sender);
+        assertEq(address(uint160(uint256(logs[8].topics[1]))), address(aggregator3));
+        assertEq(address(uint160(uint256(logs[9].topics[2]))), userOp_agg3.sender);
+        assertEq(address(uint160(uint256(logs[10].topics[1]))), address(0));
+        assertEq(address(uint160(uint256(logs[11].topics[2]))), userOp_noAgg.sender);
+        assertEq(address(uint160(uint256(logs[12].topics[1]))), address(0));
+    }
+
+    //simulateValidation should return aggregator and its stake
+    function test_AggregatorAndStakeReturned() public {
+        (TestSignatureAggregator aggregator, UserOperation memory userOp,) = _executionOrderingSetup();
+
+        aggregator.addStake{value: 2 ether}(entryPoint, 3);
+
+        try entryPoint.simulateValidation(userOp) {}
+        catch (bytes memory reason) {
+            (bytes4 sig, bytes memory data) = utils.getDataFromEncoding(reason);
+            (,,,, AggregatorStakeInfo memory aggStakeInfo) =
+                abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo, AggregatorStakeInfo));
+            assertEq(
+                sig,
+                bytes4(
+                    keccak256(
+                        "ValidationResultWithAggregation((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256),(address,(uint256,uint256)))"
+                    )
+                )
+            );
+            assertEq(aggStakeInfo.aggregator, address(aggregator));
+            assertEq(aggStakeInfo.stakeInfo.stake, 2 ether);
+            assertEq(aggStakeInfo.stakeInfo.unstakeDelaySec, 3);
+        }
+    }
+
+    //should create account in handleOps
+    function test_AggregatorCreateAccount() public {
+        (TestSignatureAggregator aggregator, UserOperation memory userOp, address payable beneficiary) =
+            _executionOrderingSetup();
+
+        // returns defualt bytes, but not used
+        aggregator.validateUserOpSignature(userOp);
+        ops.push(userOp);
+        bytes memory sig = aggregator.aggregateSignatures(ops);
+
+        IEntryPoint.UserOpsPerAggregator[] memory opsPerAggregator = new IEntryPoint.UserOpsPerAggregator[](1);
+        ops[0].signature = defaultBytes;
+        opsPerAggregator[0] = IEntryPoint.UserOpsPerAggregator(ops, aggregator, sig);
+
+        entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, beneficiary);
+    }
+
+    //batch multiple requests
+    function test_BatchMultipleRequestsShouldExecute() public {
+        //timeout feature is not implemented in these test cases
+        uint256 salt = 123;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+        Account memory accountOwner1 = utils.createAddress("accountOwner1");
+        Account memory accountOwner2 = utils.createAddress("accountOwner2");
+
+        TestCounter counter = new TestCounter();
+        bytes memory count = abi.encodeWithSignature("count()");
+        bytes memory accountExecFromEntryPoint =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
+        address account1 = simpleAccountFactory.getAddress(accountOwner1.addr, salt);
+        (SimpleAccount account2,) = createAccountWithFactory(1112, accountOwner2.addr);
+        vm.deal(account1, 1 ether);
+        vm.deal(address(account2), 1 ether);
+
+        UserOperation memory op1 = defaultOp;
+        op1.sender = account1;
+        op1.initCode = utils.getAccountInitCode(accountOwner1.addr, simpleAccountFactory, salt);
+        op1.callData = accountExecFromEntryPoint;
+        op1.callGasLimit = 2e6;
+        op1.verificationGasLimit = 2e6;
+        op1 = utils.signUserOp(op1, accountOwner1.key, entryPointAddress, chainId);
+        ops.push(op1);
+
+        UserOperation memory op2 = defaultOp;
+        op2.callData = accountExecFromEntryPoint;
+        op2.sender = address(account2);
+        op2.callGasLimit = 2e6;
+        op2.verificationGasLimit = 76000;
+        op2 = utils.signUserOp(op2, accountOwner2.key, entryPointAddress, chainId);
+        ops.push(op2);
+
+        vm.expectRevert();
+        entryPoint.simulateValidation{gas: 1e9}(op2);
+
+        vm.deal(op1.sender, 1 ether);
+        vm.deal(address(account2), 1 ether);
+
+        entryPoint.handleOps(ops, beneficiary);
+        assertEq(counter.counters(account1), 1);
+        assertEq(counter.counters(address(account2)), 1);
+    }
+
+    //should fail with nonexistent paymaster
+    function test_NonExistentPaymaster() public {
+        (Account memory accountOwner2,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
+        uint256 salt = 123;
+        address pm = utils.createAddress("paymaster").addr;
+
+        UserOperation memory op = defaultOp;
+        op.sender = simpleAccountFactory.getAddress(accountOwner2.addr, salt);
+        op.paymasterAndData = abi.encodePacked(pm);
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = utils.getAccountInitCode(accountOwner2.addr, simpleAccountFactory, salt);
+        op.verificationGasLimit = 3e6;
+        op.callGasLimit = 1e6;
+        op = utils.signUserOp(op, accountOwner2.key, entryPointAddress, chainId);
+
+        vm.expectRevert(utils.failedOp(0, "AA30 paymaster not deployed"));
+        entryPoint.simulateValidation(op);
+    }
+
+    //should fail if paymaster has no deposit
+    function test_PaymasterWithNoDeposit() public {
+        (Account memory accountOwner2, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) =
+            _withPaymasterSetUp();
+        uint256 salt = 123;
+
+        UserOperation memory op = defaultOp;
+        op.sender = simpleAccountFactory.getAddress(accountOwner2.addr, salt);
+        op.paymasterAndData = abi.encodePacked(address(paymaster));
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = utils.getAccountInitCode(accountOwner2.addr, simpleAccountFactory, salt);
+        op.verificationGasLimit = 3e6;
+        op.callGasLimit = 1e6;
+        op = utils.signUserOp(op, accountOwner2.key, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+
+        vm.expectRevert(utils.failedOp(0, "AA31 paymaster deposit too low"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //paymaster should pay for tx
+    function test_PaymasterPaysForTransaction() public {
+        (Account memory accountOwner2, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) =
+            _withPaymasterSetUp();
+        uint256 salt = 123;
+        paymaster.deposit{value: 1 ether}();
+
+        UserOperation memory op = defaultOp;
+        op.sender = simpleAccountFactory.getAddress(accountOwner2.addr, salt);
+        op.paymasterAndData = abi.encodePacked(address(paymaster));
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = utils.getAccountInitCode(accountOwner2.addr, simpleAccountFactory, salt);
+        op.verificationGasLimit = 1e6;
+        op = utils.signUserOp(op, accountOwner2.key, entryPointAddress, chainId);
+        ops.push(op);
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+
+        vm.recordLogs();
+        entryPoint.handleOps(ops, beneficiary);
+
+        Vm.Log[] memory entries = vm.getRecordedLogs();
+        (,, uint256 actualGasCost,) = abi.decode(entries[5].data, (uint256, bool, uint256, uint256));
+        assertEq(beneficiary.balance, actualGasCost);
+        uint256 paymasterPaid = 1 ether - entryPoint.balanceOf(address(paymaster));
+        assertEq(paymasterPaid, actualGasCost);
+    }
+
+    // simulateValidation should return paymaster stake and delay
+    function test_ReturnPaymasterStakeInfo() public {
+        (, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
+        uint256 salt = 123;
+        paymaster.deposit{value: 1 ether}();
+        Account memory anOwner = utils.createAddress("anOwner");
+
+        UserOperation memory op = defaultOp;
+        op.sender = simpleAccountFactory.getAddress(anOwner.addr, salt);
+        op.paymasterAndData = abi.encodePacked(address(paymaster));
+        op.callData = accountExecFromEntryPoint;
+        op.initCode = utils.getAccountInitCode(anOwner.addr, simpleAccountFactory, salt);
+        op.verificationGasLimit = 1e6;
+        op = utils.signUserOp(op, anOwner.key, entryPointAddress, chainId);
+
+        StakeInfo memory paymasterInfo;
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
+            (,,, paymasterInfo) = abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+        }
+
+        uint256 simRetStake = paymasterInfo.stake;
+        uint256 simRetDelay = paymasterInfo.unstakeDelaySec;
+
+        assertEq(simRetStake, paymasterStake);
+        assertEq(simRetDelay, globalUnstakeDelaySec);
+    }
+
+    //validateUserOp time-range
+    //should accept non-expired owner
+    function test_AcceptNonExpiredOwner() public {
+        (uint256 _now,, TestExpiryAccount expAccount, Account memory sessionOwner) = _validationTimeRangeSetUp();
+
+        UserOperation memory op = defaultOp;
+        op.sender = address(expAccount);
+        op = utils.signUserOp(op, sessionOwner.key, entryPointAddress, chainId);
+
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
+            (ReturnInfo memory returnInfoFromRevert,,,) =
+                abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+
+            assertEq(returnInfoFromRevert.validUntil, _now + 60);
+            assertEq(returnInfoFromRevert.validAfter, 100);
+        }
+    }
+
+    //should not reject expired owner
+    function test_ShouldNotRejectExpiredOwner() public {
+        (uint256 _now,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+
+        Account memory expiredOwner = utils.createAddress("expiredOwner");
+        vm.prank(accountOwner.addr);
+        expAccount.addTemporaryOwner(expiredOwner.addr, 123, uint48(_now - 60));
+
+        UserOperation memory op = defaultOp;
+        op.sender = address(expAccount);
+        op = utils.signUserOp(op, expiredOwner.key, entryPointAddress, chainId);
+
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            require(revertReason.length >= 4);
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
+            (ReturnInfo memory returnInfoFromRevert,,,) =
+                abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+
+            assertEq(returnInfoFromRevert.validUntil, _now - 60);
+            assertEq(returnInfoFromRevert.validAfter, 123);
+        }
+    }
+
+    //should accept non-expired paymaster request
+    function test_AcceptNonExpiredPaymasterRequest() public {
+        (uint256 _now,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+        (TestExpirePaymaster paymaster) = _validatePaymasterSetUp();
+
+        //timeRange directly sent to the helper function
+        UserOperation memory op =
+            createOpWithPaymasterParams(address(expAccount), address(paymaster), 123, uint48(_now + 60), accountOwner);
+
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
+            (ReturnInfo memory returnInfoFromRevert,,,) =
+                abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+
+            assertEq(returnInfoFromRevert.validUntil, _now + 60);
+            assertEq(returnInfoFromRevert.validAfter, 123);
+        }
+    }
+
+    //should not reject expired paymaster request
+    function test_DontRejectExpiredPaymasterRequest() public {
+        (uint256 _now,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+        (TestExpirePaymaster paymaster) = _validatePaymasterSetUp();
+
+        //timeRange directly sent to the helper function
+        UserOperation memory op =
+            createOpWithPaymasterParams(address(expAccount), address(paymaster), 321, uint48(_now - 60), accountOwner);
+
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
+            (ReturnInfo memory returnInfoFromRevert,,,) =
+                abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+            assertEq(returnInfoFromRevert.validUntil, _now - 60);
+            assertEq(returnInfoFromRevert.validAfter, 321);
+        }
+    }
+
+    //should use lower "after" value of paymaster
+    function test_UseAfterOfPaymaster() public {
+        (ReturnInfo memory ret) = simulateWithPaymasterParams(10, 1000);
+        assertEq(ret.validAfter, 100);
+    }
+
+    //should use lower "after" value of account
+    function test_UseAfterOfAccount() public {
+        (ReturnInfo memory ret) = simulateWithPaymasterParams(200, 1000);
+        assertEq(ret.validAfter, 200);
+    }
+
+    //should use higher "until" value of paymaster
+    function test_UseUntilOfPaymaster() public {
+        (ReturnInfo memory ret) = simulateWithPaymasterParams(10, 400);
+        assertEq(ret.validUntil, 400);
+    }
+
+    //should use higher "until" value of account
+    function test_UseUntilOfAccount() public {
+        (ReturnInfo memory ret) = simulateWithPaymasterParams(200, 600);
+        assertEq(ret.validUntil, 500);
+    }
+
+    //handleOps should revert on expired paymaster request
+    function test_RevertExpiredPaymasterRequest() public {
+        (uint256 _now, address payable beneficiary, TestExpiryAccount expAccount, Account memory sessionOwner) =
+            _validationTimeRangeSetUp();
+        (TestExpirePaymaster paymaster) = _validatePaymasterSetUp();
+
+        UserOperation memory op = createOpWithPaymasterParams(
+            address(expAccount), address(paymaster), uint48(_now + 100), uint48(_now + 200), sessionOwner
+        );
+        ops.push(op);
+
+        vm.expectRevert(utils.failedOp(0, "AA32 paymaster expired or not due"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //handleOps should abort on time-range
+    //should revert on expired account
+    function test_RevertOnExpiredAccount() public {
+        (, address payable beneficiary, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+
+        Account memory expiredOwner = utils.createAddress("expiredOwner");
+        vm.prank(accountOwner.addr);
+        expAccount.addTemporaryOwner(expiredOwner.addr, 1, 2);
+
+        UserOperation memory op = defaultOp;
+        op.sender = address(expAccount);
+        op = utils.signUserOp(op, expiredOwner.key, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.expectRevert(utils.failedOp(0, "AA22 expired or not due"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    //should revert on date owner
+    function test_RevertDateOwner() public {
+        (uint256 _now, address payable beneficiary, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+
+        Account memory futureOwner = utils.createAddress("futureOwner");
+        vm.prank(accountOwner.addr);
+        expAccount.addTemporaryOwner(futureOwner.addr, uint48(_now + 100), uint48(_now + 200));
+
+        UserOperation memory op = defaultOp;
+        op.sender = address(expAccount);
+        op = utils.signUserOp(op, futureOwner.key, entryPointAddress, chainId);
+        ops.push(op);
+
+        vm.expectRevert(utils.failedOp(0, "AA22 expired or not due"));
+        entryPoint.handleOps(ops, beneficiary);
+    }
+
+    function createOpWithPaymasterParams(
+        address _accountAddr,
+        address _paymasterAddr,
+        uint48 _after,
+        uint48 _until,
+        Account memory owner
+    ) public view returns (UserOperation memory op) {
+        bytes memory timeRange = abi.encode(_after, _until);
+
+        op = defaultOp;
+        op.sender = _accountAddr;
+        op.paymasterAndData = abi.encodePacked(_paymasterAddr, timeRange);
+        op = utils.signUserOp(op, owner.key, entryPointAddress, chainId);
+    }
+
+    // Set up
+    // 2d nonce
     function _2dNonceSetup(bool triggerHandelOps) internal returns (Account memory, uint256, uint256, address) {
         Account memory beneficiary = utils.createAddress("beneficiary");
         uint256 key = 1;
@@ -597,5 +1407,128 @@ contract EntryPointTest is TestHelper {
 
         entryPoint.handleOps(ops, payable(beneficiary.addr));
         return (beneficiary, key, keyShifted, _accountAddress);
+    }
+
+    //without paymaster (account pays in eth)
+    //#handleOps
+    function _handleOpsSetUp() public returns (TestCounter counter, bytes memory accountExecFromEntryPoint) {
+        counter = new TestCounter{salt: '123'}();
+        bytes memory count = abi.encodeWithSignature("count()");
+        accountExecFromEntryPoint =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
+    }
+
+    //aggregation tests
+    function _aggregationTestsSetUp()
+        public
+        returns (
+            address payable beneficiary,
+            TestSignatureAggregator aggregator,
+            TestAggregatedAccount aggAccount,
+            TestAggregatedAccount aggAccount2
+        )
+    {
+        beneficiary = payable(utils.createAddress("beneficiary").addr);
+        aggregator = new TestSignatureAggregator();
+        aggAccount = new TestAggregatedAccount(entryPoint, address(aggregator));
+        aggAccount2 = new TestAggregatedAccount(entryPoint, address(aggregator));
+        vm.deal(address(aggAccount), 0.1 ether);
+        vm.deal(address(aggAccount2), 0.1 ether);
+    }
+
+    //execution ordering
+    function _executionOrderingSetup()
+        public
+        returns (TestSignatureAggregator aggregator, UserOperation memory userOp, address payable beneficiary)
+    {
+        (beneficiary, aggregator,,) = _aggregationTestsSetUp();
+
+        // this setup sarts from context create account
+        TestAggregatedAccountFactory factory = new TestAggregatedAccountFactory(entryPoint, address(aggregator));
+        bytes memory _initCallData = abi.encodeWithSignature("createAccount(address,uint256)", address(0), 0);
+        bytes memory initCode = abi.encodePacked(address(factory), _initCallData);
+        address addr;
+        try entryPoint.getSenderAddress(initCode) {}
+        catch (bytes memory reason) {
+            (, bytes memory data) = utils.getDataFromEncoding(reason);
+            assembly {
+                addr := mload(add(data, 0x20))
+            }
+        }
+        vm.deal(addr, 0.1 ether);
+
+        userOp = defaultOp;
+        userOp.sender = addr;
+        userOp.verificationGasLimit = 1e6;
+        userOp.initCode = initCode;
+        userOp = utils.signUserOp(userOp, accountOwner.key, entryPointAddress, chainId);
+    }
+
+    // With paymaster (account with no eth)
+    function _withPaymasterSetUp()
+        public
+        returns (Account memory accountOwner2, TestPaymasterAcceptAll paymaster, bytes memory accountExecFromEntryPoint)
+    {
+        accountOwner2 = utils.createAddress("accountOwner2");
+        vm.deal(accountOwner.addr, 10 ether);
+        vm.startPrank(accountOwner.addr, accountOwner.addr);
+        paymaster = new TestPaymasterAcceptAll(entryPoint);
+        paymaster.addStake{value: paymasterStake}(uint32(globalUnstakeDelaySec));
+        vm.stopPrank();
+        TestCounter counter = new TestCounter();
+        bytes memory count = abi.encodeWithSignature("count()");
+        accountExecFromEntryPoint =
+            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
+    }
+
+    //Validation time-range
+    function _validationTimeRangeSetUp()
+        public
+        returns (uint256 _now, address payable beneficiary, TestExpiryAccount expAccount, Account memory sessionOwner)
+    {
+        beneficiary = payable(makeAddr("beneficiary"));
+        vm.deal(accountOwner.addr, 1000 ether);
+        vm.startPrank(accountOwner.addr);
+        // the account variable in hardhat tests is renamed as expAccount, so as to not confuse with the default `account` creates in TestHelper
+        expAccount = new TestExpiryAccount(entryPoint);
+        expAccount.initialize(accountOwner.addr);
+        vm.deal(address(expAccount), 0.1 ether);
+        vm.warp(1641070800);
+        _now = block.timestamp;
+        sessionOwner = utils.createAddress("sessionOwner");
+        expAccount.addTemporaryOwner(sessionOwner.addr, 100, uint48(_now + 60));
+        vm.stopPrank();
+    }
+
+    //validatePaymasterUserOp with deadline
+    function _validatePaymasterSetUp() public returns (TestExpirePaymaster paymaster) {
+        // not implementing the timeout feature
+        paymaster = new TestExpirePaymaster(entryPoint);
+        paymaster.addStake{value: paymasterStake}(1);
+        paymaster.deposit{value: 0.1 ether}();
+        // using _now created in the validation time range setup
+    }
+
+    //time-range overlap of paymaster and account should intersect
+    //this function contains the setup and helper functions from hardhat tests
+    function simulateWithPaymasterParams(uint48 _after, uint48 _until) public returns (ReturnInfo memory ret) {
+        (,, TestExpiryAccount expAccount,) = _validationTimeRangeSetUp();
+        (TestExpirePaymaster paymaster) = _validatePaymasterSetUp();
+
+        // before
+        Account memory owner = utils.createAddress("owner");
+        vm.prank(accountOwner.addr);
+        expAccount.addTemporaryOwner(owner.addr, 100, 500);
+
+        // createOpWithPaymasterParams
+        UserOperation memory op =
+            createOpWithPaymasterParams(address(expAccount), address(paymaster), _after, _until, owner);
+
+        // simulateWithPaymasterParams
+        try entryPoint.simulateValidation(op) {}
+        catch (bytes memory revertReason) {
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
+            (ret,,,) = abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
+        }
     }
 }

@@ -7,8 +7,6 @@ import "../src/SimpleAccount.sol";
 import "../src/SimpleAccountFactory.sol";
 
 contract Utilities is Test {
-    bytes public constant defaultBytes = bytes("");
-
     function createAddress(string memory _name) public returns (Account memory) {
         return makeAccount(_name);
     }
@@ -101,10 +99,11 @@ contract Utilities is Test {
         return combined;
     }
 
-    function getDataFromEncoding(bytes memory encoding) public pure returns (bytes memory data) {
+    function getDataFromEncoding(bytes memory encoding) public pure returns (bytes4 sig, bytes memory data) {
         assembly {
             let totalLength := mload(encoding)
             let targetLength := sub(totalLength, 4)
+            sig := mload(add(encoding, 0x20))
             data := mload(0x40)
 
             mstore(data, targetLength)
@@ -127,5 +126,15 @@ contract Utilities is Test {
                 "ValidationResult((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256))"
             )
         );
+    }
+
+    function fillAggregatedOp(UserOperation[] memory _userOps, IAggregator _aggregator)
+        public
+        view
+        returns (IEntryPoint.UserOpsPerAggregator memory ops)
+    {
+        ops.userOps = _userOps;
+        ops.aggregator = _aggregator;
+        ops.signature = _aggregator.aggregateSignatures(_userOps);
     }
 }

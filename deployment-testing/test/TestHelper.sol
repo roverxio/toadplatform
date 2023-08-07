@@ -19,9 +19,9 @@ contract TestHelper is Test {
     uint256 internal chainId = vm.envOr("FOUNDRY_CHAIN_ID", uint256(31337));
     uint256 internal constant globalUnstakeDelaySec = 2;
     uint256 internal constant paymasterStake = 2 ether;
-    bytes public constant defaultBytes = bytes("");
+    bytes internal constant defaultBytes = bytes("");
 
-    UserOperation public defaultOp = UserOperation({
+    UserOperation internal defaultOp = UserOperation({
         sender: 0x0000000000000000000000000000000000000000,
         nonce: 0,
         initCode: defaultBytes,
