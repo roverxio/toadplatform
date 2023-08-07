@@ -1042,7 +1042,14 @@ contract EntryPointTest is TestHelper {
             (bytes4 sig, bytes memory data) = utils.getDataFromEncoding(reason);
             (,,,, AggregatorStakeInfo memory aggStakeInfo) =
                 abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo, AggregatorStakeInfo));
-            assertEq(sig, utils.validationResultEvent());
+            assertEq(
+                sig,
+                bytes4(
+                    keccak256(
+                        "ValidationResultWithAggregation((uint256,uint256,bool,uint48,uint48,bytes),(uint256,uint256),(uint256,uint256),(uint256,uint256),(address,(uint256,uint256)))"
+                    )
+                )
+            );
             assertEq(aggStakeInfo.aggregator, address(aggregator));
             assertEq(aggStakeInfo.stakeInfo.stake, 2 ether);
             assertEq(aggStakeInfo.stakeInfo.unstakeDelaySec, 3);
