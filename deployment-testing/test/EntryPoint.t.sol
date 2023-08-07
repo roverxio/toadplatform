@@ -209,6 +209,28 @@ contract EntryPointTest is TestHelper {
         vm.stopPrank();
     }
 
+    // should succeed to withdraw
+    function test_SucceedToWithdraw() public {
+        vm.deal(accountOwner.addr, 10 ether);
+        vm.startPrank(accountOwner.addr);
+        // setup
+        entryPoint.addStake{value: 2 ether}(2);
+        entryPoint.unlockStake();
+        vm.warp(uint48(block.timestamp + 2));
+
+        uint112 stake = entryPoint.getDepositInfo(accountOwner.addr).stake;
+        address payable addr1 = payable(utils.createAddress("addr1").addr);
+        entryPoint.withdrawStake(addr1);
+        assertEq(addr1.balance, stake);
+        
+        IStakeManager.DepositInfo memory info = entryPoint.getDepositInfo(accountOwner.addr);
+        assertEq(info.stake, 0);
+        assertEq(info.unstakeDelaySec, 0);
+        assertEq(info.withdrawTime, 0);
+
+        vm.stopPrank();
+    }
+
     // With deposit
     // Should be able to withdraw
     function test_WithdrawDeposit() public {
