@@ -24,7 +24,7 @@ pub struct Database {
 #[derive(Debug, Deserialize, Clone)]
 pub struct DefaultChain {
     pub chain: String,
-    pub currency: String
+    pub currency: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -36,7 +36,11 @@ pub struct Chain {
 
 impl Chain {
     pub fn get_url(&self) -> String {
-        format!("{}{}", self.url.clone(), std::env::var("INFURA_KEY").unwrap())
+        format!(
+            "{}{}",
+            self.url.clone(),
+            std::env::var("INFURA_KEY").unwrap()
+        )
     }
 }
 

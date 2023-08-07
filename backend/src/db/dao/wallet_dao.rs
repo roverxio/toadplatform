@@ -10,22 +10,29 @@ pub struct WalletDao {
 impl WalletDao {
     pub async fn connect(&self) -> PooledConnection<SqliteConnectionManager> {
         let pool1 = self.pool.clone();
-        let conn = web::block(move || pool1.get()).await.unwrap().map_err(error::ErrorInternalServerError).unwrap(); // <- create async connection (non-blocking
+        let conn = web::block(move || pool1.get())
+            .await
+            .unwrap()
+            .map_err(error::ErrorInternalServerError)
+            .unwrap(); // <- create async connection (non-blocking
         return conn;
     }
 
     pub async fn get_wallet(&self, user_id: String) -> String {
-        let conn  = self.connect().await;
+        let conn = self.connect().await;
 
-        let mut stmt = conn.prepare("SELECT * from users where email = ? limit 1").unwrap();
-        let rows: Vec<User> = stmt.query_map([user_id], |row| {
-            Ok(
-                User {
+        let mut stmt = conn
+            .prepare("SELECT * from users where email = ? limit 1")
+            .unwrap();
+        let rows: Vec<User> = stmt
+            .query_map([user_id], |row| {
+                Ok(User {
                     email: row.get(0)?,
                     wallet_address: row.get(1)?,
-                }
-            )
-        }).and_then(Iterator::collect).unwrap();
+                })
+            })
+            .and_then(Iterator::collect)
+            .unwrap();
 
         if !rows.is_empty() {
             return rows[0].wallet_address.to_string();
@@ -34,9 +41,11 @@ impl WalletDao {
     }
 
     pub async fn create_wallet(&self, user_id: String, wallet_address: String) {
-        let conn  = self.connect().await;
+        let conn = self.connect().await;
 
-        let mut stmt = conn.prepare("INSERT INTO users (email, wallet_address) VALUES (?, ?)").unwrap();
+        let mut stmt = conn
+            .prepare("INSERT INTO users (email, wallet_address) VALUES (?, ?)")
+            .unwrap();
         stmt.execute([user_id, wallet_address]).unwrap();
     }
 }

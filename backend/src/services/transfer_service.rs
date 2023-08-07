@@ -6,7 +6,10 @@ use crate::models::transfer::transfer_response::TransactionResponse;
 pub struct TransactionService {}
 
 impl TransactionService {
-    pub fn transfer_funds(&self, request: TransferRequest) -> Result<TransactionResponse, ApiError> {
+    pub fn transfer_funds(
+        &self,
+        request: TransferRequest,
+    ) -> Result<TransactionResponse, ApiError> {
         println!("Transferring funds: {:?}", request.value);
         Ok(TransactionResponse {
             transaction_hash: "hash".to_string(),

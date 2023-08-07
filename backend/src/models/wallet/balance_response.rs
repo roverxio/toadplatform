@@ -4,5 +4,5 @@ use serde::Serialize;
 pub struct BalanceResponse {
     pub address: String,
     pub balance: String,
-    pub currency: String
+    pub currency: String,
 }

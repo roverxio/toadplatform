@@ -1,13 +1,13 @@
-use std::sync::Arc;
-use actix_web::{App, HttpServer};
+use crate::db::dao::wallet_dao::WalletDao;
+use crate::{CONFIG, PROVIDER};
 use actix_web::middleware::Logger;
 use actix_web::web::Data;
+use actix_web::{App, HttpServer};
 use dotenvy::dotenv;
-use env_logger::{Env, init_from_env};
+use env_logger::{init_from_env, Env};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
-use crate::{CONFIG, PROVIDER};
-use crate::db::dao::wallet_dao::WalletDao;
+use std::sync::Arc;
 
 use crate::models::config::server::Server;
 use crate::provider::web3_provider::Web3Provider;
@@ -27,18 +27,15 @@ pub struct ToadService {
     pub admin_service: AdminService,
 }
 
-pub fn init_services(
-    pool: Pool<SqliteConnectionManager>
-) -> ToadService {
+pub fn init_services(pool: Pool<SqliteConnectionManager>) -> ToadService {
     init_logging();
     // contract providers
     let client = Arc::new(PROVIDER.clone());
-    let simple_account_factory_provider = Web3Provider::get_simple_account_factory_abi(&CONFIG.current_chain, client.clone());
+    let simple_account_factory_provider =
+        Web3Provider::get_simple_account_factory_abi(&CONFIG.current_chain, client.clone());
     let erc20_provider = Web3Provider::get_erc20_abi(&CONFIG.current_chain, client.clone());
     //daos
-    let wallet_dao = WalletDao {
-        pool: pool.clone(),
-    };
+    let wallet_dao = WalletDao { pool: pool.clone() };
     // Services
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {
@@ -80,7 +77,7 @@ pub async fn api_server(service: ToadService, server: Server) -> std::io::Result
             .app_data(Data::new(service.transfer_service.clone()))
             .app_data(Data::new(service.admin_service.clone()))
     })
-        .bind(server.url())?
-        .run()
-        .await
+    .bind(server.url())?
+    .run()
+    .await
 }

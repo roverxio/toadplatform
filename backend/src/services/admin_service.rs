@@ -6,7 +6,10 @@ use crate::models::transfer::transfer_response::TransactionResponse;
 pub struct AdminService {}
 
 impl AdminService {
-    pub fn topup_paymaster_deposit(&self, topup: PaymasterTopup) -> Result<TransactionResponse, ApiError> {
+    pub fn topup_paymaster_deposit(
+        &self,
+        topup: PaymasterTopup,
+    ) -> Result<TransactionResponse, ApiError> {
         println!("topup: {:?}", topup.address);
         Ok(TransactionResponse {
             transaction_hash: "hash".to_string(),

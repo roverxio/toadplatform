@@ -1,5 +1,5 @@
-use base64::Engine;
 use base64::engine::general_purpose;
+use base64::Engine;
 use serde::Deserialize;
 
 #[derive(Deserialize)]
@@ -15,8 +15,7 @@ pub struct Balance {
 
 impl BalanceRequest {
     pub fn get_balance_request(&self) -> Balance {
-        let bytes = general_purpose::STANDARD
-            .decode(&self.q).unwrap();
+        let bytes = general_purpose::STANDARD.decode(&self.q).unwrap();
         serde_json::from_slice(&bytes).expect("JSON deserialization failed!")
     }
 }
