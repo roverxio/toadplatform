@@ -117,6 +117,19 @@ contract EntryPointTest is TestHelper {
         vm.stopPrank();
     }
 
+    // with unlocked stake
+    // should report as "not staked"
+    function test_ReportAsNotStaked() public {
+        vm.deal(accountOwner.addr, 10 ether);
+        vm.startPrank(accountOwner.addr);
+        // setup
+        entryPoint.addStake{value: 2 ether}(2);
+        entryPoint.unlockStake();
+
+        assertEq(entryPoint.getDepositInfo(accountOwner.addr).staked, false);
+        vm.stopPrank();
+    }
+
     // With deposit
     // Should be able to withdraw
     function test_WithdrawDeposit() public {
