@@ -131,6 +131,12 @@ contract TestHelper is Test {
         return abi.encodePacked(r, s, v);
     }
 
+    function signMessage(bytes32 message, uint256 key) internal pure returns (bytes memory) {
+        bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(key, digest);
+        return abi.encodePacked(r, s, v);
+    }
+
     function getAccountBalance() internal view returns (uint256) {
         return accountAddress.balance;
     }
