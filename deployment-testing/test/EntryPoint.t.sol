@@ -119,7 +119,7 @@ contract EntryPointTest is TestHelper {
     modifier _withUnlockedStakeSetup() {
         vm.deal(accountOwner.addr, 10 ether);
         vm.startPrank(accountOwner.addr);
-        // setup
+
         entryPoint.addStake{value: 2 ether}(2);
         entryPoint.unlockStake();
 
@@ -137,6 +137,10 @@ contract EntryPointTest is TestHelper {
     function test_ReportUnstakeState() public _withUnlockedStakeSetup {
         uint48 withdrawTime1 = uint48(block.timestamp + globalUnstakeDelaySec);
         IStakeManager.DepositInfo memory info = entryPoint.getDepositInfo(accountOwner.addr);
+        /* 
+        The corresponding hardhat test case is dependent on running the previous test cases for 
+        the stake to be 3 ether. However, on running this test case alone, the stake is 2 ether.
+        */
         assertEq(info.stake, 2 ether);
         assertEq(info.staked, false);
         assertEq(info.unstakeDelaySec, 2);
@@ -156,10 +160,10 @@ contract EntryPointTest is TestHelper {
     }
 
     // after unstake delay
-    modifier _afterUnstakeDelaySetup {
+    modifier _afterUnstakeDelaySetup() {
         vm.deal(accountOwner.addr, 10 ether);
         vm.startPrank(accountOwner.addr);
-        // setup
+
         entryPoint.addStake{value: 2 ether}(2);
         entryPoint.unlockStake();
         vm.warp(uint48(block.timestamp + 2));
@@ -174,6 +178,10 @@ contract EntryPointTest is TestHelper {
         uint256 snap = vm.snapshot();
         entryPoint.addStake{value: 1 ether}(2);
         IStakeManager.DepositInfo memory info = entryPoint.getDepositInfo(accountOwner.addr);
+        /* 
+        The corresponding hardhat test case is dependent on running the previous test cases for 
+        the stake to be 4 ether. However, on running this test case alone, the stake is 3 ether.
+        */
         assertEq(info.stake, 3 ether);
         assertEq(info.staked, true);
         assertEq(info.unstakeDelaySec, 2);
@@ -194,7 +202,7 @@ contract EntryPointTest is TestHelper {
         address payable addr1 = payable(utils.createAddress("addr1").addr);
         entryPoint.withdrawStake(addr1);
         assertEq(addr1.balance, stake);
-        
+
         IStakeManager.DepositInfo memory info = entryPoint.getDepositInfo(accountOwner.addr);
         assertEq(info.stake, 0);
         assertEq(info.unstakeDelaySec, 0);
