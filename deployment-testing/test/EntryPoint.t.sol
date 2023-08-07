@@ -90,6 +90,21 @@ contract EntryPointTest is TestHelper {
         assertEq(entryPoint.getDepositInfo(signerAddress).withdrawTime, 0);
     }
 
+    // should succeed to stake again
+    function test_SucceedToStakeAgain() public {
+        // accountOwner address is used in place ethers.signer address
+        vm.deal(accountOwner.addr, 10 ether);
+        vm.startPrank(accountOwner.addr);
+        // setup
+        entryPoint.addStake{value: 2 ether}(2);
+
+        uint112 stake = entryPoint.getDepositInfo(accountOwner.addr).stake;
+        entryPoint.addStake{value: 1 ether}(2);
+        uint112 stakeAfter = entryPoint.getDepositInfo(accountOwner.addr).stake;
+        assertEq(stakeAfter, stake + 1 ether);
+        vm.stopPrank();
+    }
+
     // With deposit
     // Should be able to withdraw
     function test_WithdrawDeposit() public {
