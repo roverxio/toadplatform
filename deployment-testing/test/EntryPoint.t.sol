@@ -173,6 +173,28 @@ contract EntryPointTest is TestHelper {
         vm.stopPrank();
     }
 
+    // after unstake delay
+    // adding stake should reset "unlockStake"
+    function test_ResetUnlockStakeOnAddingStake() public {
+        vm.deal(accountOwner.addr, 10 ether);
+        vm.startPrank(accountOwner.addr);
+        // setup
+        entryPoint.addStake{value: 2 ether}(2);
+        entryPoint.unlockStake();
+        vm.warp(uint48(block.timestamp + 2));
+
+        uint256 snap = vm.snapshot();
+        entryPoint.addStake{value: 1 ether}(2);
+        IStakeManager.DepositInfo memory info = entryPoint.getDepositInfo(accountOwner.addr);
+        assertEq(info.stake, 3 ether);
+        assertEq(info.staked, true);
+        assertEq(info.unstakeDelaySec, 2);
+        assertEq(info.withdrawTime, 0);
+
+        vm.revertTo(snap);
+        vm.stopPrank();
+    }
+
     // With deposit
     // Should be able to withdraw
     function test_WithdrawDeposit() public {
