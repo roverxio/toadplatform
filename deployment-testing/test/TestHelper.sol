@@ -19,9 +19,9 @@ contract TestHelper is Test {
     uint256 internal chainId = vm.envOr("FOUNDRY_CHAIN_ID", uint256(31337));
     uint256 internal constant globalUnstakeDelaySec = 2;
     uint256 internal constant paymasterStake = 2 ether;
-    bytes public constant defaultBytes = bytes("");
+    bytes internal constant defaultBytes = bytes("");
 
-    UserOperation public defaultOp = UserOperation({
+    UserOperation internal _defaultOp = UserOperation({
         sender: 0x0000000000000000000000000000000000000000,
         nonce: 0,
         initCode: defaultBytes,
@@ -61,5 +61,52 @@ contract TestHelper is Test {
         simpleAccountFactory.createAccount(_ownerAddress, _accountSalt);
         address _accountAddress = simpleAccountFactory.getAddress(_ownerAddress, _accountSalt);
         return (SimpleAccount(payable(_accountAddress)), _accountAddress);
+    }
+
+    function getDataFromEncoding(bytes memory encoding) public pure returns (bytes4 sig, bytes memory data) {
+        assembly {
+            let totalLength := mload(encoding)
+            let targetLength := sub(totalLength, 4)
+            sig := mload(add(encoding, 0x20))
+            data := mload(0x40)
+
+            mstore(data, targetLength)
+            mstore(0x40, add(data, add(0x20, targetLength)))
+            mstore(add(data, 0x20), shl(0x20, mload(add(encoding, 0x20))))
+
+            for { let i := 0x1C } lt(i, targetLength) { i := add(i, 0x20) } {
+                mstore(add(add(data, 0x20), i), mload(add(add(encoding, 0x20), add(i, 0x04))))
+            }
+        }
+    }
+
+    function fillAggregatedOp(UserOperation[] memory _userOps, IAggregator _aggregator)
+        public
+        view
+        returns (IEntryPoint.UserOpsPerAggregator memory ops)
+    {
+        ops.userOps = _userOps;
+        ops.aggregator = _aggregator;
+        ops.signature = _aggregator.aggregateSignatures(_userOps);
+    }
+
+    function getAccountInitCode(address owner, uint256 salt) public view returns (bytes memory initCode) {
+        bytes memory initCallData = abi.encodeWithSignature("createAccount(address,uint256)", owner, salt);
+        initCode = abi.encodePacked(address(simpleAccountFactory), initCallData);
+    }
+
+    function createOpWithPaymasterParams(
+        address _accountAddr,
+        address _paymasterAddr,
+        uint48 _after,
+        uint48 _until,
+        Account memory owner
+    ) public view returns (UserOperation memory op) {
+        bytes memory timeRange = abi.encode(_after, _until);
+
+        op = _defaultOp;
+        op.sender = _accountAddr;
+        op.paymasterAndData = abi.encodePacked(_paymasterAddr, timeRange);
+        op = signUserOp(op, entryPointAddress, chainId, owner.key);
     }
 }
