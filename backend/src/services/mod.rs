@@ -3,3 +3,4 @@ pub mod wallet_service;
 pub mod balance_service;
 pub mod transfer_service;
 pub mod admin_service;
+pub mod metada_service;
