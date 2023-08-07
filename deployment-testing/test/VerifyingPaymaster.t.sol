@@ -35,6 +35,7 @@ contract VerifyingPaymasterTest is TestHelper {
 
     function setUp() public {
         utils = new Utilities();
+
         // timeout feature is not implemented
         entryPoint = utils.deployEntryPoint(123456);
         entryPointAddress = address(entryPoint);
