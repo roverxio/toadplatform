@@ -1,5 +1,4 @@
 use actix_web::{error, web};
-use ethers::types::U256;
 use r2d2::{Pool, PooledConnection};
 use r2d2_sqlite::rusqlite::Statement;
 use r2d2_sqlite::SqliteConnectionManager;

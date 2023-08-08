@@ -1,7 +1,6 @@
 use ethers::{
     providers::{Http, Provider},
 };
-use ethers_signers::LocalWallet;
 use lazy_static::lazy_static;
 use crate::db::connection::establish_connection;
 

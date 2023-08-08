@@ -1,9 +1,12 @@
 use std::str::FromStr;
 use std::sync::Arc;
+use ethers::middleware::signer::SignerMiddlewareError;
 use ethers::middleware::SignerMiddleware;
+use ethers::prelude::{ProviderError};
 use ethers::providers::{Http, Middleware, Provider};
 use ethers::types::{Address, Bytes, TransactionRequest, U256};
 use ethers_signers::{LocalWallet, Signer};
+use serde_json::Value;
 
 use crate::CONFIG;
 use crate::db::dao::wallet_dao::{User, WalletDao};
@@ -11,7 +14,7 @@ use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransactionResponse;
-use crate::provider::entrypoint_helper::{EntryPoint, get_entry_point_user_operation_payload};
+use crate::provider::entrypoint_helper::{EntryPoint, FailedOp, get_entry_point_user_operation_payload};
 use crate::provider::verifying_paymaster_helper::{get_verifying_paymaster_user_operation_payload, VerifyingPaymaster};
 use crate::provider::web3_provider::{ERC20, Simpleaccount, SimpleAccountFactory};
 
@@ -97,8 +100,101 @@ impl TransactionService {
         };
         let x = self.entrypoint_provider.handle_ops(vec![get_entry_point_user_operation_payload(signed_user_op)], CONFIG.account_owner).calldata().unwrap();
         let tx = TransactionRequest::new().from(CONFIG.account_owner).to(CONFIG.chains[&CONFIG.current_chain].entrypoint_address).value(0).data(x.clone());
-        let response = self.signing_client.send_transaction(tx, None).await.unwrap();
-        println!("response: {:?}", response);
+        let result = self.signing_client.send_transaction(tx, None).await;
+        match result {
+            Ok(hash) => {
+                println!("Transaction sent successfully. Hash: {:?}", hash);
+            }
+            Err(err) => {
+                match err {
+                    SignerMiddlewareError::SignerError(a) => {
+                        println!("Signer error: {}", a);
+                    }
+                    SignerMiddlewareError::MiddlewareError(b) => {
+                        println!("Middleware error: {}", b);
+                        match b {
+                            ProviderError::JsonRpcClientError(_a) => {
+                                println!("JsonRpcClientError: {}", _a);
+                                let error = _a.as_error_response();
+                                match error {
+                                    None => {}
+                                    Some(_err) => {
+                                        // println!("Error: {:?}", _err.data.as_ref().unwrap());
+                                        let error_data = _err.data.as_ref().unwrap();
+                                        match error_data {
+                                            Value::Null => {}
+                                            Value::Bool(_) => {}
+                                            Value::Number(_) => {}
+                                            Value::String(_str_err) => {
+                                                println!("Error: {}", _str_err);
+                                                let abi_errors = self.entrypoint_provider.abi().errors();
+                                                abi_errors.for_each(|abi_error| {
+                                                    let data_bytes = ethers::utils::hex::decode(&_str_err[2..]).unwrap();
+                                                    let _decoded_error = abi_error.decode(&data_bytes[4..]);
+                                                    match _decoded_error {
+                                                        Ok(_res) => {
+                                                            println!("err_name -> {} Ok {:?}", abi_error.name, _res);
+                                                        }
+                                                        Err(_e1) => {
+                                                            println!("Err: {:?}", _e1);
+                                                        }
+                                                    }
+
+                                                });
+                                                // let encoded_bytes = ethers::utils::hex::decode(&_str_err[2..]).unwrap();
+                                            }
+                                            Value::Array(_) => {}
+                                            Value::Object(_) => {}
+                                        }
+                                    }
+                                }
+                            }
+                            ProviderError::EnsError(_b) => {
+                                println!("EnsError: {}", _b);
+                            }
+                            ProviderError::EnsNotOwned(_c) => {
+                                println!("EnsNotOwned: {}", _c);
+                            }
+                            ProviderError::SerdeJson(_d) => {
+                                println!("SerdeJson: {}", _d);
+                            }
+                            ProviderError::HexError(_e) => {
+                                println!("HexError: {}", _e);
+                            }
+                            ProviderError::HTTPError(_f) => {
+                                println!("HTTPError: {}", _f);
+                            }
+                            ProviderError::CustomError(_g) => {
+                                println!("CustomError: {}", _g);
+                            }
+                            ProviderError::UnsupportedRPC => {}
+                            ProviderError::UnsupportedNodeClient => {}
+                            ProviderError::SignerUnavailable => {}
+                        }
+                    }
+                    SignerMiddlewareError::NonceMissing => {}
+                    SignerMiddlewareError::GasPriceMissing => {}
+                    SignerMiddlewareError::GasMissing => {}
+                    SignerMiddlewareError::WrongSigner => {}
+                    SignerMiddlewareError::DifferentChainID => {}
+                }
+            }
+        }
+        // println!("response: {:?}", response);
+        /*        match response {
+                    Ok(_tx_hash) => {
+                        println!("Transaction hash: {:?}", _tx_hash);
+                    }
+                    Err(err) => {
+                        if let Some(res) = err.as_provider_error() {
+                            println!("Provider error: {}", res);
+                        } else {
+                            println!("Error: {:?}", err.as_provider_error());
+                        }
+                    }
+                }
+        */
+
         Ok(TransactionResponse {
             transaction_hash: "hash".to_string(),
             status: "success".to_string(),
