@@ -1,5 +1,5 @@
 use config::{Config, ConfigError, File, Map};
-use ethers::types::{Address, U256};
+use ethers::types::{Address};
 use serde::Deserialize;
 
 use crate::models::config::env::ENV;
@@ -44,11 +44,11 @@ impl Chain {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct DefaultGas {
-    pub call_gas_limit: U256,
-    pub verification_gas_limit: U256,
-    pub pre_verification_gas: U256,
-    pub max_fee_per_gas: U256,
-    pub max_priority_fee_per_gas: U256
+    pub call_gas_limit: u64,
+    pub verification_gas_limit: u64,
+    pub pre_verification_gas: u64,
+    pub max_fee_per_gas: u64,
+    pub max_priority_fee_per_gas: u64
 }
 
 #[derive(Debug, Deserialize, Clone)]

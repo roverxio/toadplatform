@@ -45,7 +45,7 @@ pub fn init_services(
     //signers
     let verifying_paymaster_signer: LocalWallet = std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY").expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set").parse::<LocalWallet>().unwrap();
     let wallet_signer: LocalWallet = std::env::var("WALLET_PRIVATE_KEY").expect("WALLET_PRIVATE_KEY must be set").parse::<LocalWallet>().unwrap();
-    let signing_client = SignerMiddleware::new(client.clone(), wallet_signer);
+    let signing_client = SignerMiddleware::new(client.clone(), wallet_signer.clone());
 
     //daos
     let wallet_dao = WalletDao {
@@ -69,6 +69,7 @@ pub fn init_services(
         simple_account_factory_provider: simple_account_factory_provider.clone(),
         verifying_paymaster_provider: verifying_paymaster_provider.clone(),
         verifying_paymaster_signer: verifying_paymaster_signer.clone(),
+        wallet_singer: wallet_signer.clone(),
         signing_client: signing_client.clone(),
     };
     let admin_service = AdminService {};

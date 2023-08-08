@@ -1,7 +1,9 @@
 use ethers::contract::{Eip712, EthAbiType};
 use ethers::types::{Address, Bytes, U256};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, EthAbiType, Eip712)]
+#[derive(Clone, Debug, EthAbiType, Eip712, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct UserOperation {
     pub sender: Address,
     pub nonce: U256,

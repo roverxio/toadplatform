@@ -32,6 +32,13 @@ usdc_address = "0x07865c6e87b9f70255377e024ace6630c1eaa37f"
 entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
 verifying_paymaster_address = "0xe76cF38641112f77A474c467546Fb4b812e4d0F8"
 
+[chains.localhost]
+url = "http://localhost:8545"
+simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
+usdc_address = "0x68679d96208Ae36E5765b1354C1E22637Fe77B45"
+entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
+verifying_paymaster_address = "0x589C378e85C4770AEad2ECCABe8068fF326Fe199"
+
 [default_gas]
 call_gas_limit = 10000000
 verification_gas_limit = 10000000

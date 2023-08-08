@@ -16,6 +16,7 @@ pub fn get_verifying_paymaster_abi(current_chain: &str, client: Arc<Provider<Htt
 }
 
 pub fn get_verifying_paymaster_user_operation_payload(user_op: contract_interaction::user_operation::UserOperation) -> UserOperation {
+
     UserOperation {
         sender: user_op.sender,
         nonce: user_op.nonce,

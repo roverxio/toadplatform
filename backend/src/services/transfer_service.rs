@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use std::sync::Arc;
+use ethers::abi::{encode, Token, Tokenizable};
 use ethers::middleware::signer::SignerMiddlewareError;
 use ethers::middleware::SignerMiddleware;
 use ethers::prelude::{ProviderError};
@@ -14,7 +15,7 @@ use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransactionResponse;
-use crate::provider::entrypoint_helper::{EntryPoint, FailedOp, get_entry_point_user_operation_payload};
+use crate::provider::entrypoint_helper::{EntryPoint, get_entry_point_user_operation_payload};
 use crate::provider::verifying_paymaster_helper::{get_verifying_paymaster_user_operation_payload, VerifyingPaymaster};
 use crate::provider::web3_provider::{ERC20, Simpleaccount, SimpleAccountFactory};
 
@@ -27,6 +28,7 @@ pub struct TransactionService {
     pub simple_account_factory_provider: SimpleAccountFactory<Provider<Http>>,
     pub verifying_paymaster_provider: VerifyingPaymaster<Provider<Http>>,
     pub verifying_paymaster_signer: LocalWallet,
+    pub wallet_singer: LocalWallet,
     pub signing_client: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
 }
 
@@ -65,40 +67,56 @@ impl TransactionService {
         println!("entry point address {}", self.entrypoint_provider.address());
         let nonce = self.entrypoint_provider.get_nonce(wallet_address, U256::zero()).await.unwrap();
 
-        let user_operation = UserOperation {
+        let valid_until = u64::from_str("3735928559").unwrap();
+        let valid_after = u64::from_str("4660").unwrap();
+        let params: Vec<Token> = vec![valid_until.into_token(), valid_after.into_token()];
+        let data = encode(&params);
+        let paymaster_and_data = [CONFIG.chains[&CONFIG.current_chain].verifying_paymaster_address.as_bytes(), data.as_ref(), &vec![0u8; 65]].concat();
+
+        let user_op0 = UserOperation {
             sender: wallet.wallet_address.parse().unwrap(),
             nonce,
             init_code,
             calldata,
-            call_gas_limit: CONFIG.default_gas.call_gas_limit,
-            verification_gas_limit: CONFIG.default_gas.verification_gas_limit,
-            pre_verification_gas: CONFIG.default_gas.pre_verification_gas,
-            max_fee_per_gas: CONFIG.default_gas.max_fee_per_gas,
-            max_priority_fee_per_gas: CONFIG.default_gas.max_priority_fee_per_gas,
-            paymaster_and_data: Bytes::from(CONFIG.chains[&CONFIG.current_chain].verifying_paymaster_address.as_bytes().to_vec()),
+            call_gas_limit: U256::from(CONFIG.default_gas.call_gas_limit),
+            verification_gas_limit: U256::from(CONFIG.default_gas.verification_gas_limit),
+            pre_verification_gas: U256::from(CONFIG.default_gas.pre_verification_gas),
+            max_fee_per_gas: U256::from(CONFIG.default_gas.max_fee_per_gas),
+            max_priority_fee_per_gas: U256::from(CONFIG.default_gas.max_priority_fee_per_gas),
+            paymaster_and_data: Bytes::from(paymaster_and_data),
             signature: Default::default(),
         };
-        println!("UserOperation: {:?}", user_operation);
+        println!("UserOperation: {:?}", user_op0);
         // sign user_operation using ecdsa
-        let signed_user_operation = UserOperation {
-            signature: Bytes::from(self.verifying_paymaster_signer.sign_typed_data(&user_operation).await.unwrap().to_vec()),
-            ..user_operation
+        let usr_op1 = UserOperation {
+            signature: Bytes::from(self.verifying_paymaster_signer.sign_typed_data(&user_op0).await.unwrap().to_vec()),
+            ..user_op0
         };
 
-        println!("SignedUserOperation: {:?}", signed_user_operation);
+        println!("user op1 ----> : {:?}", usr_op1);
 
-        let hash = self.verifying_paymaster_provider.get_hash(get_verifying_paymaster_user_operation_payload(signed_user_operation.clone()), u64::from_str("3900490984").unwrap(), u64::from_str("31536000").unwrap()).await.unwrap();
+        let hash = self.verifying_paymaster_provider.get_hash(get_verifying_paymaster_user_operation_payload(usr_op1.clone()), valid_until, valid_after).await.unwrap();
+        let singed_hash = self.verifying_paymaster_signer.sign_message(&hash).await.unwrap().to_vec();
+
+        println!("hash -> {:?}", Bytes::from(hash));
+
+        let paymaster_and_data_with_sign = [CONFIG.chains[&CONFIG.current_chain].verifying_paymaster_address.as_bytes(), data.as_ref(), &singed_hash].concat();
 
         // replace paymaster_and_data with hash
-        let user_op = UserOperation {
-            paymaster_and_data: Bytes::from(hash),
-            ..signed_user_operation
+        let user_op2 = UserOperation {
+            paymaster_and_data: Bytes::from(paymaster_and_data_with_sign),
+            ..usr_op1
         };
-        let signed_user_op = UserOperation {
-            signature: Bytes::from(self.verifying_paymaster_signer.sign_typed_data(&user_op).await.unwrap().to_vec()),
-            ..user_op
+
+        println!("user op2 ---> : --> {:?}", user_op2);
+
+
+        let user_op3 = UserOperation {
+            signature: Bytes::from(self.wallet_singer.sign_typed_data(&user_op2).await.unwrap().to_vec()),
+            ..user_op2
         };
-        let x = self.entrypoint_provider.handle_ops(vec![get_entry_point_user_operation_payload(signed_user_op)], CONFIG.account_owner).calldata().unwrap();
+        println!("user op3 ---> : --> {:?}", user_op3);
+        let x = self.entrypoint_provider.handle_ops(vec![get_entry_point_user_operation_payload(user_op3)], CONFIG.account_owner).calldata().unwrap();
         let tx = TransactionRequest::new().from(CONFIG.account_owner).to(CONFIG.chains[&CONFIG.current_chain].entrypoint_address).value(0).data(x.clone());
         let result = self.signing_client.send_transaction(tx, None).await;
         match result {
@@ -119,7 +137,6 @@ impl TransactionService {
                                 match error {
                                     None => {}
                                     Some(_err) => {
-                                        // println!("Error: {:?}", _err.data.as_ref().unwrap());
                                         let error_data = _err.data.as_ref().unwrap();
                                         match error_data {
                                             Value::Null => {}
@@ -128,8 +145,8 @@ impl TransactionService {
                                             Value::String(_str_err) => {
                                                 println!("Error: {}", _str_err);
                                                 let abi_errors = self.entrypoint_provider.abi().errors();
+                                                let data_bytes = ethers::utils::hex::decode(&_str_err[2..]).unwrap();
                                                 abi_errors.for_each(|abi_error| {
-                                                    let data_bytes = ethers::utils::hex::decode(&_str_err[2..]).unwrap();
                                                     let _decoded_error = abi_error.decode(&data_bytes[4..]);
                                                     match _decoded_error {
                                                         Ok(_res) => {
@@ -139,7 +156,6 @@ impl TransactionService {
                                                             println!("Err: {:?}", _e1);
                                                         }
                                                     }
-
                                                 });
                                                 // let encoded_bytes = ethers::utils::hex::decode(&_str_err[2..]).unwrap();
                                             }
@@ -180,20 +196,6 @@ impl TransactionService {
                 }
             }
         }
-        // println!("response: {:?}", response);
-        /*        match response {
-                    Ok(_tx_hash) => {
-                        println!("Transaction hash: {:?}", _tx_hash);
-                    }
-                    Err(err) => {
-                        if let Some(res) = err.as_provider_error() {
-                            println!("Provider error: {}", res);
-                        } else {
-                            println!("Error: {:?}", err.as_provider_error());
-                        }
-                    }
-                }
-        */
 
         Ok(TransactionResponse {
             transaction_hash: "hash".to_string(),
