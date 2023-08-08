@@ -1,6 +1,7 @@
 use crate::errors::ApiError;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::transfer::transfer_response::TransactionResponse;
+use crate::models::wallet::balance_response::BalanceResponse;
 
 #[derive(Clone)]
 pub struct AdminService {}
@@ -12,6 +13,15 @@ impl AdminService {
             transaction_hash: "hash".to_string(),
             status: "success".to_string(),
             explorer: "no".to_string(),
+        })
+    }
+
+    pub fn get_balance(&self, entity: String) -> Result<BalanceResponse, ApiError> {
+        println!("entity: {:?}", entity);
+        Ok(BalanceResponse {
+            balance: "".to_string(),
+            address: "".to_string(),
+            currency: "".to_string(),
         })
     }
 }
