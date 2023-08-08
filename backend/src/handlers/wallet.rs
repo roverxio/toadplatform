@@ -18,8 +18,7 @@ pub async fn get_address(service: Data<WalletService>, req: HttpRequest) -> Resu
     respond_json(wallet_address)
 }
 
-pub async fn get_balance(service: Data<BalanceService>, body: Query<BalanceRequest>, entity: Path<String>, req: HttpRequest) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
-    println!("entity: {}", entity.into_inner()); // will be relevant while building admin APIs
+pub async fn get_balance(service: Data<BalanceService>, body: Query<BalanceRequest>, req: HttpRequest) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
     let balance_request = body.get_balance_request();
     let data = service.get_wallet_balance(&balance_request.chain, &balance_request.currency.to_lowercase(), &get_user(req)).await?;
     respond_json(data)
