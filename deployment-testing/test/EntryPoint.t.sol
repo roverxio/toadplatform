@@ -167,6 +167,7 @@ contract EntryPointTest is TestHelper {
         entryPoint.addStake{value: 2 ether}(2);
         entryPoint.unlockStake();
         vm.warp(uint48(block.timestamp + 2));
+        payable(accountOwner.addr).transfer(0);
 
         _;
 
@@ -176,6 +177,8 @@ contract EntryPointTest is TestHelper {
     // adding stake should reset "unlockStake"
     function test_ResetUnlockStakeOnAddingStake() public afterUnstakeDelaySetup {
         uint256 snap = vm.snapshot();
+
+        payable(accountOwner.addr).transfer(0);
         entryPoint.addStake{value: 1 ether}(2);
         IStakeManager.DepositInfo memory info = entryPoint.getDepositInfo(accountOwner.addr);
         /* 
