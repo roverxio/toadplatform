@@ -75,7 +75,7 @@ contract EntryPointTest is TestHelper {
     }
 
     // With stake of 2 eth
-    modifier _withStakeOf2EthSetup() {
+    modifier withStakeOf2EthSetup() {
         // accountOwner address is used in place ethers.signer address
         vm.deal(accountOwner.addr, 10 ether);
         vm.startPrank(accountOwner.addr);
@@ -102,7 +102,7 @@ contract EntryPointTest is TestHelper {
     }
 
     // should succeed to stake again
-    function test_SucceedToStakeAgain() public _withStakeOf2EthSetup {
+    function test_SucceedToStakeAgain() public withStakeOf2EthSetup {
         uint112 stake = entryPoint.getDepositInfo(accountOwner.addr).stake;
         entryPoint.addStake{value: 1 ether}(2);
         uint112 stakeAfter = entryPoint.getDepositInfo(accountOwner.addr).stake;
@@ -110,13 +110,13 @@ contract EntryPointTest is TestHelper {
     }
 
     // should fail to withdraw before unlock
-    function test_FailToWithdrawBeforeUnlock() public _withStakeOf2EthSetup {
+    function test_FailToWithdrawBeforeUnlock() public withStakeOf2EthSetup {
         vm.expectRevert("must call unlockStake() first");
         entryPoint.withdrawStake(payable(address(0)));
     }
 
     // with unlocked stake
-    modifier _withUnlockedStakeSetup() {
+    modifier withUnlockedStakeSetup() {
         vm.deal(accountOwner.addr, 10 ether);
         vm.startPrank(accountOwner.addr);
 
@@ -129,12 +129,12 @@ contract EntryPointTest is TestHelper {
     }
 
     // should report as "not staked"
-    function test_ReportAsNotStaked() public _withUnlockedStakeSetup {
+    function test_ReportAsNotStaked() public withUnlockedStakeSetup {
         assertEq(entryPoint.getDepositInfo(accountOwner.addr).staked, false);
     }
 
     // should report unstake state
-    function test_ReportUnstakeState() public _withUnlockedStakeSetup {
+    function test_ReportUnstakeState() public withUnlockedStakeSetup {
         uint48 withdrawTime1 = uint48(block.timestamp + globalUnstakeDelaySec);
         IStakeManager.DepositInfo memory info = entryPoint.getDepositInfo(accountOwner.addr);
         /* 
@@ -148,19 +148,19 @@ contract EntryPointTest is TestHelper {
     }
 
     // should fail to withdraw before unlock timeout
-    function test_FailToWithdrawBeforeUnlockTimeout() public _withUnlockedStakeSetup {
+    function test_FailToWithdrawBeforeUnlockTimeout() public withUnlockedStakeSetup {
         vm.expectRevert("Stake withdrawal is not due");
         entryPoint.withdrawStake(payable(address(0)));
     }
 
     // should fail to unlock again
-    function test_FailToUnlockAgain() public _withUnlockedStakeSetup {
+    function test_FailToUnlockAgain() public withUnlockedStakeSetup {
         vm.expectRevert("already unstaking");
         entryPoint.unlockStake();
     }
 
     // after unstake delay
-    modifier _afterUnstakeDelaySetup() {
+    modifier afterUnstakeDelaySetup() {
         vm.deal(accountOwner.addr, 10 ether);
         vm.startPrank(accountOwner.addr);
 
@@ -174,7 +174,7 @@ contract EntryPointTest is TestHelper {
     }
 
     // adding stake should reset "unlockStake"
-    function test_ResetUnlockStakeOnAddingStake() public _afterUnstakeDelaySetup {
+    function test_ResetUnlockStakeOnAddingStake() public afterUnstakeDelaySetup {
         uint256 snap = vm.snapshot();
         entryPoint.addStake{value: 1 ether}(2);
         IStakeManager.DepositInfo memory info = entryPoint.getDepositInfo(accountOwner.addr);
@@ -191,13 +191,13 @@ contract EntryPointTest is TestHelper {
     }
 
     // should fail to unlock again
-    function test_FailToUnlockAgainAfterUnstakeDelay() public _afterUnstakeDelaySetup {
+    function test_FailToUnlockAgainAfterUnstakeDelay() public afterUnstakeDelaySetup {
         vm.expectRevert("already unstaking");
         entryPoint.unlockStake();
     }
 
     // should succeed to withdraw
-    function test_SucceedToWithdraw() public _afterUnstakeDelaySetup {
+    function test_SucceedToWithdraw() public afterUnstakeDelaySetup {
         uint112 stake = entryPoint.getDepositInfo(accountOwner.addr).stake;
         address payable addr1 = payable(utils.createAddress("addr1").addr);
         entryPoint.withdrawStake(addr1);
