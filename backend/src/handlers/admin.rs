@@ -9,8 +9,9 @@ use crate::models::transfer::transfer_response::TransactionResponse;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::services::admin_service::AdminService;
 
-pub async fn topup_paymaster_deposit(service: Data<AdminService>, body: Json<PaymasterTopup>, req: HttpRequest) -> Result<Json<BaseResponse<TransactionResponse>>, ApiError> {
+pub async fn topup_paymaster_deposit(service: Data<AdminService>, body: Json<PaymasterTopup>, req: HttpRequest, paymaster: Path<String>) -> Result<Json<BaseResponse<TransactionResponse>>, ApiError> {
     println!("user -> {}", get_user(req));
+    println!("paymaster -> {}", paymaster);
     let response = service.topup_paymaster_deposit(body.into_inner())?;
     respond_json(response)
 }
