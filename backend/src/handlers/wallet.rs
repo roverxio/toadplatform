@@ -1,5 +1,5 @@
 use actix_web::HttpRequest;
-use actix_web::web::{Data, Json, Path, Query};
+use actix_web::web::{Data, Json, Query};
 
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;

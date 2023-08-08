@@ -12,12 +12,16 @@ pub fn routes(cfg: &mut ServiceConfig) {
         web::scope(&CONFIG.server.prefix.clone().to_string())
             .service(
                 web::scope("v1")
+                    .service(web::scope("user")
+                        .route("address", web::get().to(get_address))
+                        .route("balance", web::get().to(get_balance))
+                        .route("transact", web::post().to(transact))
+                    )
+                    .service(web::scope("admin")
+                        .route("deposit/{paymaster}", web::post().to(topup_paymaster_deposit))// the paymaster name
+                        .route("balance/{entity}", web::get().to(admin_get_balance))
+                    ) // entity can be a paymaster or the EOA
                     .route("hello", web::get().to(hello_world))
-                    .route("user/address", web::get().to(get_address))
-                    .route("user/balance", web::get().to(get_balance))
-                    .route("user/transact", web::post().to(transact))
-                    .route("admin/deposit/{paymaster}", web::post().to(topup_paymaster_deposit))// the paymaster name
-                    .route("admin/balance/{entity}", web::get().to(admin_get_balance)) // entity can be a paymaster or the EOA
                     .route("metadata", web::get().to(get_metadata))
             )
     );
