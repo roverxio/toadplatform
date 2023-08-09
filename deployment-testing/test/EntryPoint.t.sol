@@ -102,26 +102,16 @@ contract EntryPointTest is TestHelper {
         entryPoint.unlockStake();
     }
 
-    // With stake of 2 eth
-    function _withStakeOf2EthSetup() private {
-        // accountOwner address is used in place ethers.signer address
-        vm.deal(accountOwner.addr, 10 ether);
-        entryPoint.addStake{value: 2 ether}(2);
-    }
-
     // Should report "staked" state
-    function test_StakedState(address signerAddress) public {
-        // add balance to temp address
-        vm.deal(signerAddress, 3 ether);
-        // set msg.sender to specific address
-        vm.prank(signerAddress);
-        entryPoint.addStake{value: 2 ether}(2);
+    function test_StakedState() public {
+        vm.prank(accountOwner.addr);
+        _withStakeOf2EthSetup();
 
-        assertEq(entryPoint.getDepositInfo(signerAddress).deposit, 0);
-        assertEq(entryPoint.getDepositInfo(signerAddress).staked, true);
-        assertEq(entryPoint.getDepositInfo(signerAddress).stake, 2 ether);
-        assertEq(entryPoint.getDepositInfo(signerAddress).unstakeDelaySec, 2);
-        assertEq(entryPoint.getDepositInfo(signerAddress).withdrawTime, 0);
+        assertEq(entryPoint.getDepositInfo(accountOwner.addr).deposit, 0);
+        assertEq(entryPoint.getDepositInfo(accountOwner.addr).staked, true);
+        assertEq(entryPoint.getDepositInfo(accountOwner.addr).stake, 2 ether);
+        assertEq(entryPoint.getDepositInfo(accountOwner.addr).unstakeDelaySec, 2);
+        assertEq(entryPoint.getDepositInfo(accountOwner.addr).withdrawTime, 0);
     }
 
     // should succeed to stake again
@@ -148,14 +138,6 @@ contract EntryPointTest is TestHelper {
         vm.stopPrank();
     }
 
-    // with unlocked stake
-    function _withUnlockedStakeSetup() private {
-        vm.deal(accountOwner.addr, 10 ether);
-
-        entryPoint.addStake{value: 2 ether}(2);
-        entryPoint.unlockStake();
-    }
-
     // should report as "not staked"
     function test_ReportAsNotStaked() public {
         vm.startPrank(accountOwner.addr);
@@ -173,8 +155,8 @@ contract EntryPointTest is TestHelper {
 
         uint48 withdrawTime1 = uint48(block.timestamp + globalUnstakeDelaySec);
         IStakeManager.DepositInfo memory info = entryPoint.getDepositInfo(accountOwner.addr);
-        /* 
-        The corresponding hardhat test case is dependent on running the previous test cases for 
+        /*
+        The corresponding hardhat test case is dependent on running the previous test cases for
         the stake to be 3 ether. However, on running this test case alone, the stake is 2 ether.
         */
         assertEq(info.stake, 2 ether);
@@ -207,16 +189,6 @@ contract EntryPointTest is TestHelper {
         vm.stopPrank();
     }
 
-    // after unstake delay
-    function _afterUnstakeDelaySetup() private {
-        vm.deal(accountOwner.addr, 10 ether);
-
-        entryPoint.addStake{value: 2 ether}(2);
-        entryPoint.unlockStake();
-        vm.warp(uint48(block.timestamp + 2));
-        payable(accountOwner.addr).transfer(0);
-    }
-
     // adding stake should reset "unlockStake"
     function test_ResetUnlockStakeOnAddingStake() public {
         vm.startPrank(accountOwner.addr);
@@ -227,8 +199,8 @@ contract EntryPointTest is TestHelper {
         payable(accountOwner.addr).transfer(0);
         entryPoint.addStake{value: 1 ether}(2);
         IStakeManager.DepositInfo memory info = entryPoint.getDepositInfo(accountOwner.addr);
-        /* 
-        The corresponding hardhat test case is dependent on running the previous test cases for 
+        /*
+        The corresponding hardhat test case is dependent on running the previous test cases for
         the stake to be 4 ether. However, on running this test case alone, the stake is 3 ether.
         */
         assertEq(info.stake, 3 ether);
@@ -279,11 +251,12 @@ contract EntryPointTest is TestHelper {
         assertEq(utils.getBalance(accountAddress1), 0);
         assertEq(account1.getDeposit(), 1 ether);
 
+        uint256 depositBefore = account1.getDeposit();
         vm.prank(accountOwner.addr);
         account1.withdrawDepositTo(payable(accountAddress1), 1 ether);
 
         assertEq(utils.getBalance(accountAddress1), 1 ether);
-        assertEq(account1.getDeposit(), 0);
+        assertEq(account1.getDeposit(), depositBefore - 1 ether);
     }
 
     //simulationValidation
@@ -1540,6 +1513,27 @@ contract EntryPointTest is TestHelper {
         op.sender = _accountAddr;
         op.paymasterAndData = abi.encodePacked(_paymasterAddr, timeRange);
         op = utils.signUserOp(op, owner.key, entryPointAddress, chainId);
+    }
+
+    // Stake Management
+    // With stake of 2 eth
+    function _withStakeOf2EthSetup() private {
+        // accountOwner address is used in place ethers.signer address
+        vm.deal(accountOwner.addr, 10 ether);
+        entryPoint.addStake{value: 2 ether}(2);
+    }
+
+    // with unlocked stake
+    function _withUnlockedStakeSetup() private {
+        _withStakeOf2EthSetup();
+        entryPoint.unlockStake();
+    }
+
+    // after unstake delay
+    function _afterUnstakeDelaySetup() private {
+        _withUnlockedStakeSetup();
+        vm.warp(uint48(block.timestamp + 2));
+        payable(accountOwner.addr).transfer(0);
     }
 
     // Set up
