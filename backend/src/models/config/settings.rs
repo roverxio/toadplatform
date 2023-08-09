@@ -22,6 +22,11 @@ pub struct Database {
 }
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct Urls {
+    pub signing_server: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct DefaultChain {
     pub chain: String,
     pub currency: String
@@ -29,6 +34,7 @@ pub struct DefaultChain {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Chain {
+    pub chain_id: u64,
     pub url: String,
     pub simple_account_factory_address: Address,
     pub usdc_address: Address,
@@ -58,6 +64,7 @@ pub struct Settings {
     pub paymaster_account_owner: Address,
     pub log: Log,
     pub database: Database,
+    pub urls: Urls,
     pub server: Server,
     pub default_chain: DefaultChain,
     pub chains: Map<String, Chain>,

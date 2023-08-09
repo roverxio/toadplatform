@@ -16,6 +16,7 @@ use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransactionResponse;
 use crate::provider::entrypoint_helper::{EntryPoint, get_entry_point_user_operation_payload};
+use crate::provider::http_client::HttpClient;
 use crate::provider::verifying_paymaster_helper::{get_verifying_paymaster_user_operation_payload, VerifyingPaymaster};
 use crate::provider::web3_provider::{ERC20, Simpleaccount, SimpleAccountFactory};
 
@@ -30,6 +31,7 @@ pub struct TransactionService {
     pub verifying_paymaster_signer: LocalWallet,
     pub wallet_singer: LocalWallet,
     pub signing_client: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
+    pub http_client: HttpClient,
 }
 
 impl TransactionService {
@@ -93,30 +95,20 @@ impl TransactionService {
             ..user_op0
         };
 
-        println!("user op1 ----> : {:?}", usr_op1);
-
         let hash = self.verifying_paymaster_provider.get_hash(get_verifying_paymaster_user_operation_payload(usr_op1.clone()), valid_until, valid_after).await.unwrap();
         let singed_hash = self.verifying_paymaster_signer.sign_message(&hash).await.unwrap().to_vec();
-
-        println!("hash -> {:?}", Bytes::from(hash));
-
         let paymaster_and_data_with_sign = [CONFIG.chains[&CONFIG.current_chain].verifying_paymaster_address.as_bytes(), data.as_ref(), &singed_hash].concat();
+        let signature = self.http_client.sign_message(usr_op1.clone(), format!("{:?}", self.entrypoint_provider.address().clone()), CONFIG.chains[&CONFIG.current_chain].chain_id.clone()).await.unwrap();
+
 
         // replace paymaster_and_data with hash
         let user_op2 = UserOperation {
             paymaster_and_data: Bytes::from(paymaster_and_data_with_sign),
+            signature,
             ..usr_op1
         };
 
-        println!("user op2 ---> : --> {:?}", user_op2);
-
-
-        let user_op3 = UserOperation {
-            signature: Bytes::from(self.wallet_singer.sign_typed_data(&user_op2).await.unwrap().to_vec()),
-            ..user_op2
-        };
-        println!("user op3 ---> : --> {:?}", user_op3);
-        let x = self.entrypoint_provider.handle_ops(vec![get_entry_point_user_operation_payload(user_op3)], CONFIG.account_owner).calldata().unwrap();
+        let x = self.entrypoint_provider.handle_ops(vec![get_entry_point_user_operation_payload(user_op2)], CONFIG.account_owner).calldata().unwrap();
         let tx = TransactionRequest::new().from(CONFIG.account_owner).to(CONFIG.chains[&CONFIG.current_chain].entrypoint_address).value(0).data(x.clone());
         let result = self.signing_client.send_transaction(tx, None).await;
         match result {
