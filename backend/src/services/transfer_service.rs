@@ -3,8 +3,7 @@ use std::sync::Arc;
 use ethers::abi::{encode, Token, Tokenizable};
 use ethers::middleware::signer::SignerMiddlewareError;
 use ethers::middleware::SignerMiddleware;
-use ethers::prelude::{ProviderError};
-use ethers::providers::{Http, Middleware, Provider};
+use ethers::providers::{Http, Middleware, Provider, ProviderError};
 use ethers::types::{Address, Bytes, TransactionRequest, U256};
 use ethers_signers::{LocalWallet, Signer};
 use serde_json::Value;
@@ -64,9 +63,7 @@ impl TransactionService {
             init_code = Bytes::from([CONFIG.chains[&CONFIG.current_chain].simple_account_factory_address.as_bytes(), create_account_payload.as_ref()].concat());
         }
 
-        println!("wallet_address: {:?}", wallet);
         let wallet_address: Address = wallet.wallet_address.parse().unwrap();
-        println!("entry point address {}", self.entrypoint_provider.address());
         let nonce = self.entrypoint_provider.get_nonce(wallet_address, U256::zero()).await.unwrap();
 
         let valid_until = u64::from_str("3735928559").unwrap();
@@ -77,18 +74,17 @@ impl TransactionService {
 
         let user_op0 = UserOperation {
             sender: wallet.wallet_address.parse().unwrap(),
-            nonce,
+            nonce: nonce.low_u64(),
             init_code,
             calldata,
-            call_gas_limit: U256::from(CONFIG.default_gas.call_gas_limit),
-            verification_gas_limit: U256::from(CONFIG.default_gas.verification_gas_limit),
-            pre_verification_gas: U256::from(CONFIG.default_gas.pre_verification_gas),
-            max_fee_per_gas: U256::from(CONFIG.default_gas.max_fee_per_gas),
-            max_priority_fee_per_gas: U256::from(CONFIG.default_gas.max_priority_fee_per_gas),
+            call_gas_limit: CONFIG.default_gas.call_gas_limit,
+            verification_gas_limit: CONFIG.default_gas.verification_gas_limit,
+            pre_verification_gas: CONFIG.default_gas.pre_verification_gas,
+            max_fee_per_gas: CONFIG.default_gas.max_fee_per_gas,
+            max_priority_fee_per_gas: CONFIG.default_gas.max_priority_fee_per_gas,
             paymaster_and_data: Bytes::from(paymaster_and_data),
             signature: Default::default(),
         };
-        println!("UserOperation: {:?}", user_op0);
         // sign user_operation using ecdsa
         let usr_op1 = UserOperation {
             signature: Bytes::from(self.verifying_paymaster_signer.sign_typed_data(&user_op0).await.unwrap().to_vec()),
@@ -98,18 +94,22 @@ impl TransactionService {
         let hash = self.verifying_paymaster_provider.get_hash(get_verifying_paymaster_user_operation_payload(usr_op1.clone()), valid_until, valid_after).await.unwrap();
         let singed_hash = self.verifying_paymaster_signer.sign_message(&hash).await.unwrap().to_vec();
         let paymaster_and_data_with_sign = [CONFIG.chains[&CONFIG.current_chain].verifying_paymaster_address.as_bytes(), data.as_ref(), &singed_hash].concat();
-        let signature = self.http_client.sign_message(usr_op1.clone(), format!("{:?}", self.entrypoint_provider.address().clone()), CONFIG.chains[&CONFIG.current_chain].chain_id.clone()).await.unwrap();
-
 
         // replace paymaster_and_data with hash
         let user_op2 = UserOperation {
             paymaster_and_data: Bytes::from(paymaster_and_data_with_sign),
-            signature,
             ..usr_op1
         };
+        let signature = self.http_client.sign_message(user_op2.clone(), format!("{:?}", self.entrypoint_provider.address().clone()), CONFIG.chains[&CONFIG.current_chain].chain_id.clone()).await.unwrap();
 
-        let x = self.entrypoint_provider.handle_ops(vec![get_entry_point_user_operation_payload(user_op2)], CONFIG.account_owner).calldata().unwrap();
+        let user_op3 = UserOperation {
+            signature,
+            ..user_op2
+        };
+
+        let x = self.entrypoint_provider.handle_ops(vec![get_entry_point_user_operation_payload(user_op3)], CONFIG.account_owner).calldata().unwrap();
         let tx = TransactionRequest::new().from(CONFIG.account_owner).to(CONFIG.chains[&CONFIG.current_chain].entrypoint_address).value(0).data(x.clone());
+
         let result = self.signing_client.send_transaction(tx, None).await;
         match result {
             Ok(hash) => {

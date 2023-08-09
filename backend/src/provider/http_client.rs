@@ -28,6 +28,8 @@ impl HttpClient {
             chain_id,
         };
 
+        println!("Signing payload: {:?}", data);
+
         let response = self.client
             .post(CONFIG.urls.signing_server.clone())
             .headers(headers)

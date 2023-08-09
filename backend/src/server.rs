@@ -5,7 +5,7 @@ use actix_web::web::Data;
 use dotenvy::dotenv;
 use env_logger::{Env, init_from_env};
 use ethers::middleware::SignerMiddleware;
-use ethers_signers::LocalWallet;
+use ethers_signers::{LocalWallet, Signer};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 use crate::{CONFIG, PROVIDER};
@@ -46,7 +46,7 @@ pub fn init_services(
     //signers
     let verifying_paymaster_signer: LocalWallet = std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY").expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set").parse::<LocalWallet>().unwrap();
     let wallet_signer: LocalWallet = std::env::var("WALLET_PRIVATE_KEY").expect("WALLET_PRIVATE_KEY must be set").parse::<LocalWallet>().unwrap();
-    let signing_client = SignerMiddleware::new(client.clone(), wallet_signer.clone());
+    let signing_client = SignerMiddleware::new(client.clone(), wallet_signer.clone().with_chain_id(CONFIG.chains[&CONFIG.current_chain].chain_id));
     // http client
     let http_client = HttpClient {
         client: reqwest::Client::builder()

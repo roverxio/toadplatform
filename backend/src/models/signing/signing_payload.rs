@@ -1,7 +1,7 @@
 use serde::Serialize;
 use crate::models::contract_interaction::user_operation::UserOperation;
 
-#[derive(Serialize)]
+#[derive(Serialize, Debug)]
 pub struct SigningPayload {
     pub user_operation: UserOperation,
     pub entrypoint_address: String,
