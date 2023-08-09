@@ -1243,7 +1243,7 @@ contract EntryPointTest is TestHelper {
         entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, beneficiary);
     }
 
-
+    // with paymaster (account with no eth)
     //should fail with nonexistent paymaster
     function test_NonExistentPaymaster() public {
         (Account memory accountOwner2,, bytes memory accountExecFromEntryPoint) = _withPaymasterSetUp();
