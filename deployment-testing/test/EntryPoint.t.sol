@@ -723,7 +723,9 @@ contract EntryPointTest is TestHelper {
         entryPoint.handleOps(ops, payable(beneficiary.addr));
     }
 
-    //should revert on signature failure
+    // Without paymaster (account pays in eth)
+    // #handleOps
+    // Should revert on signature failure
     function test_RevertOnSignatureFailure() public {
         Account memory wrong_owner = utils.createAddress("wrong_owner");
         UserOperation memory op = defaultOp;
@@ -865,8 +867,7 @@ contract EntryPointTest is TestHelper {
 
         (, bool success,,) = abi.decode(entries[2].data, (uint256, bool, uint256, uint256));
         assertFalse(success);
-        bool balanceGt1 = (beneficiary.balance > 1);
-        assertEq(balanceGt1, true);
+        assertGe(beneficiary.balance, 1);
     }
 
     //#handleOp (single)
@@ -932,7 +933,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.simulateValidation(op0) {}
         catch (bytes memory revertReason) {
             (bytes4 reason,) = utils.getDataFromEncoding(revertReason);
-            assertEq(utils.validationResultEvent(), reason);
+            assertEq(reason, utils.validationResultEvent());
         }
 
         UserOperation memory op1 = defaultOp;
@@ -1554,7 +1555,7 @@ contract EntryPointTest is TestHelper {
     //without paymaster (account pays in eth)
     //#handleOps
     function _handleOpsSetUp() public returns (TestCounter counter, bytes memory accountExecFromEntryPoint) {
-        counter = new TestCounter{salt: '123'}();
+        counter = new TestCounter{salt: bytes32(uint256(123))}();
         bytes memory count = abi.encodeWithSignature("count()");
         accountExecFromEntryPoint =
             abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
