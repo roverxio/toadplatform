@@ -1072,6 +1072,7 @@ contract EntryPointTest is TestHelper {
         assertEq(counter.counters(address(account2)), 1);
     }
 
+    // Aggregation Tests
     //should fail to execute aggregated account without an aggregator
     function test_FailToExecAggregateAccountWithoutAggregator() public {
         (address payable beneficiary,, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
@@ -1199,6 +1200,7 @@ contract EntryPointTest is TestHelper {
         assertEq(address(uint160(uint256(logs[12].topics[1]))), address(0));
     }
 
+    // execution ordering
     //simulateValidation should return aggregator and its stake
     function test_AggregatorAndStakeReturned() public {
         (TestSignatureAggregator aggregator, UserOperation memory userOp,) = _executionOrderingSetup();
@@ -1229,7 +1231,7 @@ contract EntryPointTest is TestHelper {
         (TestSignatureAggregator aggregator, UserOperation memory userOp, address payable beneficiary) =
             _executionOrderingSetup();
 
-        // returns defualt bytes, but not used
+        // returns default bytes, but not used
         aggregator.validateUserOpSignature(userOp);
         ops.push(userOp);
         bytes memory sig = aggregator.aggregateSignatures(ops);
@@ -1596,9 +1598,7 @@ contract EntryPointTest is TestHelper {
         try entryPoint.getSenderAddress(initCode) {}
         catch (bytes memory reason) {
             (, bytes memory data) = utils.getDataFromEncoding(reason);
-            assembly {
-                addr := mload(add(data, 0x20))
-            }
+            addr = abi.decode(data, (address));
         }
         vm.deal(addr, 0.1 ether);
 
