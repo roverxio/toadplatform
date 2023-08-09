@@ -18,9 +18,9 @@ function getUserOpHash(userOperation, entrypoint_address, chain_id) {
 function packUserOp(op) {
   return ethers.utils.defaultAbiCoder.encode(
       userOpType,
-      [op.sender, op.nonce, keccak256(op.init_code), keccak256(op.calldata),
-        op.call_gas_limit, op.verification_gas_limit, op.pre_verification_gas, op.max_fee_per_gas, op.max_priority_fee_per_gas,
-        keccak256(op.paymaster_and_data)])
+      [op.sender, op.nonce, keccak256(op.initCode), keccak256(op.calldata),
+        op.callGasLimit, op.verificationGasLimit, op.preVerificationGas, op.maxFeePerGas, op.maxPriorityFeePerGas,
+        keccak256(op.paymasterAndData)])
 }
 
 const signMessage = async (req, res, wallet) => {
