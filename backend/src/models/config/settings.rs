@@ -39,6 +39,7 @@ pub struct Chain {
     pub explorer_url: String,
     pub simple_account_factory_address: Address,
     pub usdc_address: Address,
+    pub currency: String,
     pub entrypoint_address: Address,
     pub verifying_paymaster_address: Address,
 }

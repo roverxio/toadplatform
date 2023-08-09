@@ -29,6 +29,7 @@ simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
 usdc_address = "0xFa38B962562DF7F9eeD9d8Db3cC261053EFC263B"
 entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
 verifying_paymaster_address = "0xe76cF38641112f77A474c467546Fb4b812e4d0F8"
+currency = "SepoliaETH"
 
 [chains.goerli]
 chain_id = 5
@@ -36,6 +37,7 @@ url = "https://goerli.infura.io/v3/"
 explorer_url = "https://goerli.etherscan.io/tx/"
 simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
 usdc_address = "0x07865c6e87b9f70255377e024ace6630c1eaa37f"
+currency = "GoerliETH"
 entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
 verifying_paymaster_address = "0xe76cF38641112f77A474c467546Fb4b812e4d0F8"
 
