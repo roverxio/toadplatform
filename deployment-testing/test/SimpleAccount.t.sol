@@ -21,18 +21,20 @@ contract SimpleAccountTest is TestHelper {
 
     // Owner should be able to call transfer
     function test_TransferByOwner() public {
-        vm.deal(accountAddress, 3 ether);
-        Account memory receiver = makeAccount("receiver");
+        (SimpleAccount account1, address accountAddress1) = createAccountWithFactory(1204, accountOwner.addr);
+        vm.deal(accountAddress1, 2 ether);
+        Account memory receiver = utils.createAddress("receiver");
         vm.prank(accountOwner.addr);
-        account.execute(receiver.addr, 1 ether, defaultBytes);
-        assertEq(utils.getBalance(accountAddress), 2 ether);
+        account1.execute(receiver.addr, 1 ether, defaultBytes);
+        assertEq(utils.getBalance(accountAddress1), 1 ether);
     }
 
     // Other account should not be able to call transfer
     function test_TransferByNonOwner(address receiver) public {
+        (SimpleAccount account1,) = createAccountWithFactory(1205, accountOwner.addr);
         vm.deal(accountAddress, 3 ether);
         vm.expectRevert("account: not Owner or EntryPoint");
-        account.execute(receiver, 1 ether, defaultBytes);
+        account1.execute(receiver, 1 ether, defaultBytes);
     }
 
     // #validateUserOp
