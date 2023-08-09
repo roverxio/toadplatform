@@ -1,7 +1,8 @@
-use actix_web::{error, web};
-use r2d2::{Pool, PooledConnection};
+use r2d2::Pool;
 use r2d2_sqlite::rusqlite::Statement;
 use r2d2_sqlite::SqliteConnectionManager;
+
+use crate::db::dao::connect::connect;
 
 #[derive(Clone)]
 pub struct WalletDao {
@@ -9,23 +10,15 @@ pub struct WalletDao {
 }
 
 impl WalletDao {
-    pub(crate) async fn update_wallet_deployed(&self, user_id: String) {
-        let conn = self.connect().await;
+    pub async fn update_wallet_deployed(&self, user_id: String) {
+        let conn = connect(self.pool.clone()).await;
 
         let mut stmt = conn.prepare("UPDATE users SET deployed = ? WHERE email = ?").unwrap();
         stmt.execute([true.to_string(), user_id]).unwrap();
     }
-}
-
-impl WalletDao {
-    pub async fn connect(&self) -> PooledConnection<SqliteConnectionManager> {
-        let pool1 = self.pool.clone();
-        let conn = web::block(move || pool1.get()).await.unwrap().map_err(error::ErrorInternalServerError).unwrap(); // <- create async connection (non-blocking
-        return conn;
-    }
 
     pub async fn get_wallet_address(&self, user_id: String) -> String {
-        let conn = self.connect().await;
+        let conn = connect(self.pool.clone()).await;
 
         let mut stmt = conn.prepare("SELECT * from users where email = ? limit 1").unwrap();
         let rows = Self::get_user(user_id, &mut stmt);
@@ -37,7 +30,7 @@ impl WalletDao {
     }
 
     pub async fn get_wallet(&self, user_id: String) -> Option<User> {
-        let conn = self.connect().await;
+        let conn = connect(self.pool.clone()).await;
         let mut stmt = conn.prepare("SELECT * from users where email = ? limit 1").unwrap();
         let rows = Self::get_user(user_id, &mut stmt);
 
@@ -53,7 +46,7 @@ impl WalletDao {
     }
 
     pub async fn create_wallet(&self, user_id: String, wallet_address: String, salt: String, deployed: bool) {
-        let conn = self.connect().await;
+        let conn = connect(self.pool.clone()).await;
 
         let mut stmt = conn.prepare("INSERT INTO users (email, wallet_address, salt, deployed) VALUES (?, ?, ?, ?)").unwrap();
         stmt.execute([user_id, wallet_address, salt, deployed.to_string()]).unwrap();

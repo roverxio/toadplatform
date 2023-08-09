@@ -1,5 +1,6 @@
 use std::str::FromStr;
 use std::sync::Arc;
+
 use ethers::abi::{encode, Token, Tokenizable};
 use ethers::middleware::signer::SignerMiddlewareError;
 use ethers::middleware::SignerMiddleware;
@@ -10,6 +11,7 @@ use serde_json::Value;
 
 use crate::CONFIG;
 use crate::db::dao::wallet_dao::{User, WalletDao};
+use crate::db::dao::transaction_dao::TransactionDao;
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::transfer::transfer_request::TransferRequest;
@@ -22,6 +24,7 @@ use crate::provider::web3_provider::{ERC20, Simpleaccount, SimpleAccountFactory}
 #[derive(Clone)]
 pub struct TransactionService {
     pub wallet_dao: WalletDao,
+    pub transaction_dao: TransactionDao,
     pub usdc_provider: ERC20<Provider<Http>>,
     pub entrypoint_provider: EntryPoint<Provider<Http>>,
     pub simple_account_provider: Simpleaccount<Provider<Http>>,
@@ -115,8 +118,8 @@ impl TransactionService {
         match result {
             Ok(hash) => {
                 println!("Transaction sent successfully. Hash: {:?}", hash);
-                txn_hash = hash.tx_hash().to_string();
-                // update database to update user's "deployed" to true
+                txn_hash = format!("{:?}", hash.tx_hash());
+                self.transaction_dao.create_transaction(txn_hash.clone(), wallet.wallet_address.clone()).await;
                 if !wallet.deployed {
                     self.wallet_dao.update_wallet_deployed(usr.to_string()).await;
                 }
@@ -203,10 +206,11 @@ impl TransactionService {
     }
 
     fn get_transfer_payload(&self, receiver: String, amount: String) -> Bytes {
-        let value = amount.parse::<U256>().unwrap();
         let target: Address = receiver.parse().unwrap();
+        let value: f64 = amount.parse().unwrap();
+        let usdc_amount = value * 1e6;
         self.usdc_provider
-            .transfer(target, value)
+            .transfer(target, U256::from(usdc_amount as u64))
             .calldata()
             .unwrap()
     }
@@ -220,9 +224,11 @@ impl TransactionService {
     }
 
     fn transfer_native(&self, receiver: String, amount: String) -> Bytes {
+        let value: f64 = amount.parse().unwrap();
+        let wei = value * 1e18;
         self.simple_account_provider.execute(
             receiver.parse().unwrap(),
-            amount.parse::<U256>().unwrap(),
+            U256::from(wei as u64),
             Bytes::from(vec![]),
         ).calldata().unwrap()
     }

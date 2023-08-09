@@ -9,6 +9,7 @@ use ethers_signers::{LocalWallet, Signer};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 use crate::{CONFIG, PROVIDER};
+use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
 
 use crate::models::config::server::Server;
@@ -58,6 +59,9 @@ pub fn init_services(
     let wallet_dao = WalletDao {
         pool: pool.clone(),
     };
+    let transaction_dao = TransactionDao {
+        pool: pool.clone(),
+    };
     // Services
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {
@@ -70,6 +74,7 @@ pub fn init_services(
     };
     let transfer_service = TransactionService {
         wallet_dao: wallet_dao.clone(),
+        transaction_dao: transaction_dao.clone(),
         usdc_provider: erc20_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
         simple_account_provider: simple_account_provider.clone(),
