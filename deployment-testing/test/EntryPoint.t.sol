@@ -1026,6 +1026,52 @@ contract EntryPointTest is TestHelper {
         }
     }
 
+    // batch multiple requests
+    // Should execute
+    function test_BatchMultipleRequestsShouldExecute() public {
+        //timeout feature is not implemented in these test cases
+        uint256 salt = 123;
+        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
+        Account memory accountOwner1 = utils.createAddress("accountOwner1");
+        Account memory accountOwner2 = utils.createAddress("accountOwner2");
+
+        TestCounter counter = new TestCounter();
+        bytes memory count = abi.encodeWithSignature("count()");
+        bytes memory accountExecFromEntryPoint =
+                            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
+        address account1 = simpleAccountFactory.getAddress(accountOwner1.addr, salt);
+        (SimpleAccount account2,) = createAccountWithFactory(1112, accountOwner2.addr);
+        vm.deal(account1, 1 ether);
+        vm.deal(address(account2), 1 ether);
+
+        UserOperation memory op1 = defaultOp;
+        op1.sender = account1;
+        op1.initCode = utils.getAccountInitCode(accountOwner1.addr, simpleAccountFactory, salt);
+        op1.callData = accountExecFromEntryPoint;
+        op1.callGasLimit = 2e6;
+        op1.verificationGasLimit = 2e6;
+        op1 = utils.signUserOp(op1, accountOwner1.key, entryPointAddress, chainId);
+        ops.push(op1);
+
+        UserOperation memory op2 = defaultOp;
+        op2.callData = accountExecFromEntryPoint;
+        op2.sender = address(account2);
+        op2.callGasLimit = 2e6;
+        op2.verificationGasLimit = 76000;
+        op2 = utils.signUserOp(op2, accountOwner2.key, entryPointAddress, chainId);
+        ops.push(op2);
+
+        vm.expectRevert();
+        entryPoint.simulateValidation{gas: 1e9}(op2);
+
+        vm.deal(op1.sender, 1 ether);
+        vm.deal(address(account2), 1 ether);
+
+        entryPoint.handleOps(ops, beneficiary);
+        assertEq(counter.counters(account1), 1);
+        assertEq(counter.counters(address(account2)), 1);
+    }
+
     //should fail to execute aggregated account without an aggregator
     function test_FailToExecAggregateAccountWithoutAggregator() public {
         (address payable beneficiary,, TestAggregatedAccount aggAccount,) = _aggregationTestsSetUp();
@@ -1195,50 +1241,6 @@ contract EntryPointTest is TestHelper {
         entryPoint.handleAggregatedOps{gas: 3e6}(opsPerAggregator, beneficiary);
     }
 
-    //batch multiple requests
-    function test_BatchMultipleRequestsShouldExecute() public {
-        //timeout feature is not implemented in these test cases
-        uint256 salt = 123;
-        address payable beneficiary = payable(utils.createAddress("beneficiary").addr);
-        Account memory accountOwner1 = utils.createAddress("accountOwner1");
-        Account memory accountOwner2 = utils.createAddress("accountOwner2");
-
-        TestCounter counter = new TestCounter();
-        bytes memory count = abi.encodeWithSignature("count()");
-        bytes memory accountExecFromEntryPoint =
-            abi.encodeWithSignature("execute(address,uint256,bytes)", address(counter), 0, count);
-        address account1 = simpleAccountFactory.getAddress(accountOwner1.addr, salt);
-        (SimpleAccount account2,) = createAccountWithFactory(1112, accountOwner2.addr);
-        vm.deal(account1, 1 ether);
-        vm.deal(address(account2), 1 ether);
-
-        UserOperation memory op1 = defaultOp;
-        op1.sender = account1;
-        op1.initCode = utils.getAccountInitCode(accountOwner1.addr, simpleAccountFactory, salt);
-        op1.callData = accountExecFromEntryPoint;
-        op1.callGasLimit = 2e6;
-        op1.verificationGasLimit = 2e6;
-        op1 = utils.signUserOp(op1, accountOwner1.key, entryPointAddress, chainId);
-        ops.push(op1);
-
-        UserOperation memory op2 = defaultOp;
-        op2.callData = accountExecFromEntryPoint;
-        op2.sender = address(account2);
-        op2.callGasLimit = 2e6;
-        op2.verificationGasLimit = 76000;
-        op2 = utils.signUserOp(op2, accountOwner2.key, entryPointAddress, chainId);
-        ops.push(op2);
-
-        vm.expectRevert();
-        entryPoint.simulateValidation{gas: 1e9}(op2);
-
-        vm.deal(op1.sender, 1 ether);
-        vm.deal(address(account2), 1 ether);
-
-        entryPoint.handleOps(ops, beneficiary);
-        assertEq(counter.counters(account1), 1);
-        assertEq(counter.counters(address(account2)), 1);
-    }
 
     //should fail with nonexistent paymaster
     function test_NonExistentPaymaster() public {
