@@ -40,33 +40,20 @@ contract SimpleAccountTest is TestHelper {
     // #validateUserOp
     // Should pay
     function test_Payment() public {
-        vm.deal(accountAddress, 0.2 ether);
-
-        UserOperation memory userOp = defaultOp;
-        userOp.sender = accountAddress;
-        userOp = utils.signUserOp(userOp, accountOwner.key, entryPointAddress, chainId);
-
-        uint256 expectedPay = gasPrice * (userOp.callGasLimit + userOp.verificationGasLimit);
-        bytes32 userOpHash = utils.getUserOpHash(userOp, entryPointAddress, chainId);
-        uint256 preBalance = utils.getBalance(accountAddress);
-
-        vm.prank(entryPointAddress);
-        account.validateUserOp{gas: gasPrice}(userOp, userOpHash, expectedPay);
-
-        uint256 postBalance = utils.getBalance(accountAddress);
+        (, SimpleAccount account1, uint256 preBalance, uint256 expectedPay) = _validateUserOpSetup();
+        uint256 postBalance = utils.getBalance(address(account1));
         assertEq(preBalance - postBalance, expectedPay);
     }
 
     // Should return NO_SIG_VALIDATION on wrong signature
     function test_WrongSignature() public {
+        (UserOperation memory op,,,) = _validateUserOpSetup();
         bytes32 zeroHash = 0x0000000000000000000000000000000000000000000000000000000000000000;
-        UserOperation memory op = defaultOp;
-        op.sender = accountAddress;
-        op.nonce = 1;
-        op = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
+        UserOperation memory op2 = op;
+        op2.nonce = 1;
 
         vm.prank(entryPointAddress);
-        uint256 deadline = account.validateUserOp(op, zeroHash, 0);
+        uint256 deadline = account.validateUserOp(op2, zeroHash, 0);
 
         assertEq(deadline, 1);
     }
@@ -80,5 +67,27 @@ contract SimpleAccountTest is TestHelper {
         assertEq(utils.isContract(testAccount), false);
         _factory.createAccount(newOwner.addr, 1207);
         assertEq(utils.isContract(testAccount), true);
+    }
+
+    function _validateUserOpSetup()
+        internal
+        returns (UserOperation memory op, SimpleAccount account1, uint256 preBalance, uint256 expectedPay)
+    {
+        Account memory newOwner = utils.createAddress("signer");
+
+        SimpleAccountFactory _factory = createFactory(1208);
+        account1 = _factory.createAccount(newOwner.addr, 1209);
+        vm.deal(address(account1), 0.2 ether);
+
+        op = defaultOp;
+        op.sender = address(account1);
+        op = utils.signUserOp(op, newOwner.key, entryPointAddress, chainId);
+
+        expectedPay = gasPrice * (op.callGasLimit + op.verificationGasLimit);
+        bytes32 userOpHash = utils.getUserOpHash(op, entryPointAddress, chainId);
+        preBalance = utils.getBalance(address(account1));
+
+        vm.prank(entryPointAddress);
+        account1.validateUserOp{gas: gasPrice}(op, userOpHash, expectedPay);
     }
 }
