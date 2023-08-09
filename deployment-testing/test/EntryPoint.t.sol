@@ -75,7 +75,7 @@ contract EntryPointTest is TestHelper {
     }
 
     // With stake of 2 eth
-    function _withStakeOf2EthSetup() public {
+    function _withStakeOf2EthSetup() private {
         // accountOwner address is used in place ethers.signer address
         vm.deal(accountOwner.addr, 10 ether);
         entryPoint.addStake{value: 2 ether}(2);
@@ -121,7 +121,7 @@ contract EntryPointTest is TestHelper {
     }
 
     // with unlocked stake
-    function _withUnlockedStakeSetup() public {
+    function _withUnlockedStakeSetup() private {
         vm.deal(accountOwner.addr, 10 ether);
 
         entryPoint.addStake{value: 2 ether}(2);
@@ -180,7 +180,7 @@ contract EntryPointTest is TestHelper {
     }
 
     // after unstake delay
-    function _afterUnstakeDelaySetup() public {
+    function _afterUnstakeDelaySetup() private {
         vm.deal(accountOwner.addr, 10 ether);
 
         entryPoint.addStake{value: 2 ether}(2);
