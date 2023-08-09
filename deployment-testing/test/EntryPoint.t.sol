@@ -65,8 +65,12 @@ contract EntryPointTest is TestHelper {
 
     // Stake Management testing
     // Should deposit for transfer into EntryPoint
-    function test_Deposit(address signerAddress) public {
-        entryPoint.depositTo{value: 1 ether}(signerAddress);
+    function test_Deposit() public {
+        address signerAddress = utils.createAddress("deposit_address").addr;
+        vm.deal(signerAddress, 1 ether);
+        vm.startPrank(signerAddress);
+        (bool success,) = payable(entryPointAddress).call{value: 1 ether}("");
+        assert(success);
 
         assertEq(entryPoint.balanceOf(signerAddress), 1 ether);
 
