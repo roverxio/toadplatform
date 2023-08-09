@@ -29,8 +29,8 @@ const signMessage = async (req, res, wallet) => {
   const chain_id = req.body.chain_id;
   let sig = null;
 
-  const message = arrayify(getUserOpHash(userOperation, entrypoint_address, chain_id));
   try {
+    const message = arrayify(getUserOpHash(userOperation, entrypoint_address, chain_id));
     sig = await wallet.signMessage(message);
   } catch (err) {
     console.log(err);
