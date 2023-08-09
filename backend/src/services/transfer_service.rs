@@ -54,9 +54,9 @@ impl TransactionService {
         }
         let calldata: Bytes;
         let mut init_code: Bytes = Bytes::from(vec![]);
-        if request.metadata.currency == "native" {
+        if request.metadata.currency.to_lowercase() == "native" {
             calldata = self.transfer_native(request.receiver, request.value);
-        } else if request.metadata.currency == "usdc" {
+        } else if request.metadata.currency.to_lowercase() == "usdc" {
             calldata = self.transfer_usdc(self.get_transfer_payload(request.receiver, request.value));
         } else {
             return Err(ApiError::NotFound("Currency not found".to_string()));
