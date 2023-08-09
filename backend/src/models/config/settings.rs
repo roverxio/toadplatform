@@ -36,6 +36,7 @@ pub struct DefaultChain {
 pub struct Chain {
     pub chain_id: u64,
     pub url: String,
+    pub explorer_url: String,
     pub simple_account_factory_address: Address,
     pub usdc_address: Address,
     pub entrypoint_address: Address,

@@ -9,6 +9,15 @@ pub struct WalletDao {
 }
 
 impl WalletDao {
+    pub(crate) async fn update_wallet_deployed(&self, user_id: String) {
+        let conn = self.connect().await;
+
+        let mut stmt = conn.prepare("UPDATE users SET deployed = ? WHERE email = ?").unwrap();
+        stmt.execute([true.to_string(), user_id]).unwrap();
+    }
+}
+
+impl WalletDao {
     pub async fn connect(&self) -> PooledConnection<SqliteConnectionManager> {
         let pool1 = self.pool.clone();
         let conn = web::block(move || pool1.get()).await.unwrap().map_err(error::ErrorInternalServerError).unwrap(); // <- create async connection (non-blocking

@@ -107,13 +107,19 @@ impl TransactionService {
             ..user_op2
         };
 
-        let x = self.entrypoint_provider.handle_ops(vec![get_entry_point_user_operation_payload(user_op3)], CONFIG.account_owner).calldata().unwrap();
-        let tx = TransactionRequest::new().from(CONFIG.account_owner).to(CONFIG.chains[&CONFIG.current_chain].entrypoint_address).value(0).data(x.clone());
+        let handle_ops_payload = self.entrypoint_provider.handle_ops(vec![get_entry_point_user_operation_payload(user_op3)], CONFIG.account_owner).calldata().unwrap();
+        let transaction = TransactionRequest::new().from(CONFIG.account_owner).to(CONFIG.chains[&CONFIG.current_chain].entrypoint_address).value(0).data(handle_ops_payload.clone());
+        let result = self.signing_client.send_transaction(transaction, None).await;
 
-        let result = self.signing_client.send_transaction(tx, None).await;
+        let mut txn_hash: String = "".to_string();
         match result {
             Ok(hash) => {
                 println!("Transaction sent successfully. Hash: {:?}", hash);
+                txn_hash = hash.tx_hash().to_string();
+                // update database to update user's "deployed" to true
+                if !wallet.deployed {
+                    self.wallet_dao.update_wallet_deployed(usr.to_string()).await;
+                }
             }
             Err(err) => {
                 match err {
@@ -190,9 +196,9 @@ impl TransactionService {
         }
 
         Ok(TransactionResponse {
-            transaction_hash: "hash".to_string(),
-            status: "success".to_string(),
-            explorer: "no".to_string(),
+            transaction_hash: txn_hash.clone(),
+            status: "pending".to_string(),
+            explorer: CONFIG.chains[&CONFIG.current_chain].explorer_url.clone() + &txn_hash.clone(),
         })
     }
 
