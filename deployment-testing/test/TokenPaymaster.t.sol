@@ -160,7 +160,7 @@ contract TokenPaymasterTest is TestHelper {
         assertEq(status, true);
         assertEq(actualTokenChargeEvents, actualTokenCharge);
         assertEq(actualTokenChargeEvents, expectedTokenCharge);
-        assertEq((int256(actualTokenPrice) / 1e26), (initialPriceToken / initialPriceEther));
+        assertEq((int256(actualTokenPrice) / int256(priceDenominator)), (initialPriceToken / initialPriceEther));
         // TODO: gas usage is more compared to AA testcases, why?
         // TODO: Calculate effective gas price  for transaction (temp value is used for assertion)
         assertApproxEqAbs(postOpGasCost / op.maxFeePerGas, 30000, 20000);
