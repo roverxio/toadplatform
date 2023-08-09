@@ -75,9 +75,10 @@ contract SimpleAccountTest is TestHelper {
     // Sanity: check deployer
     function test_Deployer() public {
         Account memory newOwner = utils.createAddress("new_owner");
-        address testAccount = simpleAccountFactory.getAddress(newOwner.addr, 123471);
+        SimpleAccountFactory _factory = createFactory(1206);
+        address testAccount = _factory.getAddress(newOwner.addr, 1207);
         assertEq(utils.isContract(testAccount), false);
-        simpleAccountFactory.createAccount(newOwner.addr, 123471);
+        _factory.createAccount(newOwner.addr, 1207);
         assertEq(utils.isContract(testAccount), true);
     }
 }
