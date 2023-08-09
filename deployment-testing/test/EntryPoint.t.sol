@@ -301,6 +301,7 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op = defaultOp;
         op.sender = utils.createAddress("randomAccount").addr;
         op.callGasLimit = 1000;
+        op.verificationGasLimit = 1000;
         op.maxFeePerGas = 0;
 
         UserOperation memory op1 = utils.signUserOp(op, accountOwner.key, entryPointAddress, chainId);
@@ -322,7 +323,7 @@ contract EntryPointTest is TestHelper {
     }
 
     /// @notice 5. Should succeed if validUserOp succeeds: TBD
-    function test_shouldSucceedifUserOpSucceeds() public {
+    function test_shouldSucceedIfUserOpSucceeds() public {
         IEntryPoint.ReturnInfo memory returnInfo;
         address account1;
         Account memory accountOwner1 = utils.createAddress("accountOwner1");
@@ -339,11 +340,12 @@ contract EntryPointTest is TestHelper {
         UserOperation memory op1 = utils.signUserOp(op, accountOwner1.key, entryPointAddress, chainId);
         try entryPoint.simulateValidation(op1) {}
         catch (bytes memory revertReason) {
-            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
+            (bytes4 sig, bytes memory data) = utils.getDataFromEncoding(revertReason);
             (returnInfo,,,) = abi.decode(
                 data,
                 (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
             );
+            assertEq(sig, utils.validationResultEvent());
         }
     }
 
@@ -396,8 +398,8 @@ contract EntryPointTest is TestHelper {
             );
         }
 
-        assertEq(senderInfo.stake, 123);
-        assertEq(senderInfo.unstakeDelaySec, 3);
+        assertEq(senderInfo.stake, stakeValue);
+        assertEq(senderInfo.unstakeDelaySec, unstakeDelay);
     }
 
     /// @notice 8. Should prevent overflows: fail if any numeric value is more than 120 bits
@@ -430,7 +432,7 @@ contract EntryPointTest is TestHelper {
     }
 
     /// @notice 10. Should report failure on insufficient verificationGas for creation
-    function test_shouldReportFailureOnInsufficentVerificationGas() public {
+    function test_shouldReportFailureOnInsufficientVerificationGas() public {
         Account memory accountOwner1 = utils.createAddress("accountOwner1");
         address addr;
         bytes memory initCode = utils.getAccountInitCode(accountOwner1.addr, simpleAccountFactory, 0);
@@ -439,9 +441,7 @@ contract EntryPointTest is TestHelper {
         catch (bytes memory reason) {
             require(reason.length >= 4);
             (, bytes memory data) = utils.getDataFromEncoding(reason);
-            assembly {
-                addr := mload(add(data, 0x20))
-            }
+            addr = abi.decode(data, (address));
         }
         UserOperation memory op = defaultOp;
         op.sender = addr;
@@ -487,11 +487,12 @@ contract EntryPointTest is TestHelper {
         vm.deal(op1.sender, 1 ether);
         try entryPoint.simulateValidation(op1) {}
         catch (bytes memory revertReason) {
-            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
+            (bytes4 sig, bytes memory data) = utils.getDataFromEncoding(revertReason);
             (returnInfo,,,) = abi.decode(
                 data,
                 (IEntryPoint.ReturnInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo, IStakeManager.StakeInfo)
             );
+            assertEq(sig, utils.validationResultEvent());
         }
     }
 
