@@ -3,7 +3,6 @@ pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
 import "../src/EntryPoint.sol";
-import "../src/ImmutableCreate2Factory.sol";
 
 contract EntryPointScript is Script {
     function setUp() public {}
