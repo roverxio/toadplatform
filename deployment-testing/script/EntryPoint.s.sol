@@ -10,6 +10,7 @@ contract EntryPointScript is Script {
 
     function run() public {
         // provider is anvil
+        // deployerPrivateKey is used instead of hardhat signer address `from`
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
         // create2 deployer exists on local fork of sepolia
@@ -17,6 +18,8 @@ contract EntryPointScript is Script {
         // gas cannot be used with new
         EntryPoint entryPoint = new EntryPoint{salt: bytes32(uint256(1))}();
         console.log("entrypoint addr", address(entryPoint));
+
+        // the commented out code, used for deploying SimpleAccount and TestCounter is not implemented
 
         vm.stopBroadcast();
     }
