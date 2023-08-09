@@ -2,22 +2,22 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import "../src/EntryPoint.sol";
 import "../src/SimpleAccountFactory.sol";
+import "../src/EntryPoint.sol";
 
 contract SimpleAccountFactoryScript is Script {
-    function setUp() public {
-
-    }
+    function setUp() public {}
 
     function run() public {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        address payable epAddress = payable(0xB9b7Aa6cE769Ce26867Dac898d1d37737176532E);
-        EntryPoint ep = EntryPoint(epAddress);
+        // entrypoint address needs to payable
+        address payable entrypointAddress = payable(vm.envAddress("ENTRYPOINT_ADDRESS"));
+        EntryPoint entrypoint = EntryPoint(entrypointAddress);
 
-        new SimpleAccountFactory{salt: bytes32(uint256(3))}(ep);
+        SimpleAccountFactory factory = new SimpleAccountFactory{salt: bytes32(uint256(1))}(entrypoint);
+        console.log("SimpleAccountFactory addr", address(factory));
 
         vm.stopBroadcast();
     }
