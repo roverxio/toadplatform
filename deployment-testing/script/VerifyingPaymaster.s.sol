@@ -2,11 +2,11 @@
 pragma solidity ^0.8.13;
 
 import "forge-std/Script.sol";
-import "../src/SimpleAccountFactory.sol";
+import "../src/VerifyingPaymaster.sol";
 import "../src/EntryPoint.sol";
 import "./Utilities.sol";
 
-contract SimpleAccountFactoryScript is Script {
+contract VerifyingPaymasterScript is Script {
     address internal entryPointAddress;
     EntryPoint internal entryPoint;
     uint256 internal deployerPrivateKey;
@@ -28,11 +28,12 @@ contract SimpleAccountFactoryScript is Script {
     }
 
     function run() public {
-        uint256 salt = vm.envUint("SIMPLE_ACCOUNT_FACTORY_SALT");
+        address from = address(vm.addr(deployerPrivateKey));
+        uint256 salt = vm.envUint("VERIFYING_PAYMASTER_SALT");
         vm.startBroadcast(deployerPrivateKey);
 
-        SimpleAccountFactory factory = new SimpleAccountFactory{salt: bytes32(uint256(salt))}(entryPoint);
-        console.log("SimpleAccountFactory addr", address(factory));
+        VerifyingPaymaster verifyingPaymaster = new VerifyingPaymaster{salt: bytes32(uint256(salt))}(entryPoint, from);
+        console.log("VerifyingPaymaster addr", address(verifyingPaymaster));
 
         vm.stopBroadcast();
     }
