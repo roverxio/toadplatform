@@ -21,9 +21,9 @@ contract VerifyingPaymasterScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // entrypoint address needs to payable
-        EntryPoint entrypoint = EntryPoint(payable(entryPointAddress));
+        EntryPoint entryPoint = EntryPoint(payable(entryPointAddress));
 
-        VerifyingPaymaster verifyingPaymaster = new VerifyingPaymaster{salt: bytes32(uint256(salt))}(entrypoint, from);
+        VerifyingPaymaster verifyingPaymaster = new VerifyingPaymaster{salt: bytes32(uint256(salt))}(entryPoint, from);
         console.log("VerifyingPaymaster addr", address(verifyingPaymaster));
 
         vm.stopBroadcast();

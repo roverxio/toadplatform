@@ -20,9 +20,9 @@ contract SimpleAccountFactoryScript is Script {
         vm.startBroadcast(deployerPrivateKey);
 
         // entrypoint address needs to payable
-        EntryPoint entrypoint = EntryPoint(payable(entryPointAddress));
+        EntryPoint entryPoint = EntryPoint(payable(entryPointAddress));
 
-        SimpleAccountFactory factory = new SimpleAccountFactory{salt: bytes32(uint256(salt))}(entrypoint);
+        SimpleAccountFactory factory = new SimpleAccountFactory{salt: bytes32(uint256(salt))}(entryPoint);
         console.log("SimpleAccountFactory addr", address(factory));
 
         vm.stopBroadcast();
