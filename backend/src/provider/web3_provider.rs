@@ -1,9 +1,7 @@
 use std::sync::Arc;
 
-use ethers::{
-    providers::{Http, Provider},
-};
 use ethers::prelude::abigen;
+use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 
 use crate::CONFIG;
@@ -20,13 +18,23 @@ impl Web3Provider {
         provider
     }
 
-    pub fn get_simple_account_factory_abi(current_chain: &str, client: Arc<Provider<Http>>) -> SimpleAccountFactory<Provider<Http>> {
-        let contract: SimpleAccountFactory<Provider<Http>> = SimpleAccountFactory::new(CONFIG.chains[current_chain].simple_account_factory_address, client);
+    pub fn get_simple_account_factory_abi(
+        current_chain: &str,
+        client: Arc<Provider<Http>>,
+    ) -> SimpleAccountFactory<Provider<Http>> {
+        let contract: SimpleAccountFactory<Provider<Http>> = SimpleAccountFactory::new(
+            CONFIG.chains[current_chain].simple_account_factory_address,
+            client,
+        );
         contract
     }
 
-    pub fn get_erc20_abi(current_chain: &str, client: Arc<Provider<Http>>) -> ERC20<Provider<Http>> {
-        let contract: ERC20<Provider<Http>> = ERC20::new(CONFIG.chains[current_chain].usdc_address, client);
+    pub fn get_erc20_abi(
+        current_chain: &str,
+        client: Arc<Provider<Http>>,
+    ) -> ERC20<Provider<Http>> {
+        let contract: ERC20<Provider<Http>> =
+            ERC20::new(CONFIG.chains[current_chain].usdc_address, client);
         contract
     }
 

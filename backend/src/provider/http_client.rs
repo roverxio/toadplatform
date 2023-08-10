@@ -1,10 +1,10 @@
-use std::error::Error;
-use ethers::types::Bytes;
-use reqwest;
-use crate::CONFIG;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::signing::signed_message::SignedPayload;
 use crate::models::signing::signing_payload::SigningPayload;
+use crate::CONFIG;
+use ethers::types::Bytes;
+use reqwest;
+use std::error::Error;
 
 #[derive(Clone)]
 pub struct HttpClient {
@@ -18,7 +18,6 @@ impl HttpClient {
         entry_point: String,
         chain_id: u64,
     ) -> Result<Bytes, Box<dyn Error>> {
-
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert("Content-Type", "application/json".parse()?);
 
@@ -28,7 +27,8 @@ impl HttpClient {
             chain_id,
         };
 
-        let response = self.client
+        let response = self
+            .client
             .post(CONFIG.urls.signing_server.clone())
             .headers(headers)
             .json(&data)

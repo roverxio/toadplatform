@@ -23,7 +23,12 @@ where
 }
 
 pub fn get_user(req: HttpRequest) -> String {
-    req.headers().get(HeaderName::from_static("user")).unwrap().to_str().unwrap().to_string()
+    req.headers()
+        .get(HeaderName::from_static("user"))
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string()
 }
 
 pub fn get_hash(s: String) -> u64 {

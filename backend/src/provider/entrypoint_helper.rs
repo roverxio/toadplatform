@@ -1,22 +1,26 @@
-use std::sync::Arc;
-use ethers::types::{U256};
-use ethers::{
-    providers::{Http, Provider},
-};
-use ethers::contract::abigen;
 use crate::CONFIG;
+use ethers::contract::abigen;
+use ethers::providers::{Http, Provider};
+use ethers::types::U256;
+use std::sync::Arc;
 
 use crate::models::contract_interaction;
 
 abigen!(EntryPoint, "abi/Entrypoint.json");
 
-pub fn get_entrypoint_abi(current_chain: &str, client: Arc<Provider<Http>>) -> EntryPoint<Provider<Http>> {
-    let contract: EntryPoint<Provider<Http>> = EntryPoint::new(CONFIG.chains[current_chain].entrypoint_address, client);
+pub fn get_entrypoint_abi(
+    current_chain: &str,
+    client: Arc<Provider<Http>>,
+) -> EntryPoint<Provider<Http>> {
+    let contract: EntryPoint<Provider<Http>> =
+        EntryPoint::new(CONFIG.chains[current_chain].entrypoint_address, client);
     contract
 }
 
 // UserOperation is local to EntryPoint
-pub fn get_entry_point_user_operation_payload(user_op: contract_interaction::user_operation::UserOperation) -> UserOperation {
+pub fn get_entry_point_user_operation_payload(
+    user_op: contract_interaction::user_operation::UserOperation,
+) -> UserOperation {
     UserOperation {
         sender: user_op.sender,
         nonce: U256::from(user_op.nonce),

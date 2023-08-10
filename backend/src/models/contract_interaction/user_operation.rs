@@ -15,5 +15,5 @@ pub struct UserOperation {
     pub max_fee_per_gas: u64,
     pub max_priority_fee_per_gas: u64,
     pub paymaster_and_data: Bytes,
-    pub signature: Bytes
+    pub signature: Bytes,
 }
