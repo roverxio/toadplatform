@@ -37,19 +37,15 @@ contract VerifyingPaymasterTest is TestHelper {
         utils = new Utilities();
 
         // timeout feature is not implemented
-        entryPoint = utils.deployEntryPoint(123456);
-        entryPointAddress = address(entryPoint);
+        deployEntryPoint(1301);
+        createAccount(1302, 1303);
 
-        offChainSigner = createAddress("offchainSigner");
-        accountOwner = createAddress("accountOwner");
+        offChainSigner = utils.createAddress("offChainSigner");
+        accountOwner = utils.createAddress("accountOwner");
 
-        paymaster = new VerifyingPaymaster(entryPoint, offChainSigner.addr);
+        paymaster = new VerifyingPaymaster{salt: bytes32(uint256(1304))}(entryPoint, offChainSigner.addr);
         paymaster.addStake{value: 2 ether}(1);
         entryPoint.depositTo{value: 1 ether}(address(paymaster));
-
-        (account, simpleAccountFactory) =
-            utils.createAccountWithEntryPoint(accountOwner.addr, entryPoint, simpleAccountFactory);
-        accountAddress = address(account);
     }
 
     //#parsePaymasterAndData
@@ -67,52 +63,31 @@ contract VerifyingPaymasterTest is TestHelper {
     //#validatePaymasterUserOp
     //should reject on no signature
     function test_RejectOnNoSignature() public {
-        UserOperation memory userOp = _defaultOp;
+        UserOperation memory userOp = defaultOp;
         userOp.sender = accountAddress;
         userOp.paymasterAndData =
             abi.encodePacked(address(paymaster), abi.encode(MOCK_VALID_UNTIL, MOCK_VALID_AFTER), "0x1234");
-        userOp = signUserOp(userOp, entryPointAddress, chainId);
+        userOp = utils.signUserOp(userOp, accountOwner.key, entryPointAddress, chainId);
 
         vm.expectRevert(
-            abi.encodeWithSignature(
-                "FailedOp(uint256,string)",
-                0,
-                "AA33 reverted: VerifyingPaymaster: invalid signature length in paymasterAndData"
-            )
+            utils.failedOp(0, "AA33 reverted: VerifyingPaymaster: invalid signature length in paymasterAndData")
         );
         entryPoint.simulateValidation(userOp);
     }
 
     //should reject on invalid signature
     function test_RejectOnInvalidSignature() public {
-        UserOperation memory userOp = _defaultOp;
+        UserOperation memory userOp = defaultOp;
         userOp.sender = accountAddress;
         userOp.paymasterAndData = abi.encodePacked(
             address(paymaster),
             abi.encode(MOCK_VALID_UNTIL, MOCK_VALID_AFTER),
             hex"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         );
-        userOp = signUserOp(userOp, entryPointAddress, chainId);
+        userOp = utils.signUserOp(userOp, accountOwner.key, entryPointAddress, chainId);
 
-        vm.expectRevert(
-            abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA33 reverted: ECDSA: invalid signature length")
-        );
+        vm.expectRevert(utils.failedOp(0, "AA33 reverted: ECDSA: invalid signature length"));
         entryPoint.simulateValidation(userOp);
-    }
-
-    //with wrong signature
-    function _withWrongSignatureSetup()
-        public
-        returns (UserOperation memory wrongSigUserOp, address payable beneficiary)
-    {
-        beneficiary = payable(makeAddr("beneficiary"));
-        bytes memory sig = signMessage("0xdead", offChainSigner.key);
-
-        wrongSigUserOp = _defaultOp;
-        wrongSigUserOp.sender = accountAddress;
-        wrongSigUserOp.paymasterAndData =
-            abi.encodePacked(address(paymaster), abi.encode(MOCK_VALID_UNTIL, MOCK_VALID_AFTER), sig);
-        wrongSigUserOp = signUserOp(wrongSigUserOp, entryPointAddress, chainId);
     }
 
     //should return signature error (no revert) on wrong signer signature
@@ -121,7 +96,7 @@ contract VerifyingPaymasterTest is TestHelper {
 
         try entryPoint.simulateValidation(wrongSigUserOp) {}
         catch (bytes memory revertReason) {
-            bytes memory data = utils.getDataFromEncoding(revertReason);
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
             (ReturnInfo memory returnInfo,,,) = abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
             assertEq(returnInfo.sigFailed, true);
         }
@@ -132,35 +107,51 @@ contract VerifyingPaymasterTest is TestHelper {
         (UserOperation memory wrongSigUserOp, address payable beneficiary) = _withWrongSignatureSetup();
         ops.push(wrongSigUserOp);
 
-        vm.expectRevert(abi.encodeWithSignature("FailedOp(uint256,string)", 0, "AA34 signature error"));
+        vm.expectRevert(utils.failedOp(0, "AA34 signature error"));
         entryPoint.handleOps(ops, beneficiary);
     }
 
     //succeed with valid signature
     function test_SucceedWithValidSignature() public {
-        UserOperation memory userOp1 = _defaultOp;
+        UserOperation memory userOp1 = defaultOp;
         userOp1.sender = accountAddress;
         userOp1.paymasterAndData = abi.encodePacked(
             address(paymaster),
             abi.encode(MOCK_VALID_UNTIL, MOCK_VALID_AFTER),
             hex"00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
         );
-        userOp1 = signUserOp(userOp1, entryPointAddress, chainId);
+        userOp1 = utils.signUserOp(userOp1, accountOwner.key, entryPointAddress, chainId);
         bytes32 hash = paymaster.getHash(userOp1, MOCK_VALID_UNTIL, MOCK_VALID_AFTER);
-        bytes memory sig = signMessage(hash, offChainSigner.key);
+        bytes memory sig = utils.signMessage(hash, offChainSigner.key);
 
         UserOperation memory userOp = userOp1;
         userOp.paymasterAndData =
             abi.encodePacked(address(paymaster), abi.encode(MOCK_VALID_UNTIL, MOCK_VALID_AFTER), sig);
-        userOp = signUserOp(userOp, entryPointAddress, chainId);
+        userOp = utils.signUserOp(userOp, accountOwner.key, entryPointAddress, chainId);
 
         try entryPoint.simulateValidation(userOp) {}
         catch (bytes memory revertReason) {
-            bytes memory data = utils.getDataFromEncoding(revertReason);
+            (, bytes memory data) = utils.getDataFromEncoding(revertReason);
             (ReturnInfo memory returnInfo,,,) = abi.decode(data, (ReturnInfo, StakeInfo, StakeInfo, StakeInfo));
             assertEq(returnInfo.sigFailed, false);
             assertEq(returnInfo.validAfter, MOCK_VALID_AFTER);
             assertEq(returnInfo.validUntil, MOCK_VALID_UNTIL);
         }
+    }
+
+    //with wrong signature
+    function _withWrongSignatureSetup()
+        public
+        returns (UserOperation memory wrongSigUserOp, address payable beneficiary)
+    {
+        beneficiary = payable(makeAddr("beneficiary"));
+        bytes memory sig = utils.signMessage("0xdead", offChainSigner.key);
+
+        wrongSigUserOp = defaultOp;
+        wrongSigUserOp.sender = accountAddress;
+        wrongSigUserOp.paymasterAndData =
+            abi.encodePacked(address(paymaster), abi.encode(MOCK_VALID_UNTIL, MOCK_VALID_AFTER), sig);
+        console.logUint(accountOwner.key);
+        wrongSigUserOp = utils.signUserOp(wrongSigUserOp, accountOwner.key, entryPointAddress, chainId);
     }
 }

@@ -46,7 +46,7 @@ contract Utilities is Test {
         return op;
     }
 
-    function signMessage(bytes32 message, uint256 privateKey) internal pure returns (bytes memory) {
+    function signMessage(bytes32 message, uint256 privateKey) public pure returns (bytes memory) {
         bytes32 digest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", message));
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(privateKey, digest);
         return abi.encodePacked(r, s, v);
