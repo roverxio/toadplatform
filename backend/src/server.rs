@@ -4,12 +4,18 @@ use actix_web::middleware::Logger;
 use actix_web::web::Data;
 use dotenvy::dotenv;
 use env_logger::{Env, init_from_env};
+use ethers::middleware::SignerMiddleware;
+use ethers_signers::{LocalWallet, Signer};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 use crate::{CONFIG, PROVIDER};
+use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
 
 use crate::models::config::server::Server;
+use crate::provider::entrypoint_helper::get_entrypoint_abi;
+use crate::provider::http_client::HttpClient;
+use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
 use crate::provider::web3_provider::Web3Provider;
 use crate::routes::routes;
 use crate::services::admin_service::AdminService;
@@ -37,8 +43,25 @@ pub fn init_services(
     let client = Arc::new(PROVIDER.clone());
     let simple_account_factory_provider = Web3Provider::get_simple_account_factory_abi(&CONFIG.current_chain, client.clone());
     let erc20_provider = Web3Provider::get_erc20_abi(&CONFIG.current_chain, client.clone());
+    let entrypoint_provider = get_entrypoint_abi(&CONFIG.current_chain, client.clone());
+    let simple_account_provider = Web3Provider::get_simpleaccount_abi(client.clone());
+    let verifying_paymaster_provider = get_verifying_paymaster_abi(&CONFIG.current_chain, client.clone());
+    //signers
+    let verifying_paymaster_signer: LocalWallet = std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY").expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set").parse::<LocalWallet>().unwrap();
+    let wallet_signer: LocalWallet = std::env::var("WALLET_PRIVATE_KEY").expect("WALLET_PRIVATE_KEY must be set").parse::<LocalWallet>().unwrap();
+    let signing_client = SignerMiddleware::new(client.clone(), wallet_signer.clone().with_chain_id(CONFIG.chains[&CONFIG.current_chain].chain_id));
+    // http client
+    let http_client = HttpClient {
+        client: reqwest::Client::builder()
+        .connect_timeout(std::time::Duration::from_secs(30))
+        .build().unwrap(),
+    };
+
     //daos
     let wallet_dao = WalletDao {
+        pool: pool.clone(),
+    };
+    let transaction_dao = TransactionDao {
         pool: pool.clone(),
     };
     // Services
@@ -51,7 +74,19 @@ pub fn init_services(
         wallet_dao: wallet_dao.clone(),
         erc20_provider: erc20_provider.clone(),
     };
-    let transfer_service = TransactionService {};
+    let transfer_service = TransactionService {
+        wallet_dao: wallet_dao.clone(),
+        transaction_dao: transaction_dao.clone(),
+        usdc_provider: erc20_provider.clone(),
+        entrypoint_provider: entrypoint_provider.clone(),
+        simple_account_provider: simple_account_provider.clone(),
+        simple_account_factory_provider: simple_account_factory_provider.clone(),
+        verifying_paymaster_provider: verifying_paymaster_provider.clone(),
+        verifying_paymaster_signer: verifying_paymaster_signer.clone(),
+        wallet_singer: wallet_signer.clone(),
+        signing_client: signing_client.clone(),
+        http_client: http_client.clone(),
+    };
     let admin_service = AdminService {};
     let metadata_service = MetadataService {};
 

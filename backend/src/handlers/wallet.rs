@@ -25,7 +25,6 @@ pub async fn get_balance(service: Data<BalanceService>, body: Query<BalanceReque
 }
 
 pub async fn transact(service: Data<TransactionService>, body: Json<TransferRequest>, req: HttpRequest) -> Result<Json<BaseResponse<TransactionResponse>>, ApiError> {
-    println!("user -> {}", get_user(req));
-    let data = service.transfer_funds(body.into_inner())?;
+    let data = service.transfer_funds(body.into_inner(), &get_user(req)).await?;
     respond_json(data)
 }

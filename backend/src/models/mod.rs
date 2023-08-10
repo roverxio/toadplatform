@@ -5,3 +5,5 @@ pub mod wallet;
 pub mod transfer;
 pub mod admin;
 pub mod metadata;
+pub mod contract_interaction;
+pub mod signing;
