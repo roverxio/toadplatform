@@ -32,8 +32,7 @@ contract VerifyingPaymasterScript is Script {
         uint256 salt = vm.envUint("VERIFYING_PAYMASTER_SALT");
         vm.startBroadcast(deployerPrivateKey);
 
-        VerifyingPaymaster verifyingPaymaster =
-            new VerifyingPaymaster{salt: bytes32(uint256(salt))}(entryPoint, from);
+        VerifyingPaymaster verifyingPaymaster = new VerifyingPaymaster{salt: bytes32(uint256(salt))}(entryPoint, from);
         console.log("VerifyingPaymaster addr", address(verifyingPaymaster));
 
         vm.stopBroadcast();
