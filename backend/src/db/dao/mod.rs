@@ -1,3 +1,3 @@
-pub mod wallet_dao;
-pub mod transaction_dao;
 mod connect;
+pub mod transaction_dao;
+pub mod wallet_dao;

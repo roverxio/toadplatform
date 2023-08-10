@@ -4,4 +4,3 @@ use serde::{Deserialize, Serialize};
 pub struct HelloWorld {
     pub name: String,
 }
-

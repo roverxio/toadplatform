@@ -9,17 +9,19 @@ use ethers::types::{Address, Bytes, TransactionRequest, U256};
 use ethers_signers::{LocalWallet, Signer};
 use serde_json::Value;
 
-use crate::CONFIG;
-use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::db::dao::transaction_dao::TransactionDao;
+use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransactionResponse;
-use crate::provider::entrypoint_helper::{EntryPoint, get_entry_point_user_operation_payload};
+use crate::provider::entrypoint_helper::{get_entry_point_user_operation_payload, EntryPoint};
 use crate::provider::http_client::HttpClient;
-use crate::provider::verifying_paymaster_helper::{get_verifying_paymaster_user_operation_payload, VerifyingPaymaster};
-use crate::provider::web3_provider::{ERC20, Simpleaccount, SimpleAccountFactory};
+use crate::provider::verifying_paymaster_helper::{
+    get_verifying_paymaster_user_operation_payload, VerifyingPaymaster,
+};
+use crate::provider::web3_provider::{SimpleAccountFactory, Simpleaccount, ERC20};
+use crate::CONFIG;
 
 #[derive(Clone)]
 pub struct TransactionService {
@@ -57,23 +59,50 @@ impl TransactionService {
         if request.metadata.currency.to_lowercase() == "native" {
             calldata = self.transfer_native(request.receiver, request.value);
         } else if request.metadata.currency.to_lowercase() == "usdc" {
-            calldata = self.transfer_usdc(self.get_transfer_payload(request.receiver, request.value));
+            calldata =
+                self.transfer_usdc(self.get_transfer_payload(request.receiver, request.value));
         } else {
             return Err(ApiError::NotFound("Currency not found".to_string()));
         }
         if !wallet.deployed {
-            let create_account_payload = self.simple_account_factory_provider.create_account(CONFIG.account_owner, U256::from_dec_str(&wallet.salt).unwrap()).calldata().unwrap();
-            init_code = Bytes::from([CONFIG.chains[&CONFIG.current_chain].simple_account_factory_address.as_bytes(), create_account_payload.as_ref()].concat());
+            let create_account_payload = self
+                .simple_account_factory_provider
+                .create_account(
+                    CONFIG.account_owner,
+                    U256::from_dec_str(&wallet.salt).unwrap(),
+                )
+                .calldata()
+                .unwrap();
+            init_code = Bytes::from(
+                [
+                    CONFIG.chains[&CONFIG.current_chain]
+                        .simple_account_factory_address
+                        .as_bytes(),
+                    create_account_payload.as_ref(),
+                ]
+                .concat(),
+            );
         }
 
         let wallet_address: Address = wallet.wallet_address.parse().unwrap();
-        let nonce = self.entrypoint_provider.get_nonce(wallet_address, U256::zero()).await.unwrap();
+        let nonce = self
+            .entrypoint_provider
+            .get_nonce(wallet_address, U256::zero())
+            .await
+            .unwrap();
 
         let valid_until = u64::from_str("3735928559").unwrap();
         let valid_after = u64::from_str("4660").unwrap();
         let params: Vec<Token> = vec![valid_until.into_token(), valid_after.into_token()];
         let data = encode(&params);
-        let paymaster_and_data = [CONFIG.chains[&CONFIG.current_chain].verifying_paymaster_address.as_bytes(), data.as_ref(), &vec![0u8; 65]].concat();
+        let paymaster_and_data = [
+            CONFIG.chains[&CONFIG.current_chain]
+                .verifying_paymaster_address
+                .as_bytes(),
+            data.as_ref(),
+            &vec![0u8; 65],
+        ]
+        .concat();
 
         let user_op0 = UserOperation {
             sender: wallet.wallet_address.parse().unwrap(),
@@ -90,38 +119,90 @@ impl TransactionService {
         };
         // sign user_operation using ecdsa
         let usr_op1 = UserOperation {
-            signature: Bytes::from(self.verifying_paymaster_signer.sign_typed_data(&user_op0).await.unwrap().to_vec()),
+            signature: Bytes::from(
+                self.verifying_paymaster_signer
+                    .sign_typed_data(&user_op0)
+                    .await
+                    .unwrap()
+                    .to_vec(),
+            ),
             ..user_op0
         };
 
-        let hash = self.verifying_paymaster_provider.get_hash(get_verifying_paymaster_user_operation_payload(usr_op1.clone()), valid_until, valid_after).await.unwrap();
-        let singed_hash = self.verifying_paymaster_signer.sign_message(&hash).await.unwrap().to_vec();
-        let paymaster_and_data_with_sign = [CONFIG.chains[&CONFIG.current_chain].verifying_paymaster_address.as_bytes(), data.as_ref(), &singed_hash].concat();
+        let hash = self
+            .verifying_paymaster_provider
+            .get_hash(
+                get_verifying_paymaster_user_operation_payload(usr_op1.clone()),
+                valid_until,
+                valid_after,
+            )
+            .await
+            .unwrap();
+        let singed_hash = self
+            .verifying_paymaster_signer
+            .sign_message(&hash)
+            .await
+            .unwrap()
+            .to_vec();
+        let paymaster_and_data_with_sign = [
+            CONFIG.chains[&CONFIG.current_chain]
+                .verifying_paymaster_address
+                .as_bytes(),
+            data.as_ref(),
+            &singed_hash,
+        ]
+        .concat();
 
         // replace paymaster_and_data with hash
         let user_op2 = UserOperation {
             paymaster_and_data: Bytes::from(paymaster_and_data_with_sign),
             ..usr_op1
         };
-        let signature = self.http_client.sign_message(user_op2.clone(), format!("{:?}", self.entrypoint_provider.address().clone()), CONFIG.chains[&CONFIG.current_chain].chain_id.clone()).await.unwrap();
+        let signature = self
+            .http_client
+            .sign_message(
+                user_op2.clone(),
+                format!("{:?}", self.entrypoint_provider.address().clone()),
+                CONFIG.chains[&CONFIG.current_chain].chain_id.clone(),
+            )
+            .await
+            .unwrap();
 
         let user_op3 = UserOperation {
             signature,
             ..user_op2
         };
 
-        let handle_ops_payload = self.entrypoint_provider.handle_ops(vec![get_entry_point_user_operation_payload(user_op3)], CONFIG.account_owner).calldata().unwrap();
-        let transaction = TransactionRequest::new().from(CONFIG.account_owner).to(CONFIG.chains[&CONFIG.current_chain].entrypoint_address).value(0).data(handle_ops_payload.clone());
-        let result = self.signing_client.send_transaction(transaction, None).await;
+        let handle_ops_payload = self
+            .entrypoint_provider
+            .handle_ops(
+                vec![get_entry_point_user_operation_payload(user_op3)],
+                CONFIG.account_owner,
+            )
+            .calldata()
+            .unwrap();
+        let transaction = TransactionRequest::new()
+            .from(CONFIG.account_owner)
+            .to(CONFIG.chains[&CONFIG.current_chain].entrypoint_address)
+            .value(0)
+            .data(handle_ops_payload.clone());
+        let result = self
+            .signing_client
+            .send_transaction(transaction, None)
+            .await;
 
         let mut txn_hash: String = "".to_string();
         match result {
             Ok(hash) => {
                 println!("Transaction sent successfully. Hash: {:?}", hash);
                 txn_hash = format!("{:?}", hash.tx_hash());
-                self.transaction_dao.create_transaction(txn_hash.clone(), wallet.wallet_address.clone()).await;
+                self.transaction_dao
+                    .create_transaction(txn_hash.clone(), wallet.wallet_address.clone())
+                    .await;
                 if !wallet.deployed {
-                    self.wallet_dao.update_wallet_deployed(usr.to_string()).await;
+                    self.wallet_dao
+                        .update_wallet_deployed(usr.to_string())
+                        .await;
                 }
             }
             Err(err) => {
@@ -145,13 +226,20 @@ impl TransactionService {
                                             Value::Number(_) => {}
                                             Value::String(_str_err) => {
                                                 println!("Error: {}", _str_err);
-                                                let abi_errors = self.entrypoint_provider.abi().errors();
-                                                let data_bytes = ethers::utils::hex::decode(&_str_err[2..]).unwrap();
+                                                let abi_errors =
+                                                    self.entrypoint_provider.abi().errors();
+                                                let data_bytes =
+                                                    ethers::utils::hex::decode(&_str_err[2..])
+                                                        .unwrap();
                                                 abi_errors.for_each(|abi_error| {
-                                                    let _decoded_error = abi_error.decode(&data_bytes[4..]);
+                                                    let _decoded_error =
+                                                        abi_error.decode(&data_bytes[4..]);
                                                     match _decoded_error {
                                                         Ok(_res) => {
-                                                            println!("err_name -> {} Ok {:?}", abi_error.name, _res);
+                                                            println!(
+                                                                "err_name -> {} Ok {:?}",
+                                                                abi_error.name, _res
+                                                            );
                                                         }
                                                         Err(_e1) => {
                                                             println!("Err: {:?}", _e1);
@@ -216,20 +304,26 @@ impl TransactionService {
     }
 
     fn transfer_usdc(&self, transfer_payload: Bytes) -> Bytes {
-        self.simple_account_provider.execute(
-            CONFIG.chains[&CONFIG.current_chain].usdc_address,
-            U256::zero(),
-            transfer_payload,
-        ).calldata().unwrap()
+        self.simple_account_provider
+            .execute(
+                CONFIG.chains[&CONFIG.current_chain].usdc_address,
+                U256::zero(),
+                transfer_payload,
+            )
+            .calldata()
+            .unwrap()
     }
 
     fn transfer_native(&self, receiver: String, amount: String) -> Bytes {
         let value: f64 = amount.parse().unwrap();
         let wei = value * 1e18;
-        self.simple_account_provider.execute(
-            receiver.parse().unwrap(),
-            U256::from(wei as u64),
-            Bytes::from(vec![]),
-        ).calldata().unwrap()
+        self.simple_account_provider
+            .execute(
+                receiver.parse().unwrap(),
+                U256::from(wei as u64),
+                Bytes::from(vec![]),
+            )
+            .calldata()
+            .unwrap()
     }
 }

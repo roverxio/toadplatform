@@ -1,5 +1,5 @@
-use serde::Serialize;
 use crate::models::contract_interaction::user_operation::UserOperation;
+use serde::Serialize;
 
 #[derive(Serialize, Debug)]
 pub struct SigningPayload {

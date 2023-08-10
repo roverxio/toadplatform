@@ -6,7 +6,9 @@ use crate::models::response::base_response::BaseResponse;
 use crate::provider::helpers::respond_json;
 use crate::services::metada_service::MetadataService;
 
-pub async fn get_metadata(service: Data<MetadataService>) -> Result<Json<BaseResponse<Metadata>>, ApiError> {
+pub async fn get_metadata(
+    service: Data<MetadataService>,
+) -> Result<Json<BaseResponse<Metadata>>, ApiError> {
     let response = service.get_chain()?;
     respond_json(response)
 }

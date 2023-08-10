@@ -1,22 +1,27 @@
-use std::sync::Arc;
-use ethers::types::{U256};
-use ethers::{
-    providers::{Http, Provider},
-};
 use ethers::contract::abigen;
+use ethers::providers::{Http, Provider};
+use ethers::types::U256;
+use std::sync::Arc;
 
-use crate::CONFIG;
 use crate::models::contract_interaction;
+use crate::CONFIG;
 
 abigen!(VerifyingPaymaster, "abi/VerifyingPaymaster.json");
 
-pub fn get_verifying_paymaster_abi(current_chain: &str, client: Arc<Provider<Http>>) -> VerifyingPaymaster<Provider<Http>> {
-    let contract: VerifyingPaymaster<Provider<Http>> = VerifyingPaymaster::new(CONFIG.chains[current_chain].verifying_paymaster_address, client);
+pub fn get_verifying_paymaster_abi(
+    current_chain: &str,
+    client: Arc<Provider<Http>>,
+) -> VerifyingPaymaster<Provider<Http>> {
+    let contract: VerifyingPaymaster<Provider<Http>> = VerifyingPaymaster::new(
+        CONFIG.chains[current_chain].verifying_paymaster_address,
+        client,
+    );
     contract
 }
 
-pub fn get_verifying_paymaster_user_operation_payload(user_op: contract_interaction::user_operation::UserOperation) -> UserOperation {
-
+pub fn get_verifying_paymaster_user_operation_payload(
+    user_op: contract_interaction::user_operation::UserOperation,
+) -> UserOperation {
     UserOperation {
         sender: user_op.sender,
         nonce: U256::from(user_op.nonce),

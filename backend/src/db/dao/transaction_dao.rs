@@ -12,7 +12,9 @@ impl TransactionDao {
     pub async fn create_transaction(&self, wallet_address: String, transaction_hash: String) {
         let conn = connect(self.pool.clone()).await;
 
-        let mut stmt = conn.prepare("INSERT INTO transactions (wallet_address, transaction_hash) VALUES (?, ?)").unwrap();
+        let mut stmt = conn
+            .prepare("INSERT INTO transactions (wallet_address, transaction_hash) VALUES (?, ?)")
+            .unwrap();
         stmt.execute([wallet_address, transaction_hash]).unwrap();
     }
 }

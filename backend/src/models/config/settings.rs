@@ -1,5 +1,5 @@
 use config::{Config, ConfigError, File, Map};
-use ethers::types::{Address};
+use ethers::types::Address;
 use serde::Deserialize;
 
 use crate::models::config::env::ENV;
@@ -29,7 +29,7 @@ pub struct Urls {
 #[derive(Debug, Deserialize, Clone)]
 pub struct DefaultChain {
     pub chain: String,
-    pub currency: String
+    pub currency: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -46,7 +46,11 @@ pub struct Chain {
 
 impl Chain {
     pub fn get_url(&self) -> String {
-        format!("{}{}", self.url.clone(), std::env::var("INFURA_KEY").expect("INFURA_KEY must be set"))
+        format!(
+            "{}{}",
+            self.url.clone(),
+            std::env::var("INFURA_KEY").expect("INFURA_KEY must be set")
+        )
     }
 }
 
@@ -56,7 +60,7 @@ pub struct DefaultGas {
     pub verification_gas_limit: u64,
     pub pre_verification_gas: u64,
     pub max_fee_per_gas: u64,
-    pub max_priority_fee_per_gas: u64
+    pub max_priority_fee_per_gas: u64,
 }
 
 #[derive(Debug, Deserialize, Clone)]
