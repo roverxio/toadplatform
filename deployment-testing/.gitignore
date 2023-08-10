@@ -2,3 +2,4 @@
 /cache/
 /broadcast/
 /lib/
+.env
