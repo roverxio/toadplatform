@@ -26,7 +26,7 @@ contract VerifyingPaymasterTest is TestHelper {
     UserOperation[] internal ops;
     Utilities internal utils;
 
-    Account internal offchainSigner;
+    Account internal offChainSigner;
     VerifyingPaymaster internal paymaster;
 
     uint48 internal constant MOCK_VALID_UNTIL = 0x00000000deadbeef;
@@ -40,10 +40,10 @@ contract VerifyingPaymasterTest is TestHelper {
         entryPoint = utils.deployEntryPoint(123456);
         entryPointAddress = address(entryPoint);
 
-        offchainSigner = createAddress("offchainSigner");
+        offChainSigner = createAddress("offchainSigner");
         accountOwner = createAddress("accountOwner");
 
-        paymaster = new VerifyingPaymaster(entryPoint, offchainSigner.addr);
+        paymaster = new VerifyingPaymaster(entryPoint, offChainSigner.addr);
         paymaster.addStake{value: 2 ether}(1);
         entryPoint.depositTo{value: 1 ether}(address(paymaster));
 
@@ -57,7 +57,6 @@ contract VerifyingPaymasterTest is TestHelper {
     function test_ParseDataProperly() public {
         bytes memory paymasterAndData =
             abi.encodePacked(address(paymaster), abi.encode(MOCK_VALID_UNTIL, MOCK_VALID_AFTER), MOCK_SIG);
-        console.logBytes(paymasterAndData);
         (uint48 validUntil, uint48 validAfter, bytes memory signature) =
             paymaster.parsePaymasterAndData(paymasterAndData);
         assertEq(validUntil, MOCK_VALID_UNTIL);
@@ -107,7 +106,7 @@ contract VerifyingPaymasterTest is TestHelper {
         returns (UserOperation memory wrongSigUserOp, address payable beneficiary)
     {
         beneficiary = payable(makeAddr("beneficiary"));
-        bytes memory sig = signMessage("0xdead", offchainSigner.key);
+        bytes memory sig = signMessage("0xdead", offChainSigner.key);
 
         wrongSigUserOp = _defaultOp;
         wrongSigUserOp.sender = accountAddress;
@@ -148,7 +147,7 @@ contract VerifyingPaymasterTest is TestHelper {
         );
         userOp1 = signUserOp(userOp1, entryPointAddress, chainId);
         bytes32 hash = paymaster.getHash(userOp1, MOCK_VALID_UNTIL, MOCK_VALID_AFTER);
-        bytes memory sig = signMessage(hash, offchainSigner.key);
+        bytes memory sig = signMessage(hash, offChainSigner.key);
 
         UserOperation memory userOp = userOp1;
         userOp.paymasterAndData =
