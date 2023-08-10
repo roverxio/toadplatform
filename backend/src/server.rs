@@ -1,17 +1,16 @@
 use std::sync::Arc;
-use actix_web::{App, HttpServer};
+
 use actix_web::middleware::Logger;
 use actix_web::web::Data;
+use actix_web::{App, HttpServer};
 use dotenvy::dotenv;
-use env_logger::{Env, init_from_env};
+use env_logger::{init_from_env, Env};
 use ethers::middleware::SignerMiddleware;
 use ethers_signers::{LocalWallet, Signer};
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
-use crate::{CONFIG, PROVIDER};
+
+use crate::db::connection::establish_connection;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
-
 use crate::models::config::server::Server;
 use crate::provider::entrypoint_helper::get_entrypoint_abi;
 use crate::provider::http_client::HttpClient;
@@ -24,6 +23,7 @@ use crate::services::hello_world_service::HelloWorldService;
 use crate::services::metada_service::MetadataService;
 use crate::services::transfer_service::TransactionService;
 use crate::services::wallet_service::WalletService;
+use crate::{CONFIG, PROVIDER};
 
 #[derive(Clone)]
 pub struct ToadService {
@@ -35,35 +35,44 @@ pub struct ToadService {
     pub metadata_service: MetadataService,
 }
 
-pub fn init_services(
-    pool: Pool<SqliteConnectionManager>
-) -> ToadService {
+pub fn init_services() -> ToadService {
     init_logging();
     // contract providers
     let client = Arc::new(PROVIDER.clone());
-    let simple_account_factory_provider = Web3Provider::get_simple_account_factory_abi(&CONFIG.current_chain, client.clone());
+    let simple_account_factory_provider =
+        Web3Provider::get_simple_account_factory_abi(&CONFIG.current_chain, client.clone());
     let erc20_provider = Web3Provider::get_erc20_abi(&CONFIG.current_chain, client.clone());
     let entrypoint_provider = get_entrypoint_abi(&CONFIG.current_chain, client.clone());
     let simple_account_provider = Web3Provider::get_simpleaccount_abi(client.clone());
-    let verifying_paymaster_provider = get_verifying_paymaster_abi(&CONFIG.current_chain, client.clone());
+    let verifying_paymaster_provider =
+        get_verifying_paymaster_abi(&CONFIG.current_chain, client.clone());
     //signers
-    let verifying_paymaster_signer: LocalWallet = std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY").expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set").parse::<LocalWallet>().unwrap();
-    let wallet_signer: LocalWallet = std::env::var("WALLET_PRIVATE_KEY").expect("WALLET_PRIVATE_KEY must be set").parse::<LocalWallet>().unwrap();
-    let signing_client = SignerMiddleware::new(client.clone(), wallet_signer.clone().with_chain_id(CONFIG.chains[&CONFIG.current_chain].chain_id));
+    let verifying_paymaster_signer: LocalWallet = std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY")
+        .expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set")
+        .parse::<LocalWallet>()
+        .unwrap();
+    let wallet_signer: LocalWallet = std::env::var("WALLET_PRIVATE_KEY")
+        .expect("WALLET_PRIVATE_KEY must be set")
+        .parse::<LocalWallet>()
+        .unwrap();
+    let signing_client = SignerMiddleware::new(
+        client.clone(),
+        wallet_signer
+            .clone()
+            .with_chain_id(CONFIG.chains[&CONFIG.current_chain].chain_id),
+    );
     // http client
     let http_client = HttpClient {
         client: reqwest::Client::builder()
-        .connect_timeout(std::time::Duration::from_secs(30))
-        .build().unwrap(),
+            .connect_timeout(std::time::Duration::from_secs(30))
+            .build()
+            .unwrap(),
     };
 
     //daos
-    let wallet_dao = WalletDao {
-        pool: pool.clone(),
-    };
-    let transaction_dao = TransactionDao {
-        pool: pool.clone(),
-    };
+    let pool = establish_connection(CONFIG.database.file.clone());
+    let wallet_dao = WalletDao { pool: pool.clone() };
+    let transaction_dao = TransactionDao { pool: pool.clone() };
     // Services
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {
@@ -96,7 +105,7 @@ pub fn init_services(
         balance_service,
         transfer_service,
         admin_service,
-        metadata_service
+        metadata_service,
     }
 }
 
@@ -120,7 +129,7 @@ pub async fn api_server(service: ToadService, server: Server) -> std::io::Result
             .app_data(Data::new(service.admin_service.clone()))
             .app_data(Data::new(service.metadata_service.clone()))
     })
-        .bind(server.url())?
-        .run()
-        .await
+    .bind(server.url())?
+    .run()
+    .await
 }
