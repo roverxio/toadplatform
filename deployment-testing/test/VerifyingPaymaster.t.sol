@@ -37,11 +37,11 @@ contract VerifyingPaymasterTest is TestHelper {
         utils = new Utilities();
 
         // timeout feature is not implemented
-        deployEntryPoint(1301);
-        createAccount(1302, 1303);
-
         offChainSigner = utils.createAddress("offChainSigner");
         accountOwner = utils.createAddress("accountOwner");
+
+        deployEntryPoint(1301);
+        createAccount(1302, 1303);
 
         paymaster = new VerifyingPaymaster{salt: bytes32(uint256(1304))}(entryPoint, offChainSigner.addr);
         paymaster.addStake{value: 2 ether}(1);
