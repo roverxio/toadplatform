@@ -11,12 +11,4 @@ contract Utilities is Script {
         }
         return size > 0;
     }
-
-    function entryPointSetUp() public view returns (address entryPointAddress) {
-        entryPointAddress = vm.envAddress("ENTRYPOINT_ADDRESS");
-        require(
-            isContract(entryPointAddress),
-            "The address specified by `ENTRYPOINT_ADDRESS` doesnot have any code deployed"
-        );
-    }
 }

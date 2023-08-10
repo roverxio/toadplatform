@@ -8,19 +8,28 @@ import "./Utilities.sol";
 
 contract SimpleAccountFactoryScript is Script {
     address internal entryPointAddress;
-    Utilities utils = new Utilities();
+    EntryPoint internal entryPoint;
+    uint256 internal deployerPrivateKey;
+    Utilities internal utils = new Utilities();
 
     function setUp() public {
-        entryPointAddress = utils.entryPointSetUp();
+        utils = new Utilities();
+
+        deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        entryPointAddress = vm.envOr("ENTRYPOINT_ADDRESS", address(0));
+        if (!utils.isContract(entryPointAddress) || (entryPointAddress == address(0))) {
+            uint256 epSalt = vm.envOr("ENTRYPOINT_SALT", uint256(123));
+            entryPoint = new EntryPoint{salt: bytes32(uint256(epSalt))}();
+            entryPointAddress = address(entryPoint);
+        } else {
+            // entrypoint address needs to payable
+            entryPoint = EntryPoint(payable(entryPointAddress));
+        }
     }
 
     function run() public {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        uint256 salt = vm.envUint("SALT");
+        uint256 salt = vm.envUint("SIMPLE_ACCOUNT_FACTORY_SALT");
         vm.startBroadcast(deployerPrivateKey);
-
-        // entrypoint address needs to payable
-        EntryPoint entryPoint = EntryPoint(payable(entryPointAddress));
 
         SimpleAccountFactory factory = new SimpleAccountFactory{salt: bytes32(uint256(salt))}(entryPoint);
         console.log("SimpleAccountFactory addr", address(factory));
