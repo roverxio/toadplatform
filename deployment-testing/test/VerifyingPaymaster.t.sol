@@ -151,7 +151,6 @@ contract VerifyingPaymasterTest is TestHelper {
         wrongSigUserOp.sender = accountAddress;
         wrongSigUserOp.paymasterAndData =
             abi.encodePacked(address(paymaster), abi.encode(MOCK_VALID_UNTIL, MOCK_VALID_AFTER), sig);
-        console.logUint(accountOwner.key);
         wrongSigUserOp = utils.signUserOp(wrongSigUserOp, accountOwner.key, entryPointAddress, chainId);
     }
 }
