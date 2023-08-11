@@ -2,9 +2,20 @@
 A simple rust project that exposes REST APIs and acts as a relayer to [ERC4337](https://eips.ethereum.org/EIPS/eip-4337#rpc-methods-eth-namespace) (Account Abstraction via Entry Point Contract specification).
 It uses actix for the REST APIs and an sqlite database for storing wallet deployment state and the salt. Rust version: `rustc 1.71.0 (8ede3aae2 2023-07-12)`
 
+## Pre-requisites
+If you are running this project on localhost, you need to have a local node running with the contracts deployed. Also, the env variable `INFURA_KEY` will be set as an empty string. For testing, I used [eth-infinitism's account-abstraction](https://github.com/eth-infinitism/account-abstraction). You can use that as well. Here are the steps to deploy the contracts:
+1. Clone the account-abstraction repo
+2. Go to [roverx-rpc's deplyer contracts](https://github.com/Club-Defy/roverx-rpc/tree/base/scw/provider/deployer) and copy
+   1. 06_delpoy_TestERC20.ts
+   2. 13_deploy_VerifyingPaymaster.ts
+3. Paste them in the account-abstraction repo under `deploy` folder
+4. run `npx hardhat node`
+
+This should start a hardhat node and deploy the contracts. You can find the deployed contracts in the console logs. Copy the very first private-key from the logs and use it to populate the values of "WALLET_PRIVATE_KEY" and "VERIFYING_PAYMASTER_PRIVATE_KEY" in env variables. This key is the deployer for all the contracts.
+
 ## How to run
 1. Clone the repo
-2. Navigate to ".env.example" and set the environment variables mentioned there
+2. Navigate to ".env.example" and set the environment variables mentioned there (using the export command)
 3. run `bash db/setup_db.sh`
 4. run `cargo run`
 
