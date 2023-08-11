@@ -5,11 +5,12 @@ It uses actix for the REST APIs and an sqlite database for storing wallet deploy
 ## Pre-requisites
 If you are running this project on localhost, you need to have a local node running with the contracts deployed. Also, the env variable `INFURA_KEY` will be set as an empty string. For testing, I used [eth-infinitism's account-abstraction](https://github.com/eth-infinitism/account-abstraction). You can use that as well. Here are the steps to deploy the contracts:
 1. Clone the account-abstraction repo
-2. Go to [roverx-rpc's deplyer contracts](https://github.com/Club-Defy/roverx-rpc/tree/base/scw/provider/deployer) and copy
+2. Run `yarn install`
+3. Go to [roverx-rpc's deplyer contracts](https://github.com/Club-Defy/roverx-rpc/tree/base/scw/provider/deployer) and copy
    1. 06_delpoy_TestERC20.ts
    2. 13_deploy_VerifyingPaymaster.ts
-3. Paste them in the account-abstraction repo under `deploy` folder
-4. run `npx hardhat node`
+4. Paste them in the account-abstraction repo under `deploy` folder
+5. run `npx hardhat node`
 
 This should start a hardhat node and deploy the contracts. You can find the deployed contracts in the console logs. Copy the very first private-key from the logs and use it to populate the values of "WALLET_PRIVATE_KEY" and "VERIFYING_PAYMASTER_PRIVATE_KEY" in env variables. This key is the deployer for all the contracts.
 
