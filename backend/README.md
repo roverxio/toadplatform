@@ -7,8 +7,8 @@ If you are running this project on localhost, you need to have a local node runn
 1. Clone the account-abstraction repo
 2. Run `yarn install`
 3. Go to [roverx-rpc's deplyer contracts](https://github.com/Club-Defy/roverx-rpc/tree/base/scw/provider/deployer) and copy
-   1. 06_delpoy_TestERC20.ts
-   2. 13_deploy_VerifyingPaymaster.ts
+   1. 06_delpoy_TestERC20.ts (rename it to 4_deploy_TestERC20.ts)
+   2. 13_deploy_VerifyingPaymaster.ts (rename it to 4_deploy_VerifyingPaymaster.ts)
 4. Paste them in the account-abstraction repo under `deploy` folder
 5. run `npx hardhat node`
 
