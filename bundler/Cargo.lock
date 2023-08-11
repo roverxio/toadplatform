@@ -334,27 +334,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d468802bab17cbc0cc575e9b053f41e72aa36bfa6b7f55e3529ffa43161b97fa"
 
 [[package]]
-name = "backend"
-version = "0.1.0"
-dependencies = [
- "actix-web",
- "base64 0.21.2",
- "config",
- "derive_more",
- "dotenvy",
- "env_logger",
- "ethers",
- "ethers-signers",
- "lazy_static",
- "log",
- "r2d2",
- "r2d2_sqlite",
- "reqwest",
- "serde",
- "serde_json",
-]
-
-[[package]]
 name = "backtrace"
 version = "0.3.68"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -510,6 +489,27 @@ name = "bumpalo"
 version = "3.13.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a3e2c3daef883ecc1b5d58c15adae93470a91d425f3532ba1695849656af3fc1"
+
+[[package]]
+name = "bundler"
+version = "0.1.0"
+dependencies = [
+ "actix-web",
+ "base64 0.21.2",
+ "config",
+ "derive_more",
+ "dotenvy",
+ "env_logger",
+ "ethers",
+ "ethers-signers",
+ "lazy_static",
+ "log",
+ "r2d2",
+ "r2d2_sqlite",
+ "reqwest",
+ "serde",
+ "serde_json",
+]
 
 [[package]]
 name = "byte-slice-cast"
