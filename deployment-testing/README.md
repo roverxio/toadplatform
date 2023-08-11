@@ -27,7 +27,7 @@ These scripts however require a few environment variables to be set before they 
     ```
     RPC_URL=<rpc_url>
     PRIVATE_KEY=<enter_your_private_key>
-    FOUNDRY_CHAIN_ID=<blockchain_id>
+    CHAIN_ID=<blockchain_id>
     ENTRYPOINT_SALT=1
     SIMPLE_ACCOUNT_FACTORY_SALT=2
     VERIFYING_PAYMASTER_SALT=3
