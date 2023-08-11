@@ -1,5 +1,6 @@
 use actix_web::web::{Data, Json, Path};
 use actix_web::HttpRequest;
+use log::info;
 
 use crate::errors::ApiError;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
@@ -15,8 +16,8 @@ pub async fn topup_paymaster_deposit(
     req: HttpRequest,
     paymaster: Path<String>,
 ) -> Result<Json<BaseResponse<TransactionResponse>>, ApiError> {
-    println!("user -> {}", get_user(req));
-    println!("paymaster -> {}", paymaster);
+    info!("user -> {}", get_user(req));
+    info!("paymaster -> {}", paymaster);
     let response = service.topup_paymaster_deposit(body.into_inner())?;
     respond_json(response)
 }
@@ -26,7 +27,7 @@ pub async fn admin_get_balance(
     req: HttpRequest,
     entity: Path<String>,
 ) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
-    println!("user -> {}", get_user(req));
+    info!("user -> {}", get_user(req));
     let response = service.get_balance(entity.clone())?;
     respond_json(response)
 }

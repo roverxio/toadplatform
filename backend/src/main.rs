@@ -23,7 +23,6 @@ lazy_static! {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    println!("Starting server...");
     let service = init_services();
     api_server(
         service.clone(),

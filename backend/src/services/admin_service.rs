@@ -1,3 +1,5 @@
+use log::info;
+
 use crate::errors::ApiError;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::transfer::transfer_response::TransactionResponse;
@@ -11,7 +13,7 @@ impl AdminService {
         &self,
         topup: PaymasterTopup,
     ) -> Result<TransactionResponse, ApiError> {
-        println!("topup: {:?}", topup.address);
+        info!("topup: {:?}", topup.address);
         Ok(TransactionResponse {
             transaction_hash: "hash".to_string(),
             status: "success".to_string(),
@@ -20,7 +22,7 @@ impl AdminService {
     }
 
     pub fn get_balance(&self, entity: String) -> Result<BalanceResponse, ApiError> {
-        println!("entity: {:?}", entity);
+        info!("entity: {:?}", entity);
         Ok(BalanceResponse {
             balance: "".to_string(),
             address: "".to_string(),
