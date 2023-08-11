@@ -3,6 +3,7 @@ use std::sync::Arc;
 use ethers::prelude::abigen;
 use ethers::providers::{Http, Middleware, Provider};
 use ethers::types::Address;
+use log::error;
 
 use crate::{CONFIG, PROVIDER};
 use crate::errors::ApiError;
@@ -49,6 +50,7 @@ impl Web3Provider {
             .get_balance(address, None)
             .await;
         if result.is_err() {
+            error!("Get native balance failed: {:?}", result.err().unwrap());
             return Err(ApiError::InternalServer("Failed to get balance".to_string()));
         }
         let wei_balance = result.unwrap().to_string();
