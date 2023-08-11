@@ -2,6 +2,7 @@
 current_chain = "localhost"
 account_owner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 paymaster_account_owner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
+deployed_by_identifier = "toad.cash"
 
 [server]
 port = "9090"
@@ -46,7 +47,7 @@ chain_id = 31337
 url = "http://localhost:8545"
 explorer_url = "http://localhost:8545/tx/"
 currency = "localETH"
-simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
+simple_account_factory_address = "0xeA74C45A0eF68ad3A01C1B9f35333D97D11153D2"
 usdc_address = "0x68679d96208Ae36E5765b1354C1E22637Fe77B45"
 entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
 verifying_paymaster_address = "0x589C378e85C4770AEad2ECCABe8068fF326Fe199"

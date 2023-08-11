@@ -96,6 +96,19 @@
   },
   {
     "inputs": [],
+    "name": "deployedBy",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "entryPoint",
     "outputs": [
       {
