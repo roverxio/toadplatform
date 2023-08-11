@@ -7,6 +7,7 @@ use dotenvy::dotenv;
 use env_logger::{init_from_env, Env};
 use ethers::middleware::SignerMiddleware;
 use ethers_signers::{LocalWallet, Signer};
+use log::info;
 
 use crate::db::connection::establish_connection;
 use crate::db::dao::transaction_dao::TransactionDao;
@@ -37,6 +38,7 @@ pub struct ToadService {
 
 pub fn init_services() -> ToadService {
     init_logging();
+    info!("Starting server...");
     // contract providers
     let client = Arc::new(PROVIDER.clone());
     let simple_account_factory_provider =

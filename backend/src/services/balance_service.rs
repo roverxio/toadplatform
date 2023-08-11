@@ -1,10 +1,12 @@
+use ethers::abi::Address;
+use ethers::providers::{Http, Middleware, Provider};
+use log::info;
+
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::web3_provider::ERC20;
 use crate::PROVIDER;
-use ethers::abi::Address;
-use ethers::providers::{Http, Middleware, Provider};
 
 #[derive(Clone)]
 pub struct BalanceService {
@@ -19,7 +21,7 @@ impl BalanceService {
         currency: &String,
         user: &str,
     ) -> Result<BalanceResponse, ApiError> {
-        println!("Chain: {:?}", chain); // will be relevant when we add support for multiple chains
+        info!("Chain: {:?}", chain); // will be relevant when we add support for multiple chains
         let mut balance: String = "0".to_string();
         let address = self.wallet_dao.get_wallet_address(user.to_string()).await;
         if address.is_empty() {

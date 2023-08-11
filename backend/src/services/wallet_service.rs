@@ -2,6 +2,7 @@ use std::time::SystemTime;
 
 use ethers::providers::{Http, Provider};
 use ethers::types::{Address, U256};
+use log::info;
 
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
@@ -22,7 +23,7 @@ impl WalletService {
         let address = self.wallet_dao.get_wallet_address(usr.to_string()).await;
         if address.is_empty() {
             result = self.get_address(usr).await;
-            println!("salt -> {}", result.salt);
+            info!("salt -> {}", result.salt);
             self.wallet_dao
                 .create_wallet(
                     usr.to_string(),

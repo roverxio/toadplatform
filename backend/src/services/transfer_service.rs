@@ -7,6 +7,7 @@ use ethers::middleware::SignerMiddleware;
 use ethers::providers::{Http, Middleware, Provider, ProviderError};
 use ethers::types::{Address, Bytes, TransactionRequest, U256};
 use ethers_signers::{LocalWallet, Signer};
+use log::{error, info};
 use serde_json::Value;
 
 use crate::db::dao::transaction_dao::TransactionDao;
@@ -194,7 +195,7 @@ impl TransactionService {
         let mut txn_hash: String = "".to_string();
         match result {
             Ok(hash) => {
-                println!("Transaction sent successfully. Hash: {:?}", hash);
+                info!("Transaction sent successfully. Hash: {:?}", hash);
                 txn_hash = format!("{:?}", hash.tx_hash());
                 self.transaction_dao
                     .create_transaction(txn_hash.clone(), wallet.wallet_address.clone())
@@ -208,13 +209,13 @@ impl TransactionService {
             Err(err) => {
                 match err {
                     SignerMiddlewareError::SignerError(a) => {
-                        println!("Signer error: {}", a);
+                        error!("Signer error: {}", a);
                     }
                     SignerMiddlewareError::MiddlewareError(b) => {
-                        println!("Middleware error: {}", b);
+                        error!("Middleware error: {}", b);
                         match b {
                             ProviderError::JsonRpcClientError(_a) => {
-                                println!("JsonRpcClientError: {}", _a);
+                                error!("JsonRpcClientError: {}", _a);
                                 let error = _a.as_error_response();
                                 match error {
                                     None => {}
@@ -225,7 +226,7 @@ impl TransactionService {
                                             Value::Bool(_) => {}
                                             Value::Number(_) => {}
                                             Value::String(_str_err) => {
-                                                println!("Error: {}", _str_err);
+                                                error!("Error: {}", _str_err);
                                                 let abi_errors =
                                                     self.entrypoint_provider.abi().errors();
                                                 let data_bytes =
@@ -236,13 +237,13 @@ impl TransactionService {
                                                         abi_error.decode(&data_bytes[4..]);
                                                     match _decoded_error {
                                                         Ok(_res) => {
-                                                            println!(
+                                                            error!(
                                                                 "err_name -> {} Ok {:?}",
                                                                 abi_error.name, _res
                                                             );
                                                         }
                                                         Err(_e1) => {
-                                                            println!("Err: {:?}", _e1);
+                                                            error!("Err: {:?}", _e1);
                                                         }
                                                     }
                                                 });
@@ -255,22 +256,22 @@ impl TransactionService {
                                 }
                             }
                             ProviderError::EnsError(_b) => {
-                                println!("EnsError: {}", _b);
+                                error!("EnsError: {}", _b);
                             }
                             ProviderError::EnsNotOwned(_c) => {
-                                println!("EnsNotOwned: {}", _c);
+                                error!("EnsNotOwned: {}", _c);
                             }
                             ProviderError::SerdeJson(_d) => {
-                                println!("SerdeJson: {}", _d);
+                                error!("SerdeJson: {}", _d);
                             }
                             ProviderError::HexError(_e) => {
-                                println!("HexError: {}", _e);
+                                error!("HexError: {}", _e);
                             }
                             ProviderError::HTTPError(_f) => {
-                                println!("HTTPError: {}", _f);
+                                error!("HTTPError: {}", _f);
                             }
                             ProviderError::CustomError(_g) => {
-                                println!("CustomError: {}", _g);
+                                error!("CustomError: {}", _g);
                             }
                             ProviderError::UnsupportedRPC => {}
                             ProviderError::UnsupportedNodeClient => {}
