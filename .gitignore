@@ -1,3 +1,4 @@
+.idea/
+roverx-rpc
 /backend/src/toad.db
-.idea
 target

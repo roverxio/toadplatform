@@ -1,0 +1,59 @@
+[run_config]
+current_chain = "sepolia"
+account_owner = "0x99e6fE79F94a3744089a1b3982D425406Ad4c55c"
+paymaster_account_owner = "0x99e6fE79F94a3744089a1b3982D425406Ad4c55c"
+
+[server]
+port = "9090"
+host = "localhost"
+prefix = "app"
+
+[log]
+level = "info"
+
+[default_chain]
+chain = "Sepolia"
+currency = "native"
+
+[database]
+file = "toad.db"
+
+[urls]
+signing_server = "http://localhost:3000/app/v1/sign_message"
+
+[chains.sepolia]
+chain_id = 11155111
+url = "https://sepolia.infura.io/v3/"
+explorer_url = "https://sepolia.etherscan.io/tx/"
+simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
+usdc_address = "0xFa38B962562DF7F9eeD9d8Db3cC261053EFC263B"
+entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
+verifying_paymaster_address = "0xe76cF38641112f77A474c467546Fb4b812e4d0F8"
+currency = "SepoliaETH"
+
+[chains.goerli]
+chain_id = 5
+url = "https://goerli.infura.io/v3/"
+explorer_url = "https://goerli.etherscan.io/tx/"
+simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
+usdc_address = "0x07865c6e87b9f70255377e024ace6630c1eaa37f"
+currency = "GoerliETH"
+entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
+verifying_paymaster_address = "0x1Fa8013ae6012C745fefe42068FBC988A04c7f81"
+
+[chains.localhost]
+chain_id = 31337
+url = "http://localhost:8545"
+explorer_url = "http://localhost:8545/tx/"
+currency = "localETH"
+simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
+usdc_address = "0x68679d96208Ae36E5765b1354C1E22637Fe77B45"
+entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
+verifying_paymaster_address = "0x589C378e85C4770AEad2ECCABe8068fF326Fe199"
+
+[default_gas]
+call_gas_limit = 10000000
+verification_gas_limit = 10000000
+pre_verification_gas = 1000000000000000
+max_fee_per_gas = 5
+max_priority_fee_per_gas = 1000000000
