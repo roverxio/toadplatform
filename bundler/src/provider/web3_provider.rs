@@ -1,10 +1,12 @@
 use std::sync::Arc;
+use actix_web::cookie::time::format_description::parse;
 
 use ethers::prelude::abigen;
-use ethers::providers::{Http, Provider};
+use ethers::providers::{Http, Middleware, Provider};
 use ethers::types::Address;
 
-use crate::CONFIG;
+use crate::{CONFIG, PROVIDER};
+use crate::errors::ApiError;
 
 pub struct Web3Provider {}
 
@@ -41,5 +43,19 @@ impl Web3Provider {
     pub fn get_simpleaccount_abi(client: Arc<Provider<Http>>) -> Simpleaccount<Provider<Http>> {
         let contract: Simpleaccount<Provider<Http>> = Simpleaccount::new(Address::zero(), client);
         contract
+    }
+
+    pub async fn get_native_balance(address: Address) -> Result<String, ApiError> {
+        let mut result = PROVIDER
+            .get_balance(address, None)
+            .await;
+        if result.is_err() {
+            return Err(ApiError::InternalServer("Failed to get balance".to_string()));
+        }
+        let wei_balance = result.unwrap().to_string();
+        if wei_balance.parse::<f64>().is_err() {
+            return Err(ApiError::InternalServer("Failed to parse balance".to_string()));
+        }
+        Ok((wei_balance.parse::<f64>().unwrap() / 1e18).to_string())
     }
 }
