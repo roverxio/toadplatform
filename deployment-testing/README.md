@@ -36,6 +36,8 @@ These scripts however require a few environment variables to be set before they 
 - Start the local node
 - Run `source <path_to_.env>` to use the env variables
 - Run scripts using the following command
-`forge script <path_to_the_script>:ContractScript --broadcast --verify`
+  ```
+  forge script <path_to_the_script>:ContractScript --broadcast --verify
+  ```
 
 For further reading about the `script` command and its flags, you can refer to the [foundry docs](https://book.getfoundry.sh/reference/forge/forge-script)
