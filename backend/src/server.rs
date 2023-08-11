@@ -96,7 +96,9 @@ pub fn init_services() -> ToadService {
         signing_client: signing_client.clone(),
         http_client: http_client.clone(),
     };
-    let admin_service = AdminService {};
+    let admin_service = AdminService {
+        entrypoint_provider: entrypoint_provider.clone(),
+    };
     let metadata_service = MetadataService {};
 
     ToadService {
