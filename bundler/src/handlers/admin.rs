@@ -2,7 +2,7 @@ use actix_web::HttpRequest;
 use actix_web::web::{Data, Json, Path, Query};
 use log::info;
 
-use crate::constants::RoverXConstants;
+use crate::constants::Constants;
 use crate::errors::ApiError;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::response::base_response::BaseResponse;
@@ -30,7 +30,7 @@ pub async fn admin_get_balance(
     req: HttpRequest,
     entity: Path<String>,
 ) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
-    if RoverXConstants::ADMIN != get_user(req) {
+    if Constants::ADMIN != get_user(req) {
         return Err(ApiError::BadRequest("Invalid credentials".to_string()));
     }
     let response = service.get_balance(entity.clone(), body.get_balance_request()).await?;
