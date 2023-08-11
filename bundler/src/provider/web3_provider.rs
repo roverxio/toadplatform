@@ -1,5 +1,4 @@
 use std::sync::Arc;
-use actix_web::cookie::time::format_description::parse;
 
 use ethers::prelude::abigen;
 use ethers::providers::{Http, Middleware, Provider};
@@ -46,7 +45,7 @@ impl Web3Provider {
     }
 
     pub async fn get_native_balance(address: Address) -> Result<String, ApiError> {
-        let mut result = PROVIDER
+        let result = PROVIDER
             .get_balance(address, None)
             .await;
         if result.is_err() {

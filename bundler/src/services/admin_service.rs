@@ -10,6 +10,7 @@ use crate::models::transfer::transfer_response::TransactionResponse;
 use crate::models::wallet::balance_request::Balance;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::entrypoint_helper::EntryPoint;
+use crate::provider::web3_provider::Web3Provider;
 
 #[derive(Clone)]
 pub struct AdminService {
@@ -42,6 +43,22 @@ impl AdminService {
                 address: format!("{:?}", paymaster_address),
                 currency: data.currency,
             });
+        }
+        if RoverXConstants::RELAYER == entity {
+            let relayer_address = &CONFIG.run_config.account_owner;
+            let response = Web3Provider::get_native_balance(relayer_address.clone()).await;
+            return match response {
+                Ok(balance) => {
+                    Ok(BalanceResponse {
+                        balance,
+                        address: format!("{:?}", relayer_address),
+                        currency: data.currency,
+                    })
+                }
+                Err(error) => {
+                    Err(error)
+                }
+            }
         }
         Err(ApiError::BadRequest("Invalid entity".to_string()))
     }
