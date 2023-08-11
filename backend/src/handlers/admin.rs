@@ -8,6 +8,7 @@ use crate::models::transfer::transfer_response::TransactionResponse;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::helpers::{get_user, respond_json};
 use crate::services::admin_service::AdminService;
+use crate::constants::RoverXConstants;
 
 pub async fn topup_paymaster_deposit(
     service: Data<AdminService>,
@@ -26,7 +27,9 @@ pub async fn admin_get_balance(
     req: HttpRequest,
     entity: Path<String>,
 ) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
-    println!("user -> {}", get_user(req));
+    if RoverXConstants::ADMIN != get_user(req) {
+        return Err(ApiError::BadRequest("invalid credentials".to_string()));
+    }
     let response = service.get_balance(entity.clone())?;
     respond_json(response)
 }
