@@ -38,27 +38,19 @@ impl AdminService {
             let paymaster_address = &CONFIG.chains[&CONFIG.run_config.current_chain].verifying_paymaster_address;
             let deposit = self.entrypoint_provider.get_deposit_info(paymaster_address.clone()).await.unwrap();
             let balance = (deposit.deposit.to_string().parse::<f64>().unwrap() / 1e18).to_string();
-            return Ok(BalanceResponse {
-                balance,
-                address: format!("{:?}", paymaster_address),
-                currency: data.currency,
-            });
+            return Ok(BalanceResponse::new(balance, format!("{:?}", paymaster_address), data.currency));
         }
         if RoverXConstants::RELAYER == entity {
             let relayer_address = &CONFIG.run_config.account_owner;
             let response = Web3Provider::get_native_balance(relayer_address.clone()).await;
             return match response {
                 Ok(balance) => {
-                    Ok(BalanceResponse {
-                        balance,
-                        address: format!("{:?}", relayer_address),
-                        currency: data.currency,
-                    })
+                    Ok(BalanceResponse::new(balance, format!("{:?}", relayer_address), data.currency))
                 }
                 Err(error) => {
                     Err(error)
                 }
-            }
+            };
         }
         Err(ApiError::BadRequest("Invalid entity".to_string()))
     }
