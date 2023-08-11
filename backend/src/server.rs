@@ -41,13 +41,16 @@ pub fn init_services() -> ToadService {
     info!("Starting server...");
     // contract providers
     let client = Arc::new(PROVIDER.clone());
-    let simple_account_factory_provider =
-        Web3Provider::get_simple_account_factory_abi(&CONFIG.current_chain, client.clone());
-    let erc20_provider = Web3Provider::get_erc20_abi(&CONFIG.current_chain, client.clone());
-    let entrypoint_provider = get_entrypoint_abi(&CONFIG.current_chain, client.clone());
+    let simple_account_factory_provider = Web3Provider::get_simple_account_factory_abi(
+        &CONFIG.run_config.current_chain,
+        client.clone(),
+    );
+    let erc20_provider =
+        Web3Provider::get_erc20_abi(&CONFIG.run_config.current_chain, client.clone());
+    let entrypoint_provider = get_entrypoint_abi(&CONFIG.run_config.current_chain, client.clone());
     let simple_account_provider = Web3Provider::get_simpleaccount_abi(client.clone());
     let verifying_paymaster_provider =
-        get_verifying_paymaster_abi(&CONFIG.current_chain, client.clone());
+        get_verifying_paymaster_abi(&CONFIG.run_config.current_chain, client.clone());
     //signers
     let verifying_paymaster_signer: LocalWallet = std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY")
         .expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set")
@@ -61,7 +64,7 @@ pub fn init_services() -> ToadService {
         client.clone(),
         wallet_signer
             .clone()
-            .with_chain_id(CONFIG.chains[&CONFIG.current_chain].chain_id),
+            .with_chain_id(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id),
     );
     // http client
     let http_client = HttpClient {

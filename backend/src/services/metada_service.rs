@@ -8,8 +8,10 @@ pub struct MetadataService {}
 impl MetadataService {
     pub fn get_chain(&self) -> Result<Metadata, ApiError> {
         Ok(Metadata {
-            chain: CONFIG.current_chain.clone(),
-            currency: CONFIG.chains[&CONFIG.current_chain].currency.clone(),
+            chain: CONFIG.run_config.current_chain.clone(),
+            currency: CONFIG.chains[&CONFIG.run_config.current_chain]
+                .currency
+                .clone(),
         })
     }
 }

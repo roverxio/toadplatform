@@ -54,7 +54,7 @@ impl WalletService {
             salt = get_hash(user).to_string().parse().unwrap();
             result = self
                 .simple_account_factory_provider
-                .get_address(CONFIG.account_owner, salt)
+                .get_address(CONFIG.run_config.account_owner, salt)
                 .await
                 .unwrap();
             if !contract_exists_at(format!("{:?}", result)).await {

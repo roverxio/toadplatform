@@ -1,4 +1,4 @@
-debug = false
+[run_config]
 current_chain = "localhost"
 account_owner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 paymaster_account_owner = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"

@@ -69,14 +69,14 @@ impl TransactionService {
             let create_account_payload = self
                 .simple_account_factory_provider
                 .create_account(
-                    CONFIG.account_owner,
+                    CONFIG.run_config.account_owner,
                     U256::from_dec_str(&wallet.salt).unwrap(),
                 )
                 .calldata()
                 .unwrap();
             init_code = Bytes::from(
                 [
-                    CONFIG.chains[&CONFIG.current_chain]
+                    CONFIG.chains[&CONFIG.run_config.current_chain]
                         .simple_account_factory_address
                         .as_bytes(),
                     create_account_payload.as_ref(),
@@ -97,7 +97,7 @@ impl TransactionService {
         let params: Vec<Token> = vec![valid_until.into_token(), valid_after.into_token()];
         let data = encode(&params);
         let paymaster_and_data = [
-            CONFIG.chains[&CONFIG.current_chain]
+            CONFIG.chains[&CONFIG.run_config.current_chain]
                 .verifying_paymaster_address
                 .as_bytes(),
             data.as_ref(),
@@ -146,7 +146,7 @@ impl TransactionService {
             .unwrap()
             .to_vec();
         let paymaster_and_data_with_sign = [
-            CONFIG.chains[&CONFIG.current_chain]
+            CONFIG.chains[&CONFIG.run_config.current_chain]
                 .verifying_paymaster_address
                 .as_bytes(),
             data.as_ref(),
@@ -164,7 +164,9 @@ impl TransactionService {
             .sign_message(
                 user_op2.clone(),
                 format!("{:?}", self.entrypoint_provider.address().clone()),
-                CONFIG.chains[&CONFIG.current_chain].chain_id.clone(),
+                CONFIG.chains[&CONFIG.run_config.current_chain]
+                    .chain_id
+                    .clone(),
             )
             .await
             .unwrap();
@@ -178,13 +180,13 @@ impl TransactionService {
             .entrypoint_provider
             .handle_ops(
                 vec![get_entry_point_user_operation_payload(user_op3)],
-                CONFIG.account_owner,
+                CONFIG.run_config.account_owner,
             )
             .calldata()
             .unwrap();
         let transaction = TransactionRequest::new()
-            .from(CONFIG.account_owner)
-            .to(CONFIG.chains[&CONFIG.current_chain].entrypoint_address)
+            .from(CONFIG.run_config.account_owner)
+            .to(CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address)
             .value(0)
             .data(handle_ops_payload.clone());
         let result = self
@@ -290,7 +292,10 @@ impl TransactionService {
         Ok(TransactionResponse {
             transaction_hash: txn_hash.clone(),
             status: "pending".to_string(),
-            explorer: CONFIG.chains[&CONFIG.current_chain].explorer_url.clone() + &txn_hash.clone(),
+            explorer: CONFIG.chains[&CONFIG.run_config.current_chain]
+                .explorer_url
+                .clone()
+                + &txn_hash.clone(),
         })
     }
 
@@ -307,7 +312,7 @@ impl TransactionService {
     fn transfer_usdc(&self, transfer_payload: Bytes) -> Bytes {
         self.simple_account_provider
             .execute(
-                CONFIG.chains[&CONFIG.current_chain].usdc_address,
+                CONFIG.chains[&CONFIG.run_config.current_chain].usdc_address,
                 U256::zero(),
                 transfer_payload,
             )
