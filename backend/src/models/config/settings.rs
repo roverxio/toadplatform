@@ -5,6 +5,13 @@ use serde::Deserialize;
 use crate::models::config::env::ENV;
 
 #[derive(Debug, Deserialize, Clone)]
+pub struct RunConfig {
+    pub current_chain: String,
+    pub account_owner: Address,
+    pub paymaster_account_owner: Address,
+}
+
+#[derive(Debug, Deserialize, Clone)]
 pub struct Log {
     pub level: String,
 }
@@ -65,9 +72,7 @@ pub struct DefaultGas {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
-    pub current_chain: String,
-    pub account_owner: Address,
-    pub paymaster_account_owner: Address,
+    pub run_config: RunConfig,
     pub log: Log,
     pub database: Database,
     pub urls: Urls,
