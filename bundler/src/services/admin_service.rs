@@ -34,7 +34,7 @@ impl AdminService {
             return Err(ApiError::BadRequest("Invalid currency".to_string()));
         }
         if RoverXConstants::PAYMASTER == entity {
-            let paymaster_address = &CONFIG.chains[&CONFIG.current_chain].verifying_paymaster_address;
+            let paymaster_address = &CONFIG.chains[&CONFIG.run_config.current_chain].verifying_paymaster_address;
             let deposit = self.entrypoint_provider.get_deposit_info(paymaster_address.clone()).await.unwrap();
             let balance = (deposit.deposit.to_string().parse::<f64>().unwrap() / 1e18).to_string();
             return Ok(BalanceResponse {
