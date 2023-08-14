@@ -6,6 +6,7 @@ use crate::models::config::settings::Settings;
 use crate::provider::web3_provider::Web3Provider;
 use crate::server::{api_server, init_services};
 
+mod constants;
 mod db;
 mod errors;
 mod handlers;
@@ -14,7 +15,6 @@ mod provider;
 mod routes;
 mod server;
 mod services;
-mod constants;
 
 lazy_static! {
     static ref CONFIG: Settings = Settings::new().expect("Failed to load config.");
