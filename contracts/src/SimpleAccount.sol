@@ -25,6 +25,8 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
 
     IEntryPoint private immutable _entryPoint;
 
+    string public deployedBy;
+
     event SimpleAccountInitialized(IEntryPoint indexed entryPoint, address indexed owner);
 
     modifier onlyOwner() {
@@ -81,6 +83,7 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
 
     function _initialize(address anOwner) internal virtual {
         owner = anOwner;
+        deployedBy = "toad.cash";
         emit SimpleAccountInitialized(_entryPoint, owner);
     }
 
@@ -135,4 +138,3 @@ contract SimpleAccount is BaseAccount, TokenCallbackHandler, UUPSUpgradeable, In
         _onlyOwner();
     }
 }
-
