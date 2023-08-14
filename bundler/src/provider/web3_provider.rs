@@ -6,7 +6,6 @@ use ethers::types::Address;
 use log::error;
 
 use crate::{CONFIG, PROVIDER};
-use crate::errors::ApiError;
 
 pub struct Web3Provider {}
 
@@ -45,17 +44,15 @@ impl Web3Provider {
         contract
     }
 
-    pub async fn get_native_balance(address: Address) -> Result<String, ApiError> {
-        let result = PROVIDER
-            .get_balance(address, None)
-            .await;
+    pub async fn get_native_balance(address: Address) -> Result<String, String> {
+        let result = PROVIDER.get_balance(address, None).await;
         if result.is_err() {
             error!("Get native balance failed: {:?}", result.err().unwrap());
-            return Err(ApiError::InternalServer("Failed to get balance".to_string()));
+            return Err(String::from("Failed to get balance"));
         }
         let wei_balance = result.unwrap().to_string();
         if wei_balance.parse::<f64>().is_err() {
-            return Err(ApiError::InternalServer("Failed to parse balance".to_string()));
+            return Err(String::from("Failed to parse balance"));
         }
         Ok((wei_balance.parse::<f64>().unwrap() / 1e18).to_string())
     }

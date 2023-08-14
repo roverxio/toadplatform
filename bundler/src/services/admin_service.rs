@@ -47,9 +47,7 @@ impl AdminService {
                 Ok(balance) => {
                     Ok(BalanceResponse::new(balance, format!("{:?}", relayer_address), data.currency))
                 }
-                Err(error) => {
-                    Err(error)
-                }
+                Err(error) => Err(ApiError::InternalServer(error))
             };
         }
         Err(ApiError::BadRequest("Invalid entity".to_string()))
