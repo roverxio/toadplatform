@@ -14,6 +14,7 @@ mod provider;
 mod routes;
 mod server;
 mod services;
+mod constants;
 
 lazy_static! {
     static ref CONFIG: Settings = Settings::new().expect("Failed to load config.");
