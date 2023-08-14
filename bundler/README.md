@@ -3,16 +3,11 @@ A simple rust project that exposes REST APIs and acts as a relayer to [ERC4337](
 It uses actix for the REST APIs and an sqlite database for storing wallet deployment state and the salt. Rust version: `rustc 1.71.0 (8ede3aae2 2023-07-12)`
 
 ## Pre-requisites
-If you are running this project on localhost, you need to have a local node running with the contracts deployed. Also, the env variable `INFURA_KEY` will be set as an empty string. For testing, I used [eth-infinitism's account-abstraction](https://github.com/eth-infinitism/account-abstraction). You can use that as well. Here are the steps to deploy the contracts:
-1. Clone the account-abstraction repo
-2. Run `yarn install`
-3. Go to [roverx-rpc's deplyer contracts](https://github.com/Club-Defy/roverx-rpc/tree/base/scw/provider/deployer) and copy
-   1. 06_delpoy_TestERC20.ts (rename it to 4_deploy_TestERC20.ts)
-   2. 13_deploy_VerifyingPaymaster.ts (rename it to 4_deploy_VerifyingPaymaster.ts)
-4. Paste them in the account-abstraction repo under `deploy` folder
-5. run `npx hardhat node`
+If you are running this project on localhost, you need to have a local node running with the contracts deployed. Also, the env variable `INFURA_KEY` will be set as an empty string. Here are the steps to set up your local node with the required contracts:
+1. Follow the instructions in the [foundry installation guide](https://book.getfoundry.sh/getting-started/installation) to set up foundry tool kit
+2. run `deploy_local.sh`. This should start a local anvil node and deploy the contracts. 
 
-This should start a hardhat node and deploy the contracts. You can find the deployed contracts in the console logs. Copy the very first private-key from the logs and use it to populate the values of "WALLET_PRIVATE_KEY" and "VERIFYING_PAYMASTER_PRIVATE_KEY" in env variables. This key is the deployer for all the contracts.
+You can find the deployed contracts in the console logs. Copy the very first private-key from the logs and use it to populate the values of "WALLET_PRIVATE_KEY" and "VERIFYING_PAYMASTER_PRIVATE_KEY" in env variables. This key is the deployer for all the contracts.
 
 ## How to run
 1. Clone the repo
