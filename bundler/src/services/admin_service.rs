@@ -1,20 +1,18 @@
 use log::info;
 
-use ethers::providers::{Http, Provider};
-
 use crate::CONFIG;
-use crate::constants::RoverXConstants;
+use crate::constants::Constants;
 use crate::errors::ApiError;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::transfer::transfer_response::TransactionResponse;
 use crate::models::wallet::balance_request::Balance;
 use crate::models::wallet::balance_response::BalanceResponse;
-use crate::provider::entrypoint_helper::EntryPoint;
+use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::web3_provider::Web3Provider;
 
 #[derive(Clone)]
 pub struct AdminService {
-    pub entrypoint_provider: EntryPoint<Provider<Http>>,
+    pub paymaster_provider: PaymasterProvider,
 }
 
 impl AdminService {
@@ -31,14 +29,20 @@ impl AdminService {
     }
 
     pub async fn get_balance(&self, entity: String, data: Balance) -> Result<BalanceResponse, ApiError> {
-        if data.currency != RoverXConstants::NATIVE {
+        if data.currency != Constants::NATIVE {
             return Err(ApiError::BadRequest("Invalid currency".to_string()));
         }
-        if RoverXConstants::PAYMASTER == entity {
+        if Constants::PAYMASTER == entity {
             let paymaster_address = &CONFIG.chains[&CONFIG.run_config.current_chain].verifying_paymaster_address;
-            let deposit = self.entrypoint_provider.get_deposit_info(paymaster_address.clone()).await.unwrap();
-            let balance = (deposit.deposit.to_string().parse::<f64>().unwrap() / 1e18).to_string();
-            return Ok(BalanceResponse::new(balance, format!("{:?}", paymaster_address), data.currency));
+            let result = self.paymaster_provider.get_deposit().await;
+            if result.is_err() {
+                return Err(ApiError::InternalServer(result.err().unwrap()));
+            }
+            return Ok(BalanceResponse {
+                balance: result.unwrap(),
+                address: format!("{:?}", paymaster_address),
+                currency: data.currency,
+            });
         }
         if RoverXConstants::RELAYER == entity {
             let relayer_address = &CONFIG.run_config.account_owner;

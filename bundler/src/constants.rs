@@ -1,6 +1,6 @@
-pub struct RoverXConstants;
+pub struct Constants;
 
-impl RoverXConstants {
+impl Constants {
     // Users
     pub const ADMIN: &'static str = "admin";
 
