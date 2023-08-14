@@ -1,5 +1,1 @@
 .idea/
-roverx-rpc
-/backend/src/toad.db
-target
-bundler/config/Development.toml
