@@ -22,7 +22,7 @@ use crate::services::admin_service::AdminService;
 use crate::services::balance_service::BalanceService;
 use crate::services::hello_world_service::HelloWorldService;
 use crate::services::metada_service::MetadataService;
-use crate::services::transfer_service::TransactionService;
+use crate::services::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
 use crate::{CONFIG, PROVIDER};
 use crate::provider::paymaster_provider::PaymasterProvider;
@@ -32,7 +32,7 @@ pub struct ToadService {
     pub hello_world_service: HelloWorldService,
     pub wallet_service: WalletService,
     pub balance_service: BalanceService,
-    pub transfer_service: TransactionService,
+    pub transfer_service: TransferService,
     pub admin_service: AdminService,
     pub metadata_service: MetadataService,
 }
@@ -95,7 +95,7 @@ pub fn init_services() -> ToadService {
         wallet_dao: wallet_dao.clone(),
         erc20_provider: erc20_provider.clone(),
     };
-    let transfer_service = TransactionService {
+    let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
         usdc_provider: erc20_provider.clone(),
