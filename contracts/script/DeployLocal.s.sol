@@ -7,7 +7,7 @@ import "../src/SimpleAccountFactory.sol";
 import "../src/VerifyingPaymaster.sol";
 import "../src/tests/TestERC20.sol";
 
-contract ToadContractsScript is Script {
+contract DeployLocal is Script {
     uint256 internal deployerPrivateKey;
     address internal owner;
 
