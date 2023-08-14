@@ -6,6 +6,7 @@ impl Constants {
 
     // entity
     pub const PAYMASTER: &'static str = "paymaster";
+    pub const RELAYER: &'static str = "relayer";
 
     // Currency
     pub const NATIVE: &'static str = "native";
