@@ -38,7 +38,7 @@ impl AdminService {
             let response = self.paymaster_provider.get_deposit().await;
             return Self::get_balance_response(paymaster_address, response, data.currency);
         }
-        if RoverXConstants::RELAYER == entity {
+        if Constants::RELAYER == entity {
             let relayer_address = &CONFIG.run_config.account_owner;
             let response = Web3Provider::get_native_balance(relayer_address.clone()).await;
             return Self::get_balance_response(relayer_address, response, data.currency);
