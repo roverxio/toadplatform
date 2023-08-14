@@ -1,7 +1,5 @@
 use log::info;
 
-use ethers::providers::{Http, Provider};
-
 use crate::CONFIG;
 use crate::constants::Constants;
 use crate::errors::ApiError;
@@ -9,11 +7,11 @@ use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::transfer::transfer_response::TransactionResponse;
 use crate::models::wallet::balance_request::Balance;
 use crate::models::wallet::balance_response::BalanceResponse;
-use crate::provider::entrypoint_helper::EntryPoint;
+use crate::provider::paymaster_provider::PaymasterProvider;
 
 #[derive(Clone)]
 pub struct AdminService {
-    pub entrypoint_provider: EntryPoint<Provider<Http>>,
+    pub paymaster_provider: PaymasterProvider,
 }
 
 impl AdminService {
@@ -35,10 +33,12 @@ impl AdminService {
         }
         if Constants::PAYMASTER == entity {
             let paymaster_address = &CONFIG.chains[&CONFIG.run_config.current_chain].verifying_paymaster_address;
-            let deposit = self.entrypoint_provider.get_deposit_info(paymaster_address.clone()).await.unwrap();
-            let balance = (deposit.deposit.to_string().parse::<f64>().unwrap() / 1e18).to_string();
+            let result = self.paymaster_provider.get_deposit().await;
+            if result.is_err() {
+                return Err(ApiError::InternalServer(result.err().unwrap()));
+            }
             return Ok(BalanceResponse {
-                balance,
+                balance: result.unwrap(),
                 address: format!("{:?}", paymaster_address),
                 currency: data.currency,
             });
