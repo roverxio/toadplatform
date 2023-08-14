@@ -1,4 +1,4 @@
 .idea/
 /target/
 toad.db
-/config/Production.toml
+/config/Development.toml
