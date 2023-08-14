@@ -1,10 +1,11 @@
 use std::sync::Arc;
 
 use ethers::prelude::abigen;
-use ethers::providers::{Http, Provider};
+use ethers::providers::{Http, Middleware, Provider};
 use ethers::types::Address;
+use log::error;
 
-use crate::CONFIG;
+use crate::{CONFIG, PROVIDER};
 
 pub struct Web3Provider {}
 
@@ -41,5 +42,18 @@ impl Web3Provider {
     pub fn get_simpleaccount_abi(client: Arc<Provider<Http>>, address: Address) -> Simpleaccount<Provider<Http>> {
         let contract: Simpleaccount<Provider<Http>> = Simpleaccount::new(address, client);
         contract
+    }
+
+    pub async fn get_native_balance(address: Address) -> Result<String, String> {
+        let result = PROVIDER.get_balance(address, None).await;
+        if result.is_err() {
+            error!("Get native balance failed: {:?}", result.err().unwrap());
+            return Err(String::from("Failed to get balance"));
+        }
+        let wei_balance = result.unwrap().to_string();
+        if wei_balance.parse::<f64>().is_err() {
+            return Err(String::from("Failed to parse balance"));
+        }
+        Ok((wei_balance.parse::<f64>().unwrap() / 1e18).to_string())
     }
 }

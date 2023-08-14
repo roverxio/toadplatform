@@ -16,9 +16,10 @@ This should start a hardhat node and deploy the contracts. You can find the depl
 
 ## How to run
 1. Clone the repo
-2. Navigate to ".env.example" and set the environment variables mentioned there (using the export command)
-3. run `bash db/setup_db.sh`
-4. run `cargo run`
+2. Navigate to ".env.example" and set the environment variables mentioned there (using the export command) (RUN_ENV can be one of "Development", "Production", "Staging")
+3. If your RUN_ENV is "Development", set INFURA_KEY to an empty string. You will also need to create a copy of config/Staging.toml and rename it to config/Development.toml. Set the values in the config file as per your requirements.
+4. run `bash db/setup_db.sh`
+5. run `cargo run`
 
 By deault, the server uses "Development.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
 1. Development

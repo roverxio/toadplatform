@@ -16,7 +16,7 @@ contract TestHelper is Test {
     address internal accountAddress;
     address internal entryPointAddress;
 
-    uint256 internal chainId = vm.envOr("FOUNDRY_CHAIN_ID", uint256(31337));
+    uint256 internal chainId = vm.envOr("CHAIN_ID", uint256(31337));
     uint256 internal constant globalUnstakeDelaySec = 2;
     uint256 internal constant paymasterStake = 2 ether;
     bytes internal constant defaultBytes = bytes("");

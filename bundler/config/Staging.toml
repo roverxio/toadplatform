@@ -42,16 +42,6 @@ currency = "GoerliETH"
 entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
 verifying_paymaster_address = "0x1Fa8013ae6012C745fefe42068FBC988A04c7f81"
 
-[chains.localhost]
-chain_id = 31337
-url = "http://localhost:8545"
-explorer_url = "http://localhost:8545/tx/"
-currency = "localETH"
-simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
-usdc_address = "0x68679d96208Ae36E5765b1354C1E22637Fe77B45"
-entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
-verifying_paymaster_address = "0x589C378e85C4770AEad2ECCABe8068fF326Fe199"
-
 [default_gas]
 call_gas_limit = 10000000
 verification_gas_limit = 10000000

@@ -26,6 +26,7 @@ use crate::services::metada_service::MetadataService;
 use crate::services::transfer_service::TransactionService;
 use crate::services::wallet_service::WalletService;
 use crate::{CONFIG, PROVIDER};
+use crate::provider::paymaster_provider::PaymasterProvider;
 
 #[derive(Clone)]
 pub struct ToadService {
@@ -79,6 +80,12 @@ pub fn init_services() -> ToadService {
     let pool = establish_connection(CONFIG.database.file.clone());
     let wallet_dao = WalletDao { pool: pool.clone() };
     let transaction_dao = TransactionDao { pool: pool.clone() };
+
+    // providers
+    let verify_paymaster_provider = PaymasterProvider {
+        provider: verifying_paymaster_provider.clone(),
+    };
+
     // Services
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {
@@ -103,7 +110,9 @@ pub fn init_services() -> ToadService {
         signing_client: signing_client.clone(),
         http_client: http_client.clone(),
     };
-    let admin_service = AdminService {};
+    let admin_service = AdminService {
+        paymaster_provider: verify_paymaster_provider.clone(),
+    };
     let metadata_service = MetadataService {};
 
     ToadService {
