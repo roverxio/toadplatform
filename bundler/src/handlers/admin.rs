@@ -1,5 +1,5 @@
-use actix_web::HttpRequest;
 use actix_web::web::{Data, Json, Path, Query};
+use actix_web::HttpRequest;
 use log::info;
 
 use crate::constants::Constants;
@@ -33,6 +33,8 @@ pub async fn admin_get_balance(
     if Constants::ADMIN != get_user(req) {
         return Err(ApiError::BadRequest("Invalid credentials".to_string()));
     }
-    let response = service.get_balance(entity.clone(), body.get_balance_request()).await?;
+    let response = service
+        .get_balance(entity.clone(), body.get_balance_request())
+        .await?;
     respond_json(response)
 }

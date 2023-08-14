@@ -10,5 +10,4 @@ impl Constants {
 
     // Currency
     pub const NATIVE: &'static str = "native";
-
 }

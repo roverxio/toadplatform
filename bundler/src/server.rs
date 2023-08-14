@@ -15,6 +15,7 @@ use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
 use crate::provider::entrypoint_helper::get_entrypoint_abi;
 use crate::provider::http_client::HttpClient;
+use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
 use crate::provider::web3_provider::Web3Provider;
 use crate::routes::routes;
@@ -25,7 +26,6 @@ use crate::services::metada_service::MetadataService;
 use crate::services::transfer_service::TransactionService;
 use crate::services::wallet_service::WalletService;
 use crate::{CONFIG, PROVIDER};
-use crate::provider::paymaster_provider::PaymasterProvider;
 
 #[derive(Clone)]
 pub struct ToadService {
