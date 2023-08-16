@@ -5,12 +5,13 @@ It uses actix for the REST APIs and an sqlite database for storing wallet deploy
 ## Pre-requisites
 If you are running this project on localhost, you need to have a local node running with the contracts deployed. Also, the env variable `INFURA_KEY` will be set as an empty string. Here are the steps to set up your local node with the required contracts:
 1. Follow the instructions in the [foundry installation guide](https://book.getfoundry.sh/getting-started/installation) to set up foundry tool kit
-2. run `bash foundry_setup.sh` to install all the contract dependencies
-3. run `bash deploy_local.sh`. This should start a local anvil node and deploy the contracts. 
+2. run `bash contracts/foundry_setup.sh` to install all the contract dependencies
+3. update/set the `RPC_URL` env variable in `contracts/` to `http://local_host:8545`
+4. run `bash contracts/deploy_local.sh`*. This should start a local anvil node and deploy the contracts. 
 
 You can find the deployed contracts in the console logs. Copy the very first private-key from the logs and use it to populate the values of `WALLET_PRIVATE_KEY` and `VERIFYING_PAYMASTER_PRIVATE_KEY` in env variables. This key is the deployer for all the contracts.
 
-<ins>NOTE</ins>: In case an instance of `anvil` is already running, run `pkill -f anvil` to stop the instance before you run `run deploy_local.sh`
+*<ins>NOTE</ins>: In case an instance of `anvil` is already running, run `pkill -f anvil` to stop the instance before you run `run deploy_local.sh`
 
 ## How to run
 1. Clone the repo
@@ -19,7 +20,7 @@ You can find the deployed contracts in the console logs. Copy the very first pri
 4. run `bash db/setup_db.sh`
 5. run `cargo run`
 
-By deault, the server uses "Development.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
+By default, the server uses "Development.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
 1. Development
 2. Production
 3. Staging
