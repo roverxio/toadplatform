@@ -81,6 +81,9 @@ pub fn init_services() -> ToadService {
     let transaction_dao = TransactionDao { pool: pool.clone() };
 
     // providers
+    let web3_provider = Web3Provider {
+        signing_client: signing_client.clone(),
+    };
     let verify_paymaster_provider = PaymasterProvider {
         provider: verifying_paymaster_provider.clone(),
     };
