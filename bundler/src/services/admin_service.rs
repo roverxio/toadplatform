@@ -5,6 +5,7 @@ use crate::errors::ApiError;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
+use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::balance_request::Balance;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::entrypoint_helper::EntryPointProvider;
@@ -23,7 +24,7 @@ impl AdminService {
         &self,
         req: PaymasterTopup,
         paymaster: String,
-    ) -> Result<TransactionResponse, ApiError> {
+    ) -> Result<TransferResponse, ApiError> {
         if req.metadata.currency != Constants::NATIVE {
             return Err(ApiError::BadRequest("Invalid currency".to_string()));
         }
@@ -39,14 +40,16 @@ impl AdminService {
             )
             .await;
         match response {
-            Ok(txn_hash) => Ok(TransactionResponse::new(
-                txn_hash.clone(),
-                Status::PENDING,
-                CONFIG.chains[&CONFIG.run_config.current_chain]
-                    .explorer_url
-                    .clone()
-                    + &txn_hash.clone(),
-            )),
+            Ok(txn_hash) => Ok(TransferResponse {
+                transaction: TransactionResponse::new(
+                    txn_hash.clone(),
+                    Status::PENDING,
+                    CONFIG.chains[&CONFIG.run_config.current_chain]
+                        .explorer_url
+                        .clone()
+                        + &txn_hash.clone(),
+                ),
+            }),
             Err(err) => Err(ApiError::BadRequest(err)),
         }
     }

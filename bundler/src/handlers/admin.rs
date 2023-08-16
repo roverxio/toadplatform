@@ -5,7 +5,7 @@ use crate::constants::Constants;
 use crate::errors::ApiError;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::response::base_response::BaseResponse;
-use crate::models::transfer::transaction_response::TransactionResponse;
+use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::helpers::{get_user, respond_json};
@@ -16,7 +16,7 @@ pub async fn topup_paymaster_deposit(
     body: Json<PaymasterTopup>,
     req: HttpRequest,
     paymaster: Path<String>,
-) -> Result<Json<BaseResponse<TransactionResponse>>, ApiError> {
+) -> Result<Json<BaseResponse<TransferResponse>>, ApiError> {
     if Constants::ADMIN != get_user(req) {
         return Err(ApiError::BadRequest("Invalid credentials".to_string()));
     }
