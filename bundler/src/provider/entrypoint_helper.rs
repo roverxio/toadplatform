@@ -45,6 +45,18 @@ pub fn get_entry_point_user_operation_payload(
 }
 
 impl EntryPointProvider {
+    pub fn get_address(&self) -> Address {
+        self.provider.address()
+    }
+
+    pub async fn get_nonce(&self, sender: Address) -> Result<U256, String> {
+        let result = self.provider.get_nonce(sender, U256::zero()).await;
+        if result.is_err() {
+            return Err(String::from("failed to get Nonce"));
+        }
+        Ok(result.unwrap())
+    }
+
     pub async fn add_deposit(&self, address: Address, value: String) -> Result<String, String> {
         let data = self.provider.deposit_to(address).calldata();
         if data.is_none() {
@@ -59,6 +71,36 @@ impl EntryPointProvider {
                 value,
                 data.unwrap(),
                 abi,
+            )
+            .await;
+        match result {
+            Ok(tx_hash) => Ok(tx_hash),
+            Err(error) => Err(error),
+        }
+    }
+
+    pub async fn handle_ops(
+        &self,
+        user_op: contract_interaction::user_operation::UserOperation,
+    ) -> Result<String, String> {
+        let data = self
+            .provider
+            .handle_ops(
+                vec![get_entry_point_user_operation_payload(user_op)],
+                CONFIG.run_config.account_owner,
+            )
+            .calldata();
+        if data.is_none() {
+            return Err(String::from("failed to execute"));
+        }
+        let result = self
+            .client
+            .execute(
+                CONFIG.run_config.account_owner,
+                CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
+                String::from("0"),
+                data.unwrap(),
+                self.provider.abi(),
             )
             .await;
         match result {
