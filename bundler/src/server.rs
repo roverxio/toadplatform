@@ -13,7 +13,7 @@ use crate::db::connection::establish_connection;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
-use crate::provider::entrypoint_helper::get_entrypoint_abi;
+use crate::provider::entrypoint_helper::{get_entrypoint_abi, EntryPointProvider};
 use crate::provider::http_client::HttpClient;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
@@ -86,6 +86,10 @@ pub fn init_services() -> ToadService {
     };
     let verify_paymaster_provider = PaymasterProvider {
         provider: verifying_paymaster_provider.clone(),
+    };
+    let entry_point_provider = EntryPointProvider {
+        provider: entrypoint_provider.clone(),
+        client: web3_provider,
     };
 
     // Services

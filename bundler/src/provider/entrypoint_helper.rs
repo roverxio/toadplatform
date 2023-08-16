@@ -1,12 +1,20 @@
 use crate::CONFIG;
+use ethers::abi::Abi;
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
-use ethers::types::U256;
+use ethers::types::{Address, U256};
 use std::sync::Arc;
 
 use crate::models::contract_interaction;
+use crate::provider::web3_provider::Web3Provider;
 
 abigen!(EntryPoint, "abi/Entrypoint.json");
+
+#[derive(Clone)]
+pub struct EntryPointProvider {
+    pub provider: EntryPoint<Provider<Http>>,
+    pub client: Web3Provider,
+}
 
 pub fn get_entrypoint_abi(
     current_chain: &str,
@@ -33,5 +41,29 @@ pub fn get_entry_point_user_operation_payload(
         max_priority_fee_per_gas: U256::from(user_op.max_priority_fee_per_gas),
         signature: user_op.signature,
         paymaster_and_data: user_op.paymaster_and_data,
+    }
+}
+
+impl EntryPointProvider {
+    pub async fn add_deposit(&self, address: Address, value: String) -> Result<String, String> {
+        let data = self.provider.deposit_to(address).calldata();
+        if data.is_none() {
+            return Err(String::from("failed to deposit"));
+        }
+        let abi: &Abi = self.provider.abi();
+        let result = self
+            .client
+            .execute(
+                CONFIG.run_config.account_owner,
+                address,
+                value,
+                data.unwrap(),
+                abi,
+            )
+            .await;
+        match result {
+            Ok(tx_hash) => Ok(tx_hash),
+            Err(error) => Err(error),
+        }
     }
 }
