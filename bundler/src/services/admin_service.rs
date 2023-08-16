@@ -4,7 +4,7 @@ use crate::constants::Constants;
 use crate::errors::ApiError;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::transfer::status::Status;
-use crate::models::transfer::transfer_response::TransactionResponse;
+use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::wallet::balance_request::Balance;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::entrypoint_helper::EntryPointProvider;

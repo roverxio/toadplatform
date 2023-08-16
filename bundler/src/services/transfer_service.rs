@@ -14,8 +14,9 @@ use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
+use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_request::TransferRequest;
-use crate::models::transfer::transfer_response::TransactionResponse;
+use crate::models::transfer::transfer_response::TransferResponse;
 use crate::provider::entrypoint_helper::{get_entry_point_user_operation_payload, EntryPoint};
 use crate::provider::http_client::HttpClient;
 use crate::provider::verifying_paymaster_helper::{
@@ -25,7 +26,7 @@ use crate::provider::web3_provider::{SimpleAccountFactory, Simpleaccount, ERC20}
 use crate::CONFIG;
 
 #[derive(Clone)]
-pub struct TransactionService {
+pub struct TransferService {
     pub wallet_dao: WalletDao,
     pub transaction_dao: TransactionDao,
     pub usdc_provider: ERC20<Provider<Http>>,
@@ -39,12 +40,12 @@ pub struct TransactionService {
     pub http_client: HttpClient,
 }
 
-impl TransactionService {
+impl TransferService {
     pub async fn transfer_funds(
         &self,
         request: TransferRequest,
         usr: &str,
-    ) -> Result<TransactionResponse, ApiError> {
+    ) -> Result<TransferResponse, ApiError> {
         let user_wallet = self.wallet_dao.get_wallet(usr.to_string()).await;
         let wallet: User;
         match user_wallet {
@@ -289,13 +290,15 @@ impl TransactionService {
             }
         }
 
-        Ok(TransactionResponse {
-            transaction_hash: txn_hash.clone(),
-            status: "pending".to_string(),
-            explorer: CONFIG.chains[&CONFIG.run_config.current_chain]
-                .explorer_url
-                .clone()
-                + &txn_hash.clone(),
+        Ok(TransferResponse {
+            transaction: TransactionResponse {
+                transaction_hash: txn_hash.clone(),
+                status: "pending".to_string(),
+                explorer: CONFIG.chains[&CONFIG.run_config.current_chain]
+                    .explorer_url
+                    .clone()
+                    + &txn_hash.clone(),
+            },
         })
     }
 
