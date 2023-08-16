@@ -5,7 +5,7 @@ use ethers::abi::{encode, Token, Tokenizable};
 use ethers::middleware::signer::SignerMiddlewareError;
 use ethers::middleware::SignerMiddleware;
 use ethers::providers::{Http, Middleware, Provider, ProviderError};
-use ethers::types::{Address, Bytes, TransactionRequest, U256};
+use ethers::types::{Address, Bytes, TransactionRequest, H160, U256};
 use ethers_signers::{LocalWallet, Signer};
 use log::{error, info};
 use serde_json::Value;
@@ -161,9 +161,7 @@ impl TransactionService {
         let signature = Bytes::from(
             self.wallet_singer
                 .sign_message(user_op2.hash(
-                    &Address::from(
-                        CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
-                    ),
+                    &H160::from(CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address),
                     &(u64::from(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id)),
                 ))
                 .await
