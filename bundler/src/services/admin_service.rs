@@ -1,12 +1,13 @@
 use ethers::addressbook::Address;
-use log::info;
 
 use crate::constants::Constants;
 use crate::errors::ApiError;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
+use crate::models::transfer::status::Status;
 use crate::models::transfer::transfer_response::TransactionResponse;
 use crate::models::wallet::balance_request::Balance;
 use crate::models::wallet::balance_response::BalanceResponse;
+use crate::provider::entrypoint_helper::EntryPointProvider;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::web3_provider::Web3Provider;
 use crate::CONFIG;
@@ -14,19 +15,37 @@ use crate::CONFIG;
 #[derive(Clone)]
 pub struct AdminService {
     pub paymaster_provider: PaymasterProvider,
+    pub entrypoint_provider: EntryPointProvider,
 }
 
 impl AdminService {
-    pub fn topup_paymaster_deposit(
+    pub async fn topup_paymaster_deposit(
         &self,
-        topup: PaymasterTopup,
+        req: PaymasterTopup,
+        paymaster: String,
     ) -> Result<TransactionResponse, ApiError> {
-        info!("topup: {:?}", topup.address);
-        Ok(TransactionResponse {
-            transaction_hash: "hash".to_string(),
-            status: "success".to_string(),
-            explorer: "no".to_string(),
-        })
+        if req.metadata.currency != Constants::NATIVE {
+            return Err(ApiError::BadRequest("Invalid currency".to_string()));
+        }
+        if paymaster != Constants::VERIFYING_PAYMASTER {
+            return Err(ApiError::BadRequest("Invalid Paymaster".to_string()));
+        }
+
+        let response = self
+            .entrypoint_provider
+            .add_deposit(
+                CONFIG.chains[&CONFIG.run_config.current_chain].verifying_paymaster_address,
+                req.value,
+            )
+            .await;
+        match response {
+            Ok(tx_hash) => Ok(TransactionResponse::new(
+                tx_hash,
+                Status::PENDING,
+                String::from(""),
+            )),
+            Err(err) => Err(ApiError::BadRequest(err)),
+        }
     }
 
     pub async fn get_balance(

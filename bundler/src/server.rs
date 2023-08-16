@@ -117,6 +117,7 @@ pub fn init_services() -> ToadService {
     };
     let admin_service = AdminService {
         paymaster_provider: verify_paymaster_provider.clone(),
+        entrypoint_provider: entry_point_provider.clone(),
     };
     let metadata_service = MetadataService {};
 
