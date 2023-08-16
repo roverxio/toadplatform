@@ -1,6 +1,6 @@
 use ethers::abi::AbiEncode;
 use ethers::contract::{Eip712, EthAbiType};
-use ethers::prelude::{EthAbiCodec, H160};
+use ethers::prelude::EthAbiCodec;
 use ethers::types::{Address, Bytes, H256};
 use ethers::utils::keccak256;
 use serde::{Deserialize, Serialize};
@@ -28,15 +28,15 @@ impl UserOperation {
         user_operation_packed.encode().into()
     }
 
-    pub fn hash(&self, entry_point: &H160, chain_id: &u64) -> Bytes {
-        Bytes::from(keccak256(
+    pub fn hash(&self, entry_point: Address, chain_id: u64) -> [u8; 32] {
+        keccak256(
             [
                 keccak256(self.pack_without_signature().deref()).to_vec(),
                 entry_point.encode(),
                 chain_id.encode(),
             ]
             .concat(),
-        ))
+        )
     }
 }
 
