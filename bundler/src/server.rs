@@ -48,7 +48,7 @@ pub fn init_services() -> ToadService {
     );
     let erc20_provider =
         Web3Provider::get_erc20_abi(&CONFIG.run_config.current_chain, client.clone());
-    let entrypoint_provider = get_entrypoint_abi(&CONFIG.run_config.current_chain, client.clone());
+    let entrypoint = get_entrypoint_abi(&CONFIG.run_config.current_chain, client.clone());
     let simple_account_provider = Web3Provider::get_simpleaccount_abi(client.clone());
     let verifying_paymaster_provider =
         get_verifying_paymaster_abi(&CONFIG.run_config.current_chain, client.clone());
@@ -87,8 +87,8 @@ pub fn init_services() -> ToadService {
     let verify_paymaster_provider = PaymasterProvider {
         provider: verifying_paymaster_provider.clone(),
     };
-    let entry_point_provider = EntryPointProvider {
-        provider: entrypoint_provider.clone(),
+    let entrypoint_provider = EntryPointProvider {
+        provider: entrypoint.clone(),
         client: web3_provider,
     };
 
@@ -117,7 +117,7 @@ pub fn init_services() -> ToadService {
     };
     let admin_service = AdminService {
         paymaster_provider: verify_paymaster_provider.clone(),
-        entrypoint_provider: entry_point_provider.clone(),
+        entrypoint_provider: entrypoint_provider.clone(),
     };
     let metadata_service = MetadataService {};
 
