@@ -39,10 +39,13 @@ impl AdminService {
             )
             .await;
         match response {
-            Ok(tx_hash) => Ok(TransactionResponse::new(
-                tx_hash,
+            Ok(txn_hash) => Ok(TransactionResponse::new(
+                txn_hash.clone(),
                 Status::PENDING,
-                String::from(""),
+                CONFIG.chains[&CONFIG.run_config.current_chain]
+                    .explorer_url
+                    .clone()
+                    + &txn_hash.clone(),
             )),
             Err(err) => Err(ApiError::BadRequest(err)),
         }
