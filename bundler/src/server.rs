@@ -129,7 +129,7 @@ fn init_logging() {
     init_from_env(Env::default().default_filter_or(log_level));
 }
 
-pub async fn api_server(service: ToadService, server: Server) -> std::io::Result<()> {
+pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
     dotenv().ok();
 
     HttpServer::new(move || {
