@@ -12,11 +12,11 @@ If you are running this project on localhost, you need to have a local node runn
 2. navigate to the `contracts/` folder
 3. run `bash foundry_setup.sh` to install all the contract dependencies
 4. copy the contents of `.env.example` into `.env`. `RPC_URL` MUST be set to `http://localhost:8545`, since we are deploying locally
-5. run `bash deploy_local.sh`*. This should start a local anvil node and deploy the contracts
+5. run `bash deploy_local.sh`. This should start a local anvil node and deploy the contracts
 
 You can find the deployed contracts in the console logs. Copy the very first private-key from the logs and use it to populate the values of `WALLET_PRIVATE_KEY` and `VERIFYING_PAYMASTER_PRIVATE_KEY` in env variables. This key is the deployer for all the contracts.
 
-*<ins>NOTE</ins>: In case an instance of `anvil` is already running, run `pkill -f anvil` to stop the instance before `run deploy_local.sh`
+<ins>NOTE</ins>: In case an instance of `anvil` is already running, run `pkill -f anvil` to stop the instance before `run deploy_local.sh`
 
 ### Running the bundler
 1. navigate to `.env.example` and set the environment variables mentioned there (using the export command) (RUN_ENV can be one of "Development", "Production", "Staging")
