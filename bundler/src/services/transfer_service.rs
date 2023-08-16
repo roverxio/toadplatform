@@ -159,17 +159,16 @@ impl TransactionService {
         };
 
         let signature = Bytes::from(
-            self
-            .wallet_singer
-            .sign_message(self
-                    .entrypoint_provider
-                    .get_user_op_hash(get_entry_point_user_operation_payload(user_op2.clone()))
-                    .await
-                    .unwrap(),
-            )
-            .await
-            .unwrap()
-            .to_vec()
+            self.wallet_singer
+                .sign_message(user_op2.hash(
+                    &Address::from(
+                        CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
+                    ),
+                    &(u64::from(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id)),
+                ))
+                .await
+                .unwrap()
+                .to_vec(),
         );
 
         let user_op3 = UserOperation {
