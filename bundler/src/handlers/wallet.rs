@@ -4,13 +4,13 @@ use actix_web::HttpRequest;
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transfer::transfer_request::TransferRequest;
-use crate::models::transfer::transfer_response::TransactionResponse;
+use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::helpers::{get_user, respond_json};
 use crate::services::balance_service::BalanceService;
-use crate::services::transfer_service::TransactionService;
+use crate::services::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
 
 pub async fn get_address(
@@ -37,11 +37,11 @@ pub async fn get_balance(
     respond_json(data)
 }
 
-pub async fn transact(
-    service: Data<TransactionService>,
+pub async fn transfer(
+    service: Data<TransferService>,
     body: Json<TransferRequest>,
     req: HttpRequest,
-) -> Result<Json<BaseResponse<TransactionResponse>>, ApiError> {
+) -> Result<Json<BaseResponse<TransferResponse>>, ApiError> {
     let data = service
         .transfer_funds(body.into_inner(), &get_user(req))
         .await?;
