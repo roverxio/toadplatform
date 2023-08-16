@@ -69,19 +69,19 @@ impl Web3Provider {
     pub async fn execute(
         &self,
         from: Address,
-        to: Address,
+        contract: Address,
         value: String,
         data: Bytes,
         abi: &Abi,
     ) -> Result<String, String> {
-        let gas_value: Result<isize, ParseIntError> = value.parse();
-        if gas_value.is_err() {
+        let amount: Result<isize, ParseIntError> = value.parse();
+        if amount.is_err() {
             return Err(String::from("Invalid gas value"));
         }
         let txn = TransactionRequest::new()
             .from(from)
-            .to(to)
-            .value(gas_value.unwrap())
+            .to(contract)
+            .value(amount.unwrap())
             .data(data);
         let result = self.signing_client.send_transaction(txn, None).await;
         return match result {
