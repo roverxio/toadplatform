@@ -55,7 +55,7 @@ impl EntryPointProvider {
             .client
             .execute(
                 CONFIG.run_config.account_owner,
-                address,
+                CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
                 value,
                 data.unwrap(),
                 abi,
