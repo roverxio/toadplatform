@@ -172,7 +172,10 @@ impl TransferService {
             ..user_op2
         };
 
-        let call_data = self.entrypoint_provider.handle_ops(user_op3).await;
+        let call_data = self
+            .entrypoint_provider
+            .handle_ops(user_op3, CONFIG.run_config.account_owner)
+            .await;
         if call_data.is_err() {
             return Err(ApiError::BadRequest(String::from("failed to transfer")));
         }

@@ -1,6 +1,5 @@
 use crate::models::contract_interaction;
 use crate::provider::entrypoint_helper::{EntryPoint, UserOperation};
-use crate::CONFIG;
 use ethers::abi::Abi;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
@@ -34,12 +33,13 @@ impl EntryPointProvider {
     pub async fn handle_ops(
         &self,
         user_op: contract_interaction::user_operation::UserOperation,
+        beneficiary: Address,
     ) -> Result<Bytes, String> {
         let data = self
             .abi
             .handle_ops(
                 vec![self.get_entry_point_user_operation_payload(user_op)],
-                CONFIG.run_config.account_owner,
+                beneficiary,
             )
             .calldata();
         if data.is_none() {
