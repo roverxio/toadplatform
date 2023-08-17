@@ -1,13 +1,13 @@
 use std::str::FromStr;
-use std::sync::Arc;
 
+use crate::bundler::bundler_provider::BundlerProvider;
 use ethers::abi::{encode, Token, Tokenizable};
-use ethers::middleware::SignerMiddleware;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
 
+use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
@@ -15,7 +15,6 @@ use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
-use crate::provider::entrypoint_helper::EntryPointProvider;
 use crate::provider::verifying_paymaster_helper::{
     get_verifying_paymaster_user_operation_payload, VerifyingPaymaster,
 };
@@ -33,7 +32,7 @@ pub struct TransferService {
     pub verifying_paymaster_provider: VerifyingPaymaster<Provider<Http>>,
     pub verifying_paymaster_signer: LocalWallet,
     pub wallet_singer: LocalWallet,
-    pub signing_client: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
+    pub bundler: BundlerProvider,
 }
 
 impl TransferService {
@@ -173,10 +172,24 @@ impl TransferService {
             ..user_op2
         };
 
-        let result = self.entrypoint_provider.handle_ops(user_op3).await;
+        let call_data = self.entrypoint_provider.handle_ops(user_op3).await;
+        if call_data.is_err() {
+            return Err(ApiError::BadRequest(String::from("failed to transfer")));
+        }
+        let result = self
+            .bundler
+            .execute(
+                CONFIG.run_config.account_owner,
+                CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
+                String::from("0"),
+                call_data.unwrap(),
+                self.entrypoint_provider.abi(),
+            )
+            .await;
         if result.is_err() {
             return Err(ApiError::BadRequest(result.err().unwrap()));
         }
+
         let txn_hash = result.unwrap();
         info!("Transaction sent successfully. Hash: {:?}", txn_hash);
         self.transaction_dao

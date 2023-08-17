@@ -1,6 +1,8 @@
+use crate::bundler::bundler_provider::BundlerProvider;
 use ethers::addressbook::Address;
 
 use crate::constants::Constants;
+use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::errors::ApiError;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::transfer::status::Status;
@@ -8,7 +10,6 @@ use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::balance_request::Balance;
 use crate::models::wallet::balance_response::BalanceResponse;
-use crate::provider::entrypoint_helper::EntryPointProvider;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::web3_provider::Web3Provider;
 use crate::CONFIG;
@@ -17,6 +18,7 @@ use crate::CONFIG;
 pub struct AdminService {
     pub paymaster_provider: PaymasterProvider,
     pub entrypoint_provider: EntryPointProvider,
+    pub bundler: BundlerProvider,
 }
 
 impl AdminService {
@@ -32,11 +34,23 @@ impl AdminService {
             return Err(ApiError::BadRequest("Invalid Paymaster".to_string()));
         }
 
-        let response = self
+        let data = self
             .entrypoint_provider
             .add_deposit(
                 CONFIG.chains[&CONFIG.run_config.current_chain].verifying_paymaster_address,
+            )
+            .await;
+        if data.is_err() {
+            return Err(ApiError::BadRequest(String::from("failed to topup")));
+        }
+        let response = self
+            .bundler
+            .execute(
+                CONFIG.run_config.account_owner,
+                CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
                 req.value,
+                data.unwrap(),
+                self.entrypoint_provider.abi(),
             )
             .await;
         match response {

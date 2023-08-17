@@ -9,11 +9,13 @@ use ethers::middleware::SignerMiddleware;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
 
+use crate::bundler::bundler_provider::BundlerProvider;
+use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::connection::establish_connection;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
-use crate::provider::entrypoint_helper::{get_entrypoint_abi, EntryPointProvider};
+use crate::provider::entrypoint_helper::get_entrypoint_abi;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
 use crate::provider::web3_provider::Web3Provider;
@@ -73,15 +75,14 @@ pub fn init_services() -> ToadService {
     let transaction_dao = TransactionDao { pool: pool.clone() };
 
     // providers
-    let web3_provider = Web3Provider {
+    let bundler = BundlerProvider {
         signing_client: signing_client.clone(),
     };
     let verify_paymaster_provider = PaymasterProvider {
         provider: verifying_paymaster_provider.clone(),
     };
     let entrypoint_provider = EntryPointProvider {
-        provider: entrypoint.clone(),
-        client: web3_provider,
+        abi: entrypoint.clone(),
     };
 
     // Services
@@ -104,11 +105,12 @@ pub fn init_services() -> ToadService {
         verifying_paymaster_provider: verifying_paymaster_provider.clone(),
         verifying_paymaster_signer: verifying_paymaster_signer.clone(),
         wallet_singer: wallet_signer.clone(),
-        signing_client: signing_client.clone(),
+        bundler: bundler.clone(),
     };
     let admin_service = AdminService {
         paymaster_provider: verify_paymaster_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
+        bundler: bundler.clone(),
     };
     let metadata_service = MetadataService {};
 

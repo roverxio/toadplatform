@@ -1,6 +1,7 @@
 use crate::models::contract_interaction;
 use crate::provider::entrypoint_helper::{EntryPoint, UserOperation};
 use crate::CONFIG;
+use ethers::abi::Abi;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
 
@@ -10,6 +11,10 @@ pub struct EntryPointProvider {
 }
 
 impl EntryPointProvider {
+    pub fn abi(&self) -> &Abi {
+        self.abi.abi()
+    }
+
     pub async fn get_nonce(&self, sender: Address) -> Result<U256, String> {
         let result = self.abi.get_nonce(sender, U256::zero()).await;
         if result.is_err() {
