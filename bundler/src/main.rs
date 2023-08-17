@@ -6,6 +6,7 @@ use crate::models::config::settings::Settings;
 use crate::provider::web3_provider::Web3Provider;
 use crate::server::{init_services, run};
 
+mod bundler;
 mod constants;
 mod contracts;
 mod db;
