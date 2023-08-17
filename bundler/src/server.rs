@@ -67,13 +67,6 @@ pub fn init_services() -> ToadService {
             .clone()
             .with_chain_id(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id),
     );
-    // http client
-    let http_client = HttpClient {
-        client: reqwest::Client::builder()
-            .connect_timeout(std::time::Duration::from_secs(30))
-            .build()
-            .unwrap(),
-    };
 
     //daos
     let pool = establish_connection(CONFIG.database.file.clone());
@@ -113,7 +106,6 @@ pub fn init_services() -> ToadService {
         verifying_paymaster_signer: verifying_paymaster_signer.clone(),
         wallet_singer: wallet_signer.clone(),
         signing_client: signing_client.clone(),
-        http_client: http_client.clone(),
     };
     let admin_service = AdminService {
         paymaster_provider: verify_paymaster_provider.clone(),
