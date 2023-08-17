@@ -1,9 +1,9 @@
 # Toad Wallet System (based on ERC-4337)
 
-##Background
+## Background
 ERC-4337 is the Ethereum community's first attempt to simply the wallet experience for users coming more familiar "web2 way of life". E-mail login and authorisation is a de-facto - if not, almost a standard across mobile/web applications.  Web3 "sign-in" and authorisation is based on private keys that has properties that make it impenetrable (until now), but are also known to be unwieldy, hard to manage making them cumbersome.    
 
-#Components
+# Components
 ## Toad Relay
  The Toad Relay is currently a component residing with the Bundler but will soon be extracted as a separate component in the near future. 
  Refer to the Bundler section for now.   
@@ -11,17 +11,17 @@ ERC-4337 is the Ethereum community's first attempt to simply the wallet experien
 Bundler is a component being built as per the [ERC4337](https://eips.ethereum.org/EIPS/eip-4337#rpc-methods-eth-namespace) (Account Abstraction via Entry Point Contract specification). Bundler is a Rust based implementation that exposes REST APIs and also acts as a Relayer.
 It uses Actix web framework to expose REST APIs.
 MSRP: `rustc 1.71.0 (8ede3aae2 2023-07-12)`
-##Contracts
-###Smart Contract Wallet
+## Contracts
+### Smart Contract Wallet
 Smart Contract Wallet (SCW) contract is deployed for every user that's onboarded on the Toad system. The current implementation of SCWs is basic and close to the eth-infinitism's reference implementation of the same.
-###Smart Contract Factory 
+### Smart Contract Factory 
 Smart Contract Factory deploys SCWs for users. Current implementation is close to eth-infinitism's reference implementation.
-###EntryPoint
+### EntryPoint
 eth-infinitism's reference implementation of the Entry Point spec for local testing.
-###Paymaster
-   ####Token Paymaster
+### Paymaster
+   #### Token Paymaster
    Reference implementation of Token Paymaster based on eth-infintism
-   ####Verifying Paymaster 
+   #### Verifying Paymaster 
    Reference implementation of Verifying  Paymaster based on eth-infintism
 
 
