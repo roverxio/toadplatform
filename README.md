@@ -13,20 +13,24 @@ It uses Actix web framework to expose REST APIs.
 MSRP: `rustc 1.71.0 (8ede3aae2 2023-07-12)`
 
 ##Contracts
-##Smart Contract Wallet
+
+###Smart Contract Wallet
 Smart Contract Wallet (SCW) contract is deployed for every user that's onboarded on the Toad system. The current implementation of SCWs is basic and close to the eth-infinitism's reference implementation of the same. 
-##Smart Contract Factory 
+
+###Smart Contract Factory 
 Smart Contract Factory deploys SCWs for users. Current implementation is close to eth-infinitism's reference implementation.  
-##EntryPoint
+
+###EntryPoint
 eth-infinitism's reference implementation of the Entry Point spec for local testing. 
-##Paymaster
-   ##Token Paymaster
+
+###Paymaster
+   ####Token Paymaster
    Reference implementation of Token Paymaster based on eth-infintism
-   ##Verifying Paymaster 
+   ####Verifying Paymaster 
    Reference implementation of Verifying  Paymaster based on eth-infintism
 
 
-### Running the node locally
+## Running the node locally
 If you are running this project on localhost, you need to have a local node running with the contracts deployed. We use Foundry' Anvil to run a local node for development and testing:
 1. Follow the instructions in the [foundry installation guide](https://book.getfoundry.sh/getting-started/installation) to set up foundry tool kit
 2. Navigate to the `contracts/` folder
@@ -43,7 +47,7 @@ You can find the deployed contracts in the console logs. Copy the very first pri
 
 <ins>NOTE</ins>: In case an instance of `anvil` is already running, run `pkill -f anvil` to stop the instance before `run deploy_local.sh`
 
-### Running the bundler
+### Running the Relay/Bundler
 1. navigate to `.env.example` and set the environment variables mentioned there (using the export command) (RUN_ENV can be one of "Development", "Production", "Staging")
 2. if your RUN_ENV is "Development", set INFURA_KEY to an empty string. You will also need to create a copy of config/Staging.toml and rename it to config/Development.toml. Set the values in the config file as per your requirements.
 3. run `bash db/setup_db.sh`
@@ -62,7 +66,7 @@ The server also uses a node service for signing called "signing-server". It need
 
 ## Account Abstraction Deployment & Testing
 
-A foundry project for deployment and testing of the Account Abstraction contracts
+A Foundry project for deployment and testing of the ERC-4337 contracts
 
 ### Set Up
 - git clone https://github.com/Club-Defy/roverx-rpc
