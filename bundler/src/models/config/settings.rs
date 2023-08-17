@@ -29,11 +29,6 @@ pub struct Database {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct Urls {
-    pub signing_server: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
 pub struct DefaultChain {
     pub chain: String,
     pub currency: String,
@@ -75,7 +70,6 @@ pub struct Settings {
     pub run_config: RunConfig,
     pub log: Log,
     pub database: Database,
-    pub urls: Urls,
     pub server: Server,
     pub default_chain: DefaultChain,
     pub chains: Map<String, Chain>,
