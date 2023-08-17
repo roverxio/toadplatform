@@ -17,7 +17,7 @@ If you are running this project on localhost, you need to have a local node runn
    PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
    CHAIN_ID=31337
     ```
-5. run `bash deploy_local.sh`. This should start a local anvil node and deploy the contracts
+5. run `bash script/deploy_local.sh`. This should start a local anvil node and deploy the contracts
 
 You can find the deployed contracts in the console logs. Copy the very first private-key from the logs and use it to populate the values of `WALLET_PRIVATE_KEY` and `VERIFYING_PAYMASTER_PRIVATE_KEY` in env variables. This key is the deployer for all the contracts.
 
