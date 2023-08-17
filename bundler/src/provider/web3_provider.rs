@@ -98,7 +98,10 @@ impl Web3Provider {
                             match error {
                                 None => Err(String::from("Json RPC error")),
                                 Some(_err) => {
-                                    if !_err.message.is_empty() && _err.data.is_none() {
+                                    if !_err.message.is_empty()
+                                        && (_err.data.is_none()
+                                            || _err.data == Some(Value::from("0x")))
+                                    {
                                         error!("{}", _err.message.clone());
                                         return Err(_err.message.clone());
                                     }
