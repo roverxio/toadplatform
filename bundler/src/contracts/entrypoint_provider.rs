@@ -3,7 +3,6 @@ use crate::provider::entrypoint_helper::{EntryPoint, UserOperation};
 use crate::CONFIG;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
-use log::error;
 
 #[derive(Clone)]
 pub struct EntryPointProvider {
@@ -19,15 +18,12 @@ impl EntryPointProvider {
         Ok(result.unwrap())
     }
 
-    pub async fn add_deposit(&self, address: Address, value: String) -> Result<Bytes, String> {
+    pub async fn add_deposit(&self, address: Address) -> Result<Bytes, String> {
         let data = self.abi.deposit_to(address).calldata();
-        match data {
-            Ok(callData) => Ok(callData),
-            Err(error) => {
-                error!("Add deposit CD: {:?}", error);
-                Err(String::from("failed to deposit"))
-            }
+        if data.is_none() {
+            return Err(String::from("add deposit data failed"));
         }
+        Ok(data.unwrap())
     }
 
     pub async fn handle_ops(
@@ -41,13 +37,10 @@ impl EntryPointProvider {
                 CONFIG.run_config.account_owner,
             )
             .calldata();
-        match data {
-            Ok(callData) => Ok(callData),
-            Err(error) => {
-                error!("Handle Ops CD: {:?}", error);
-                Err(String::from("failed to execute"))
-            }
+        if data.is_none() {
+            return Err(String::from("handle ops data failed"));
         }
+        Ok(data.unwrap())
     }
 
     fn get_entry_point_user_operation_payload(
