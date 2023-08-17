@@ -6,3 +6,13 @@ pub struct BalanceResponse {
     pub balance: String,
     pub currency: String,
 }
+
+impl BalanceResponse {
+    pub fn new(balance: String, address: String, currency: String) -> BalanceResponse {
+        BalanceResponse {
+            balance,
+            address,
+            currency,
+        }
+    }
+}

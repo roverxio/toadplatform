@@ -4,8 +4,9 @@ use lazy_static::lazy_static;
 use crate::models::config::server::Server;
 use crate::models::config::settings::Settings;
 use crate::provider::web3_provider::Web3Provider;
-use crate::server::{api_server, init_services};
+use crate::server::{run, init_services};
 
+mod constants;
 mod db;
 mod errors;
 mod handlers;
@@ -24,7 +25,7 @@ lazy_static! {
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let service = init_services();
-    api_server(
+    run(
         service.clone(),
         Server {
             host: CONFIG.server.host.clone(),

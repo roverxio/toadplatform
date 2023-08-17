@@ -14,7 +14,7 @@ use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
 use crate::provider::entrypoint_helper::get_entrypoint_abi;
-use crate::provider::http_client::HttpClient;
+use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
 use crate::provider::web3_provider::Web3Provider;
 use crate::routes::routes;
@@ -22,7 +22,7 @@ use crate::services::admin_service::AdminService;
 use crate::services::balance_service::BalanceService;
 use crate::services::hello_world_service::HelloWorldService;
 use crate::services::metada_service::MetadataService;
-use crate::services::transfer_service::TransactionService;
+use crate::services::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
 use crate::{CONFIG, PROVIDER};
 
@@ -31,7 +31,7 @@ pub struct ToadService {
     pub hello_world_service: HelloWorldService,
     pub wallet_service: WalletService,
     pub balance_service: BalanceService,
-    pub transfer_service: TransactionService,
+    pub transfer_service: TransferService,
     pub admin_service: AdminService,
     pub metadata_service: MetadataService,
 }
@@ -66,18 +66,17 @@ pub fn init_services() -> ToadService {
             .clone()
             .with_chain_id(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id),
     );
-    // http client
-    let http_client = HttpClient {
-        client: reqwest::Client::builder()
-            .connect_timeout(std::time::Duration::from_secs(30))
-            .build()
-            .unwrap(),
-    };
 
     //daos
     let pool = establish_connection(CONFIG.database.file.clone());
     let wallet_dao = WalletDao { pool: pool.clone() };
     let transaction_dao = TransactionDao { pool: pool.clone() };
+
+    // providers
+    let verify_paymaster_provider = PaymasterProvider {
+        provider: verifying_paymaster_provider.clone(),
+    };
+
     // Services
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {
@@ -88,7 +87,7 @@ pub fn init_services() -> ToadService {
         wallet_dao: wallet_dao.clone(),
         erc20_provider: erc20_provider.clone(),
     };
-    let transfer_service = TransactionService {
+    let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
         usdc_provider: erc20_provider.clone(),
@@ -99,9 +98,10 @@ pub fn init_services() -> ToadService {
         verifying_paymaster_signer: verifying_paymaster_signer.clone(),
         wallet_singer: wallet_signer.clone(),
         signing_client: signing_client.clone(),
-        http_client: http_client.clone(),
     };
-    let admin_service = AdminService {};
+    let admin_service = AdminService {
+        paymaster_provider: verify_paymaster_provider.clone(),
+    };
     let metadata_service = MetadataService {};
 
     ToadService {
@@ -120,7 +120,7 @@ fn init_logging() {
     init_from_env(Env::default().default_filter_or(log_level));
 }
 
-pub async fn api_server(service: ToadService, server: Server) -> std::io::Result<()> {
+pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
     dotenv().ok();
 
     HttpServer::new(move || {
