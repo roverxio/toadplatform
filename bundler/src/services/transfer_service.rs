@@ -16,7 +16,6 @@ use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::provider::entrypoint_helper::EntryPointProvider;
-use crate::provider::http_client::HttpClient;
 use crate::provider::verifying_paymaster_helper::{
     get_verifying_paymaster_user_operation_payload, VerifyingPaymaster,
 };
