@@ -13,16 +13,16 @@ It uses Actix web framework to expose REST APIs.
 MSRP: `rustc 1.71.0 (8ede3aae2 2023-07-12)`
 
 ##Contracts
-###Smart Contract Wallet
+##Smart Contract Wallet
 Smart Contract Wallet (SCW) contract is deployed for every user that's onboarded on the Toad system. The current implementation of SCWs is basic and close to the eth-infinitism's reference implementation of the same. 
-###Smart Contract Factory 
+##Smart Contract Factory 
 Smart Contract Factory deploys SCWs for users. Current implementation is close to eth-infinitism's reference implementation.  
-###EntryPoint
+##EntryPoint
 eth-infinitism's reference implementation of the Entry Point spec for local testing. 
-###Paymaster
-   ####Token Paymaster
+##Paymaster
+   ##Token Paymaster
    Reference implementation of Token Paymaster based on eth-infintism
-   ####Verifying Paymaster 
+   ##Verifying Paymaster 
    Reference implementation of Verifying  Paymaster based on eth-infintism
 
 
