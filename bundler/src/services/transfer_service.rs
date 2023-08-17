@@ -18,7 +18,6 @@ use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::provider::entrypoint_helper::{get_entry_point_user_operation_payload, EntryPoint};
-use crate::provider::http_client::HttpClient;
 use crate::provider::verifying_paymaster_helper::{
     get_verifying_paymaster_user_operation_payload, VerifyingPaymaster,
 };
@@ -37,7 +36,6 @@ pub struct TransferService {
     pub verifying_paymaster_signer: LocalWallet,
     pub wallet_singer: LocalWallet,
     pub signing_client: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
-    pub http_client: HttpClient,
 }
 
 impl TransferService {
@@ -160,17 +158,17 @@ impl TransferService {
             paymaster_and_data: Bytes::from(paymaster_and_data_with_sign),
             ..usr_op1
         };
-        let signature = self
-            .http_client
-            .sign_message(
-                user_op2.clone(),
-                format!("{:?}", self.entrypoint_provider.address().clone()),
-                CONFIG.chains[&CONFIG.run_config.current_chain]
-                    .chain_id
-                    .clone(),
-            )
-            .await
-            .unwrap();
+
+        let signature = Bytes::from(
+            self.wallet_singer
+                .sign_message(user_op2.hash(
+                    CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
+                    CONFIG.chains[&CONFIG.run_config.current_chain].chain_id,
+                ))
+                .await
+                .unwrap()
+                .to_vec(),
+        );
 
         let user_op3 = UserOperation {
             signature,
