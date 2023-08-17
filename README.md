@@ -36,10 +36,6 @@ By default, the server uses "Development.toml" as the config file. If you want t
 
 The project does not come with a "Production.toml", but you can create one and use it. The config file should be in the same format as "Development.toml".
 
-### Signing the userop
-The server also uses a node service for signing called "signing-server". It needs to be running to be able to use this repo. You can find it under "roverx-rpc/signing-server". It is a simple node server that exposes a REST API for signing. You can find the instructions to run it in the README.md of the signing-server repo.
-
-
 ## Account Abstraction Deployment & Testing
 
 A foundry project for deployment and testing of the Account Abstraction contracts
