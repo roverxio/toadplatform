@@ -45,10 +45,6 @@ pub fn get_entry_point_user_operation_payload(
 }
 
 impl EntryPointProvider {
-    pub fn get_address(&self) -> Address {
-        self.provider.address()
-    }
-
     pub async fn get_nonce(&self, sender: Address) -> Result<U256, String> {
         let result = self.provider.get_nonce(sender, U256::zero()).await;
         if result.is_err() {
