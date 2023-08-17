@@ -1,17 +1,37 @@
-# roverx-rpc
+# Toad Wallet System (based on ERC-4337)
 
-This is an implementation for ERC-4337 and test cases in foundry to test the contracts involved.
+##Background
+ERC-4337 is the Ethereum community's first attempt to simply the wallet experience for users coming more familiar "web2 way of life". E-mail login and authorisation is a de-facto - if not, almost a standard across mobile/web applications.  Web3 "sign-in" and authorisation is based on private keys that has properties that make it impenetrable (until now), but are also known to be unwieldy, hard to manage making them cumbersome.    
 
+#Components
+## Toad Relay
+ The Toad Relay is currently a component residing with the Bundler but will soon be extracted as a separate component in the near future. 
+ Refer to the Bundler section for now.   
 ## Bundler
-Bundler is a simple rust project that exposes REST APIs and acts as a relayer to [ERC4337](https://eips.ethereum.org/EIPS/eip-4337#rpc-methods-eth-namespace) (Account Abstraction via Entry Point Contract specification).
-It uses actix for the REST APIs and an sqlite database for storing wallet deployment state and the salt. Rust version: `rustc 1.71.0 (8ede3aae2 2023-07-12)`
+Bundler is a component being built as per the [ERC4337](https://eips.ethereum.org/EIPS/eip-4337#rpc-methods-eth-namespace) (Account Abstraction via Entry Point Contract specification). Bundler is a Rust based implementation that exposes REST APIs and also acts as a Relayer.
+It uses Actix web framework to expose REST APIs.
+MSRP: `rustc 1.71.0 (8ede3aae2 2023-07-12)`
+
+##Contracts
+###Smart Contract Wallet
+Smart Contract Wallet (SCW) contract is deployed for every user that's onboarded on the Toad system. The current implementation of SCWs is basic and close to the eth-infinitism's reference implementation of the same. 
+###Smart Contract Factory 
+Smart Contract Factory deploys SCWs for users. Current implementation is close to eth-infinitism's reference implementation.  
+###EntryPoint
+eth-infinitism's reference implementation of the Entry Point spec for local testing. 
+###Paymaster
+   ####Token Paymaster
+   Reference implementation of Token Paymaster based on eth-infintism
+   ####Verifying Paymaster 
+   Reference implementation of Verifying  Paymaster based on eth-infintism
+
 
 ### Running the node locally
-If you are running this project on localhost, you need to have a local node running with the contracts deployed. Here are the steps to set up your local node with the required contracts:
-1. follow the instructions in the [foundry installation guide](https://book.getfoundry.sh/getting-started/installation) to set up foundry tool kit
-2. navigate to the `contracts/` folder
-3. run `bash foundry_setup.sh` to install all the contract dependencies
-4. populate the `contracts/.env` with the following values
+If you are running this project on localhost, you need to have a local node running with the contracts deployed. We use Foundry' Anvil to run a local node for development and testing:
+1. Follow the instructions in the [foundry installation guide](https://book.getfoundry.sh/getting-started/installation) to set up foundry tool kit
+2. Navigate to the `contracts/` folder
+3. Run `bash foundry_setup.sh` to install all the contract dependencies
+4. Populate the `contracts/.env` with the following values
     ```
     RPC_URL=http://localhost:8545
    PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
@@ -46,13 +66,13 @@ A foundry project for deployment and testing of the Account Abstraction contract
 
 ### Set Up
 - git clone https://github.com/Club-Defy/roverx-rpc
-- cd `deployment-testing`
-- execute `dependencies.sh`
+- cd `contracts`
+- execute `foundry_setup.sh`
 - Build `forge build`
 - Testing `forge test`
-- Deployment `forge script`
+- To deploy the contracts execute: `deploy_local.sh`
 
-### Dependencies
+### Smart Contract Dependencies
 All the dependent libraries are under `contracts/lib` directory, we have bash script (`contracts/foundry_setup.sh`) which will install all the dependencies required
 - Forge Std (default)
 - Openzeppelin Contracts (v4.9.3)
@@ -60,4 +80,4 @@ All the dependent libraries are under `contracts/lib` directory, we have bash sc
 - Uniswap/v3-core (v1.0.0)
 
 ### Testing
-All the test case are referred from [account-abstractions](https://github.com/eth-infinitism/account-abstraction) code from eth-infinitism. We have replicated most of the test cases in foundry, few cases could not be done as it includes RPC calls
+All the test case are referred from [account-abstractions](https://github.com/eth-infinitism/account-abstraction) code from eth-infinitism. Test cases from eth-infinitism's code base have been ported using forge (the tool of our choice). Some test cases that required RPC calls are yet to be ported. 
