@@ -4,9 +4,10 @@ use lazy_static::lazy_static;
 use crate::models::config::server::Server;
 use crate::models::config::settings::Settings;
 use crate::provider::web3_provider::Web3Provider;
-use crate::server::{run, init_services};
+use crate::server::{init_services, run};
 
 mod constants;
+mod contracts;
 mod db;
 mod errors;
 mod handlers;
