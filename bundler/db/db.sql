@@ -25,3 +25,11 @@ create table if not exists user_transactions (
     created_at timestamp not null default current_timestamp,
     updated_at timestamp not null default current_timestamp
 );
+
+create table if not exists supported_currencies (
+    currency varchar not null,
+    contract_address varchar not null,
+    exponent int not null,
+    created_at timestamp not null default current_timestamp,
+    updated_at timestamp not null default current_timestamp
+);
