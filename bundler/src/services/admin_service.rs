@@ -4,7 +4,7 @@ use ethers::addressbook::Address;
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::errors::ApiError;
-use crate::models::admin::paymaster_topup::PaymasterTopup;
+use crate::models::metadata::Metadata;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
@@ -24,10 +24,11 @@ pub struct AdminService {
 impl AdminService {
     pub async fn topup_paymaster_deposit(
         &self,
-        req: PaymasterTopup,
+        value: String,
         paymaster: String,
+        metadata: Metadata,
     ) -> Result<TransferResponse, ApiError> {
-        if req.metadata.currency != Constants::NATIVE {
+        if metadata.currency != Constants::NATIVE {
             return Err(ApiError::BadRequest("Invalid currency".to_string()));
         }
         if paymaster != Constants::VERIFYING_PAYMASTER {
@@ -48,7 +49,7 @@ impl AdminService {
             .execute(
                 CONFIG.run_config.account_owner,
                 CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
-                req.value,
+                value,
                 data.unwrap(),
                 self.entrypoint_provider.abi(),
             )

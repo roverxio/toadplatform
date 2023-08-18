@@ -20,8 +20,9 @@ pub async fn topup_paymaster_deposit(
     if Constants::ADMIN != get_user(req) {
         return Err(ApiError::BadRequest("Invalid credentials".to_string()));
     }
+    let req = body.into_inner();
     let response = service
-        .topup_paymaster_deposit(body.into_inner(), paymaster.clone())
+        .topup_paymaster_deposit(req.value, paymaster.clone(), req.metadata)
         .await?;
     respond_json(response)
 }
