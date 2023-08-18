@@ -74,9 +74,7 @@ impl TransferService {
                 .unwrap();
             init_code = Bytes::from(
                 [
-                    CONFIG.chains[&CONFIG.run_config.current_chain]
-                        .simple_account_factory_address
-                        .as_bytes(),
+                    CONFIG.get_chain().simple_account_factory_address.as_bytes(),
                     create_account_payload.as_ref(),
                 ]
                 .concat(),
@@ -95,9 +93,7 @@ impl TransferService {
         let params: Vec<Token> = vec![valid_until.into_token(), valid_after.into_token()];
         let data = encode(&params);
         let paymaster_and_data = [
-            CONFIG.chains[&CONFIG.run_config.current_chain]
-                .verifying_paymaster_address
-                .as_bytes(),
+            CONFIG.get_chain().verifying_paymaster_address.as_bytes(),
             data.as_ref(),
             &vec![0u8; 65],
         ]
@@ -144,9 +140,7 @@ impl TransferService {
             .unwrap()
             .to_vec();
         let paymaster_and_data_with_sign = [
-            CONFIG.chains[&CONFIG.run_config.current_chain]
-                .verifying_paymaster_address
-                .as_bytes(),
+            CONFIG.get_chain().verifying_paymaster_address.as_bytes(),
             data.as_ref(),
             &singed_hash,
         ]
@@ -161,8 +155,8 @@ impl TransferService {
         let signature = Bytes::from(
             self.wallet_singer
                 .sign_message(user_op2.hash(
-                    CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
-                    CONFIG.chains[&CONFIG.run_config.current_chain].chain_id,
+                    CONFIG.get_chain().entrypoint_address,
+                    CONFIG.get_chain().chain_id,
                 ))
                 .await
                 .unwrap()
@@ -197,10 +191,7 @@ impl TransferService {
             transaction: TransactionResponse {
                 transaction_hash: txn_hash.clone(),
                 status: "pending".to_string(),
-                explorer: CONFIG.chains[&CONFIG.run_config.current_chain]
-                    .explorer_url
-                    .clone()
-                    + &txn_hash.clone(),
+                explorer: CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
             },
         })
     }
@@ -218,7 +209,7 @@ impl TransferService {
     fn transfer_usdc(&self, transfer_payload: Bytes) -> Bytes {
         self.simple_account_provider
             .execute(
-                CONFIG.chains[&CONFIG.run_config.current_chain].usdc_address,
+                CONFIG.get_chain().usdc_address,
                 U256::zero(),
                 transfer_payload,
             )

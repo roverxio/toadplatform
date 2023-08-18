@@ -27,7 +27,7 @@ impl Bundler {
         }
         Web3Provider::execute(
             self.signing_client.clone(),
-            CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
+            CONFIG.get_chain().entrypoint_address,
             String::from("0"),
             call_data.unwrap(),
             self.entrypoint.abi(),
