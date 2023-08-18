@@ -6,6 +6,7 @@ use actix_web::{App, HttpServer};
 use dotenvy::dotenv;
 use env_logger::{init_from_env, Env};
 use ethers::middleware::SignerMiddleware;
+use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
 
@@ -50,7 +51,8 @@ pub fn init_services() -> ToadService {
     let erc20_provider =
         Web3Provider::get_erc20_abi(&CONFIG.run_config.current_chain, client.clone());
     let entrypoint = get_entrypoint_abi(&CONFIG.run_config.current_chain, client.clone());
-    let simple_account_provider = Web3Provider::get_simpleaccount_abi(client.clone());
+    let simple_account_provider =
+        Web3Provider::get_simpleaccount_abi(client.clone(), Address::zero());
     let verifying_paymaster_provider =
         get_verifying_paymaster_abi(&CONFIG.run_config.current_chain, client.clone());
     //signers
@@ -90,6 +92,7 @@ pub fn init_services() -> ToadService {
     let wallet_service = WalletService {
         wallet_dao: wallet_dao.clone(),
         simple_account_factory_provider: simple_account_factory_provider.clone(),
+        client: client.clone(),
     };
     let balance_service = BalanceService {
         wallet_dao: wallet_dao.clone(),

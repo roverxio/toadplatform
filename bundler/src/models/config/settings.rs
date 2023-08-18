@@ -9,6 +9,7 @@ pub struct RunConfig {
     pub current_chain: String,
     pub account_owner: Address,
     pub paymaster_account_owner: Address,
+    pub deployed_by_identifier: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -26,11 +27,6 @@ pub struct Server {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Database {
     pub file: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct Urls {
-    pub signing_server: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -75,7 +71,6 @@ pub struct Settings {
     pub run_config: RunConfig,
     pub log: Log,
     pub database: Database,
-    pub urls: Urls,
     pub server: Server,
     pub default_chain: DefaultChain,
     pub chains: Map<String, Chain>,

@@ -2,6 +2,7 @@
 current_chain = "sepolia"
 account_owner = "0x99e6fE79F94a3744089a1b3982D425406Ad4c55c"
 paymaster_account_owner = "0x99e6fE79F94a3744089a1b3982D425406Ad4c55c"
+deployed_by_identifier = "toad.cash"
 
 [server]
 port = "9090"
@@ -17,9 +18,6 @@ currency = "native"
 
 [database]
 file = "toad.db"
-
-[urls]
-signing_server = "http://localhost:3000/app/v1/sign_message"
 
 [chains.sepolia]
 chain_id = 11155111
