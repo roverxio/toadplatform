@@ -20,7 +20,7 @@ impl BundlerProvider {
     pub async fn execute(
         &self,
         from: Address,
-        contract: Address,
+        to: Address,
         value: String,
         data: Bytes,
         abi: &Abi,
@@ -31,7 +31,7 @@ impl BundlerProvider {
         }
         let txn = TransactionRequest::new()
             .from(from)
-            .to(contract)
+            .to(to)
             .value(amount.unwrap())
             .data(data);
         let result = self.signing_client.send_transaction(txn, None).await;
