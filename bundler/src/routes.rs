@@ -5,6 +5,8 @@ use crate::handlers::admin::{admin_get_balance, topup_paymaster_deposit};
 use crate::handlers::hello_world::hello_world;
 use crate::handlers::metadata::get_metadata;
 use crate::handlers::wallet::{get_address, get_balance, transfer};
+use crate::middleware::admin_auth::AdminAuthMiddleware;
+use crate::middleware::auth::AuthMiddleware;
 use crate::CONFIG;
 
 pub fn routes(cfg: &mut ServiceConfig) {
@@ -13,6 +15,7 @@ pub fn routes(cfg: &mut ServiceConfig) {
             web::scope("v1")
                 .service(
                     web::scope("user")
+                        .wrap(AuthMiddleware)
                         .route("address", web::get().to(get_address))
                         .route("balance", web::get().to(get_balance))
                         .route("transact", web::post().to(transfer))
@@ -20,6 +23,7 @@ pub fn routes(cfg: &mut ServiceConfig) {
                 )
                 .service(
                     web::scope("admin")
+                        .wrap(AdminAuthMiddleware)
                         .route(
                             "deposit/{paymaster}",
                             web::post().to(topup_paymaster_deposit),

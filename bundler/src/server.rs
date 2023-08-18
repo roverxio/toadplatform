@@ -18,7 +18,6 @@ use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::connection::establish_connection;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
-use crate::middleware::auth::AuthMiddleware;
 use crate::models::config::server::Server;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
@@ -144,7 +143,6 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
-            .wrap(AuthMiddleware)
             .configure(routes)
             .app_data(Data::new(service.hello_world_service.clone()))
             .app_data(Data::new(service.wallet_service.clone()))
