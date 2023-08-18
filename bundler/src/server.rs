@@ -10,14 +10,17 @@ use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
 
+use crate::bundler::bundler::Bundler;
+use crate::contracts::entrypoint_provider::EntryPointProvider;
+use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
+use crate::contracts::simple_account_provider::SimpleAccountProvider;
+use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::connection::establish_connection;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
-use crate::provider::entrypoint_helper::get_entrypoint_abi;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
-use crate::provider::web3_provider::Web3Provider;
 use crate::routes::routes;
 use crate::services::admin_service::AdminService;
 use crate::services::balance_service::BalanceService;
@@ -42,14 +45,11 @@ pub fn init_services() -> ToadService {
     info!("Starting server...");
     // contract providers
     let client = Arc::new(PROVIDER.clone());
-    let simple_account_factory_provider = Web3Provider::get_simple_account_factory_abi(
-        &CONFIG.run_config.current_chain,
-        client.clone(),
-    );
-    let erc20_provider =
-        Web3Provider::get_erc20_abi(&CONFIG.run_config.current_chain, client.clone());
-    let entrypoint_provider = get_entrypoint_abi(&CONFIG.run_config.current_chain, client.clone());
-    let simple_account_provider = Web3Provider::get_simpleaccount_abi(client.clone(), Address::zero());
+    let simple_account_factory_provider =
+        SimpleAccountFactoryProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
+    let erc20_provider = USDCProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
+    let entrypoint = EntryPointProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
+    let simple_account_provider = SimpleAccountProvider::init_abi(client.clone(), Address::zero());
     let verifying_paymaster_provider =
         get_verifying_paymaster_abi(&CONFIG.run_config.current_chain, client.clone());
     //signers
@@ -67,6 +67,12 @@ pub fn init_services() -> ToadService {
             .clone()
             .with_chain_id(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id),
     );
+    let bundler_signing_client = SignerMiddleware::new(
+        client.clone(),
+        wallet_signer
+            .clone()
+            .with_chain_id(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id),
+    );
 
     //daos
     let pool = establish_connection(CONFIG.database.file.clone());
@@ -76,6 +82,13 @@ pub fn init_services() -> ToadService {
     // providers
     let verify_paymaster_provider = PaymasterProvider {
         provider: verifying_paymaster_provider.clone(),
+    };
+    let entrypoint_provider = EntryPointProvider {
+        abi: entrypoint.clone(),
+    };
+    let bundler = Bundler {
+        signing_client: bundler_signing_client.clone(),
+        entrypoint: entrypoint_provider.clone(),
     };
 
     // Services
@@ -99,10 +112,12 @@ pub fn init_services() -> ToadService {
         verifying_paymaster_provider: verifying_paymaster_provider.clone(),
         verifying_paymaster_signer: verifying_paymaster_signer.clone(),
         wallet_singer: wallet_signer.clone(),
-        signing_client: signing_client.clone(),
+        bundler: bundler.clone(),
     };
     let admin_service = AdminService {
         paymaster_provider: verify_paymaster_provider.clone(),
+        entrypoint_provider: entrypoint_provider.clone(),
+        signing_client: signing_client.clone(),
     };
     let metadata_service = MetadataService {};
 
