@@ -6,3 +6,4 @@ pub mod metadata;
 pub mod response;
 pub mod transfer;
 pub mod wallet;
+pub mod transaction;

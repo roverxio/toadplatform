@@ -2,10 +2,11 @@ use std::time::SystemTime;
 
 use ethers::providers::{Http, Provider};
 use ethers::types::{Address, U256};
-use log::info;
+use log::{debug, info};
 
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
+use crate::models::transaction::transaction::{Amount, Metadata, Transaction, UserInfo};
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
 use crate::provider::web3_provider::SimpleAccountFactory;
@@ -70,6 +71,77 @@ impl WalletService {
             address: result,
             salt: salt.to_string(),
         }
+    }
+
+    pub fn list_transactions(&self, page_size: i32, id: Option<i32>) -> Vec<Transaction> {
+        debug!("page_size -> {}", page_size);
+        debug!("id -> {:?}", id);
+        let mut transactions = Vec::new();
+        transactions.push(Transaction {
+            transaction_id: "txn_id_1".to_string(),
+            amount: Amount {
+                currency: "usdc".to_string(),
+                value: "10000000".to_string(),
+                exponent: "6".to_string(),
+            },
+            metadata: Metadata {
+                chain: CONFIG.run_config.current_chain.clone(),
+                gas: Amount {
+                    currency: CONFIG.chains[&CONFIG.run_config.current_chain]
+                        .currency
+                        .clone(),
+                    value: "100000000000".to_string(),
+                    exponent: "18".to_string(),
+                },
+                transaction_hash: "0xtransaction_hash".to_string(),
+                timestamp: "2023-05-12T16:41:45.530002+00".to_string(),
+                explorer_url: "https://www.example.com".to_string(),
+                status: "pending".to_string(),
+            },
+            from: UserInfo {
+                address: "0xfrom_address".to_string(),
+                name: "".to_string(),
+            },
+            id: 2,
+            to: UserInfo {
+                address: "0xto_address".to_string(),
+                name: "a toad user".to_string(),
+            },
+            transaction_type: "credit".to_string(),
+        });
+        transactions.push(Transaction {
+            transaction_id: "txn_id_1".to_string(),
+            amount: Amount {
+                currency: "usdc".to_string(),
+                value: "1000000".to_string(),
+                exponent: "6".to_string(),
+            },
+            metadata: Metadata {
+                chain: CONFIG.run_config.current_chain.clone(),
+                gas: Amount {
+                    currency: CONFIG.chains[&CONFIG.run_config.current_chain]
+                        .currency
+                        .clone(),
+                    value: "800000000000".to_string(),
+                    exponent: "18".to_string(),
+                },
+                transaction_hash: "0xtransaction_hash".to_string(),
+                timestamp: "2023-05-11T16:41:45.530002+00".to_string(),
+                explorer_url: "https://www.example.com".to_string(),
+                status: "pending".to_string(),
+            },
+            from: UserInfo {
+                address: "0xfrom_address".to_string(),
+                name: "a toad user".to_string(),
+            },
+            id: 1,
+            to: UserInfo {
+                address: "0xto_address".to_string(),
+                name: "".to_string(),
+            },
+            transaction_type: "debit".to_string(),
+        });
+        transactions
     }
 }
 
