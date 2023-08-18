@@ -39,8 +39,8 @@ impl Web3Provider {
         contract
     }
 
-    pub fn get_simpleaccount_abi(client: Arc<Provider<Http>>) -> Simpleaccount<Provider<Http>> {
-        let contract: Simpleaccount<Provider<Http>> = Simpleaccount::new(Address::zero(), client);
+    pub fn get_simpleaccount_abi(client: Arc<Provider<Http>>, address: Address) -> Simpleaccount<Provider<Http>> {
+        let contract: Simpleaccount<Provider<Http>> = Simpleaccount::new(address, client);
         contract
     }
 
