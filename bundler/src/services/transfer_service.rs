@@ -1,6 +1,6 @@
 use std::str::FromStr;
 
-use crate::bundler::bundler_provider::BundlerProvider;
+use crate::bundler::bundler::Bundler;
 use ethers::abi::{encode, Token, Tokenizable};
 use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
@@ -32,7 +32,7 @@ pub struct TransferService {
     pub verifying_paymaster_provider: VerifyingPaymaster<Provider<Http>>,
     pub verifying_paymaster_signer: LocalWallet,
     pub wallet_singer: LocalWallet,
-    pub bundler: BundlerProvider,
+    pub bundler: Bundler,
 }
 
 impl TransferService {

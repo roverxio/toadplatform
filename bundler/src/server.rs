@@ -10,7 +10,7 @@ use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
 
-use crate::bundler::bundler_provider::BundlerProvider;
+use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::connection::establish_connection;
 use crate::db::dao::transaction_dao::TransactionDao;
@@ -76,7 +76,7 @@ pub fn init_services() -> ToadService {
     let transaction_dao = TransactionDao { pool: pool.clone() };
 
     // providers
-    let bundler = BundlerProvider {
+    let bundler = Bundler {
         signing_client: signing_client.clone(),
     };
     let verify_paymaster_provider = PaymasterProvider {

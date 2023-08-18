@@ -12,11 +12,11 @@ use log::error;
 use serde_json::Value;
 
 #[derive(Clone)]
-pub struct BundlerProvider {
+pub struct Bundler {
     pub signing_client: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
 }
 
-impl BundlerProvider {
+impl Bundler {
     pub async fn execute(
         &self,
         from: Address,

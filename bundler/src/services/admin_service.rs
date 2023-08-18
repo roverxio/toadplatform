@@ -1,4 +1,4 @@
-use crate::bundler::bundler_provider::BundlerProvider;
+use crate::bundler::bundler::Bundler;
 use ethers::addressbook::Address;
 
 use crate::constants::Constants;
@@ -18,7 +18,7 @@ use crate::CONFIG;
 pub struct AdminService {
     pub paymaster_provider: PaymasterProvider,
     pub entrypoint_provider: EntryPointProvider,
-    pub bundler: BundlerProvider,
+    pub bundler: Bundler,
 }
 
 impl AdminService {

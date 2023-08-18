@@ -1,1 +1,1 @@
-pub mod bundler_provider;
+pub mod bundler;
