@@ -8,6 +8,9 @@ use ethers_signers::{LocalWallet, Signer};
 use log::info;
 
 use crate::contracts::entrypoint_provider::EntryPointProvider;
+use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
+use crate::contracts::simple_account_provider::SimpleAccount;
+use crate::contracts::usdc_provider::ERC20;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
@@ -18,7 +21,6 @@ use crate::models::transfer::transfer_response::TransferResponse;
 use crate::provider::verifying_paymaster_helper::{
     get_verifying_paymaster_user_operation_payload, VerifyingPaymaster,
 };
-use crate::provider::web3_provider::{SimpleAccountFactory, Simpleaccount, ERC20};
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -27,7 +29,7 @@ pub struct TransferService {
     pub transaction_dao: TransactionDao,
     pub usdc_provider: ERC20<Provider<Http>>,
     pub entrypoint_provider: EntryPointProvider,
-    pub simple_account_provider: Simpleaccount<Provider<Http>>,
+    pub simple_account_provider: SimpleAccount<Provider<Http>>,
     pub simple_account_factory_provider: SimpleAccountFactory<Provider<Http>>,
     pub verifying_paymaster_provider: VerifyingPaymaster<Provider<Http>>,
     pub verifying_paymaster_signer: LocalWallet,

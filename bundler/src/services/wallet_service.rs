@@ -5,12 +5,13 @@ use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use log::{info, warn};
 
-use crate::CONFIG;
+use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
+use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
-use crate::provider::web3_provider::{SimpleAccountFactory, Web3Provider};
+use crate::CONFIG;
 
 #[derive(Clone)]
 pub struct WalletService {
@@ -79,16 +80,17 @@ impl WalletService {
     }
 
     async fn is_deployed_by_us(&self, contract_address: Address) -> bool {
-        let simple_account_provider = Web3Provider::get_simpleaccount_abi(self.client.clone(), contract_address);
+        let simple_account_provider =
+            SimpleAccountProvider::init_abi(self.client.clone(), contract_address);
         let account_deployed_by = simple_account_provider.deployed_by().call().await;
         match account_deployed_by {
             Ok(account_deployed_by) => {
                 account_deployed_by == CONFIG.run_config.deployed_by_identifier.clone()
-            },
+            }
             Err(err) => {
                 warn!("Error while calling 'deployedBy' -> {}", err);
                 false
-            },
+            }
         }
     }
 }

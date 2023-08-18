@@ -85,7 +85,7 @@ impl AdminService {
         }
         if Constants::RELAYER == entity {
             let relayer_address = &CONFIG.run_config.account_owner;
-            let response = Web3Provider::get_native_balance(relayer_address.clone()).await;
+            let response = Web3Provider::get_balance(relayer_address.clone()).await;
             return Self::get_balance_response(relayer_address, response, data.currency);
         }
         Err(ApiError::BadRequest("Invalid entity".to_string()))

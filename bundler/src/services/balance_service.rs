@@ -2,10 +2,10 @@ use ethers::abi::Address;
 use ethers::providers::{Http, Middleware, Provider};
 use log::info;
 
+use crate::contracts::usdc_provider::ERC20;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
 use crate::models::wallet::balance_response::BalanceResponse;
-use crate::provider::web3_provider::ERC20;
 use crate::PROVIDER;
 
 #[derive(Clone)]
