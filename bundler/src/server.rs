@@ -67,6 +67,12 @@ pub fn init_services() -> ToadService {
             .clone()
             .with_chain_id(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id),
     );
+    let bundler_signing_client = SignerMiddleware::new(
+        client.clone(),
+        wallet_signer
+            .clone()
+            .with_chain_id(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id),
+    );
 
     //daos
     let pool = establish_connection(CONFIG.database.file.clone());
@@ -74,14 +80,15 @@ pub fn init_services() -> ToadService {
     let transaction_dao = TransactionDao { pool: pool.clone() };
 
     // providers
-    let bundler = Bundler {
-        signing_client: signing_client.clone(),
-    };
     let verify_paymaster_provider = PaymasterProvider {
         provider: verifying_paymaster_provider.clone(),
     };
     let entrypoint_provider = EntryPointProvider {
         abi: entrypoint.clone(),
+    };
+    let bundler = Bundler {
+        signing_client: bundler_signing_client.clone(),
+        entrypoint: entrypoint_provider.clone(),
     };
 
     // Services
@@ -110,7 +117,7 @@ pub fn init_services() -> ToadService {
     let admin_service = AdminService {
         paymaster_provider: verify_paymaster_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
-        bundler: bundler.clone(),
+        signing_client: signing_client.clone(),
     };
     let metadata_service = MetadataService {};
 

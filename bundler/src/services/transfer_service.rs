@@ -174,22 +174,9 @@ impl TransferService {
             ..user_op2
         };
 
-        let call_data = self
-            .entrypoint_provider
-            .handle_ops(user_op3, CONFIG.run_config.account_owner)
-            .await;
-        if call_data.is_err() {
-            return Err(ApiError::BadRequest(String::from("failed to transfer")));
-        }
         let result = self
             .bundler
-            .execute(
-                CONFIG.run_config.account_owner,
-                CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
-                String::from("0"),
-                call_data.unwrap(),
-                self.entrypoint_provider.abi(),
-            )
+            .submit(user_op3, CONFIG.run_config.account_owner)
             .await;
         if result.is_err() {
             return Err(ApiError::BadRequest(result.err().unwrap()));

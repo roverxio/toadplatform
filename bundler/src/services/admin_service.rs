@@ -1,5 +1,8 @@
-use crate::bundler::bundler::Bundler;
-use ethers::addressbook::Address;
+use ethers::middleware::SignerMiddleware;
+use ethers::providers::{Http, Provider};
+use ethers::types::Address;
+use ethers_signers::LocalWallet;
+use std::sync::Arc;
 
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -18,7 +21,7 @@ use crate::CONFIG;
 pub struct AdminService {
     pub paymaster_provider: PaymasterProvider,
     pub entrypoint_provider: EntryPointProvider,
-    pub bundler: Bundler,
+    pub signing_client: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
 }
 
 impl AdminService {
@@ -44,16 +47,14 @@ impl AdminService {
         if data.is_err() {
             return Err(ApiError::BadRequest(String::from("failed to topup")));
         }
-        let response = self
-            .bundler
-            .execute(
-                CONFIG.run_config.account_owner,
-                CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
-                value,
-                data.unwrap(),
-                self.entrypoint_provider.abi(),
-            )
-            .await;
+        let response = Web3Provider::execute(
+            self.signing_client.clone(),
+            CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
+            value,
+            data.unwrap(),
+            self.entrypoint_provider.abi(),
+        )
+        .await;
         match response {
             Ok(txn_hash) => Ok(TransferResponse {
                 transaction: TransactionResponse::new(
