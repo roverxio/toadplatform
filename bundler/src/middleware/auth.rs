@@ -1,11 +1,13 @@
 use std::future::{ready, Ready};
 
+use crate::errors::ApiError;
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     Error,
 };
 use futures::future::LocalBoxFuture;
-use log::info;
+use log::error;
+use reqwest::header::HeaderName;
 
 pub struct AuthMiddleware;
 
@@ -43,7 +45,13 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        info!("Middleware invoked");
-        Box::pin(self.service.call(req))
+        let header = req.headers().get(HeaderName::from_static("user"));
+        match header {
+            None => {
+                error!("Unauthorized request");
+                Box::pin(async { Err(Error::from(ApiError::Unauthorized)) })
+            }
+            Some(_) => Box::pin(self.service.call(req)),
+        }
     }
 }
