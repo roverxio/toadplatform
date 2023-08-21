@@ -67,7 +67,11 @@ impl TransferService {
         }
 
         let wallet_address: Address = wallet.wallet_address.parse().unwrap();
+        let valid_until: u64 = 3735928559;
+        let valid_after: u64 = 4660;
+        let data = encode(&vec![valid_until.into_token(), valid_after.into_token()]);
         user_op0
+            .paymaster_and_data(data.clone(), wallet_address.clone())
             .nonce(
                 self.entrypoint_provider
                     .get_nonce(wallet_address)
@@ -77,10 +81,6 @@ impl TransferService {
             )
             .sender(wallet_address.clone());
 
-        let valid_until: u64 = 3735928559;
-        let valid_after: u64 = 4660;
-        let data = encode(&vec![valid_until.into_token(), valid_after.into_token()]);
-        user_op0.paymaster_and_data(data.clone(), wallet_address.clone());
         user_op0.signature(Bytes::from(
             self.verifying_paymaster_signer
                 .sign_typed_data(&user_op0)
