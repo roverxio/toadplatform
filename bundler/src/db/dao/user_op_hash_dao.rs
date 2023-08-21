@@ -2,12 +2,12 @@ use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
 #[derive(Clone)]
-pub struct UserOpDao {
+pub struct UserOpHashDao {
     pub pool: Pool<SqliteConnectionManager>,
 }
 
-impl UserOpDao {
-    pub async fn create_user_op(&self, txn_id: String, user_op_hash: String) {
+impl UserOpHashDao {
+    pub async fn create_user_op(&self, _txn_id: String, _user_op_hash: String) {
         unimplemented!();
     }
 }
