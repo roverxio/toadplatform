@@ -1,12 +1,11 @@
 use actix_web::web::{Data, Json, Path, Query};
 use actix_web::HttpRequest;
-use log::info;
 
 use crate::constants::Constants;
 use crate::errors::ApiError;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::response::base_response::BaseResponse;
-use crate::models::transfer::transaction_response::TransactionResponse;
+use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::helpers::{get_user, respond_json};
@@ -17,10 +16,14 @@ pub async fn topup_paymaster_deposit(
     body: Json<PaymasterTopup>,
     req: HttpRequest,
     paymaster: Path<String>,
-) -> Result<Json<BaseResponse<TransactionResponse>>, ApiError> {
-    info!("user -> {}", get_user(req));
-    info!("paymaster -> {}", paymaster);
-    let response = service.topup_paymaster_deposit(body.into_inner())?;
+) -> Result<Json<BaseResponse<TransferResponse>>, ApiError> {
+    if Constants::ADMIN != get_user(req) {
+        return Err(ApiError::BadRequest("Invalid credentials".to_string()));
+    }
+    let req = body.into_inner();
+    let response = service
+        .topup_paymaster_deposit(req.value, paymaster.clone(), req.metadata)
+        .await?;
     respond_json(response)
 }
 

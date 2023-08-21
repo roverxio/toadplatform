@@ -9,6 +9,7 @@ pub struct RunConfig {
     pub current_chain: String,
     pub account_owner: Address,
     pub paymaster_account_owner: Address,
+    pub deployed_by_identifier: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
