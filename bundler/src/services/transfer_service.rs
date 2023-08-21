@@ -18,6 +18,7 @@ use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
+use crate::provider::helpers::generate_transaction_ids;
 use crate::provider::verifying_paymaster_helper::{
     get_verifying_paymaster_user_operation_payload, VerifyingPaymaster,
 };
@@ -157,6 +158,8 @@ impl TransferService {
             paymaster_and_data: Bytes::from(paymaster_and_data_with_sign),
             ..usr_op1
         };
+
+        let _transaction_id = generate_transaction_ids();
 
         let signature = Bytes::from(
             self.wallet_singer

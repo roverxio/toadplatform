@@ -42,3 +42,7 @@ pub async fn contract_exists_at(address: String) -> bool {
     let code = PROVIDER.get_code(formatted_address, None).await.unwrap();
     !code.is_empty()
 }
+
+pub fn generate_transaction_ids() -> String {
+    unimplemented!();
+}
