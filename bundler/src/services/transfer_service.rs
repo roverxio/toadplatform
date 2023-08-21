@@ -159,7 +159,7 @@ impl TransferService {
             ..usr_op1
         };
 
-        let _transaction_id = generate_transaction_ids();
+        let _txn_id = generate_transaction_ids();
 
         let signature = Bytes::from(
             self.wallet_singer
@@ -205,6 +205,7 @@ impl TransferService {
                     .clone()
                     + &txn_hash.clone(),
             },
+            transaction_id: _txn_id,
         })
     }
 
