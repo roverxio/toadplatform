@@ -159,7 +159,17 @@ impl TransferService {
             ..usr_op1
         };
 
-        let _txn_id = generate_transaction_ids();
+        let txn_id = generate_transaction_ids();
+        self.transaction_dao
+            .create_user_transaction(
+                wallet_address.to_string(),
+                txn_id,
+                wallet_address.to_string(),
+                request.clone(),
+                "debit".to_string(),
+                "pending".to_string(),
+            )
+            .await;
 
         let signature = Bytes::from(
             self.wallet_singer
@@ -187,9 +197,7 @@ impl TransferService {
 
         let txn_hash = result.unwrap();
         info!("Transaction sent successfully. Hash: {:?}", txn_hash);
-        self.transaction_dao
-            .create_transaction(txn_hash.clone(), wallet.wallet_address.clone())
-            .await;
+
         if !wallet.deployed {
             self.wallet_dao
                 .update_wallet_deployed(usr.to_string())
@@ -205,7 +213,7 @@ impl TransferService {
                     .clone()
                     + &txn_hash.clone(),
             },
-            transaction_id: _txn_id,
+            transaction_id: txn_id.clone(),
         })
     }
 
