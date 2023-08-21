@@ -12,6 +12,7 @@ use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
 use crate::contracts::simple_account_provider::SimpleAccount;
 use crate::contracts::usdc_provider::ERC20;
 use crate::db::dao::transaction_dao::TransactionDao;
+use crate::db::dao::user_op_dao::UserOpDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
@@ -28,6 +29,7 @@ use crate::CONFIG;
 pub struct TransferService {
     pub wallet_dao: WalletDao,
     pub transaction_dao: TransactionDao,
+    pub user_op_dao: UserOpDao,
     pub usdc_provider: ERC20<Provider<Http>>,
     pub entrypoint_provider: EntryPointProvider,
     pub simple_account_provider: SimpleAccount<Provider<Http>>,
@@ -171,12 +173,17 @@ impl TransferService {
             )
             .await;
 
+        let user_op_hash = user_op2.hash(
+            CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
+            CONFIG.chains[&CONFIG.run_config.current_chain].chain_id,
+        );
+        self.user_op_dao
+            .create_user_op(txn_id.clone(), user_op_hash.to_string())
+            .await;
+
         let signature = Bytes::from(
             self.wallet_singer
-                .sign_message(user_op2.hash(
-                    CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
-                    CONFIG.chains[&CONFIG.run_config.current_chain].chain_id,
-                ))
+                .sign_message(user_op_hash.clone())
                 .await
                 .unwrap()
                 .to_vec(),
