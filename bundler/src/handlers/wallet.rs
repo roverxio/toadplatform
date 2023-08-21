@@ -44,8 +44,14 @@ pub async fn transfer(
     body: Json<TransferRequest>,
     req: HttpRequest,
 ) -> Result<Json<BaseResponse<TransferResponse>>, ApiError> {
+    let body = body.into_inner();
     let data = service
-        .transfer_funds(body.into_inner(), &get_user(req))
+        .transfer_funds(
+            body.receiver,
+            body.value,
+            body.metadata.currency,
+            &get_user(req),
+        )
         .await?;
     respond_json(data)
 }

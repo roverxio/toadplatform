@@ -45,11 +45,11 @@ pub fn init_services() -> ToadService {
     info!("Starting server...");
     // contract providers
     let client = Arc::new(PROVIDER.clone());
-    let simple_account_factory_provider =
+    let simple_account_factory =
         SimpleAccountFactoryProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
-    let erc20_provider = USDCProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
+    let erc20 = USDCProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
     let entrypoint = EntryPointProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
-    let simple_account_provider = SimpleAccountProvider::init_abi(client.clone(), Address::zero());
+    let simple_account = SimpleAccountProvider::init_abi(client.clone(), Address::zero());
     let verifying_paymaster_provider =
         get_verifying_paymaster_abi(&CONFIG.run_config.current_chain, client.clone());
     //signers
@@ -90,22 +90,29 @@ pub fn init_services() -> ToadService {
         signing_client: bundler_signing_client.clone(),
         entrypoint: entrypoint_provider.clone(),
     };
+    let usdc_provider = USDCProvider { abi: erc20.clone() };
+    let simple_account_provider = SimpleAccountProvider {
+        abi: simple_account.clone(),
+    };
+    let simple_account_factory_provider = SimpleAccountFactoryProvider {
+        abi: simple_account_factory.clone(),
+    };
 
     // Services
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {
         wallet_dao: wallet_dao.clone(),
-        simple_account_factory_provider: simple_account_factory_provider.clone(),
+        simple_account_factory_provider: simple_account_factory.clone(),
         client: client.clone(),
     };
     let balance_service = BalanceService {
         wallet_dao: wallet_dao.clone(),
-        erc20_provider: erc20_provider.clone(),
+        erc20_provider: erc20.clone(),
     };
     let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
-        usdc_provider: erc20_provider.clone(),
+        usdc_provider,
         entrypoint_provider: entrypoint_provider.clone(),
         simple_account_provider: simple_account_provider.clone(),
         simple_account_factory_provider: simple_account_factory_provider.clone(),

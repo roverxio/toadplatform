@@ -1,3 +1,4 @@
+use crate::CONFIG;
 use ethers::abi::AbiEncode;
 use ethers::contract::{Eip712, EthAbiType};
 use ethers::prelude::EthAbiCodec;
@@ -23,6 +24,22 @@ pub struct UserOperation {
 }
 
 impl UserOperation {
+    pub fn new() -> Self {
+        Self {
+            sender: Default::default(),
+            nonce: Default::default(),
+            init_code: Default::default(),
+            calldata: Default::default(),
+            call_gas_limit: CONFIG.default_gas.call_gas_limit,
+            verification_gas_limit: CONFIG.default_gas.verification_gas_limit,
+            pre_verification_gas: CONFIG.default_gas.pre_verification_gas,
+            max_fee_per_gas: CONFIG.default_gas.max_fee_per_gas,
+            max_priority_fee_per_gas: CONFIG.default_gas.max_priority_fee_per_gas,
+            paymaster_and_data: Default::default(),
+            signature: Default::default(),
+        }
+    }
+
     pub fn pack_without_signature(&self) -> Bytes {
         let user_operation_packed = UserOperationUnsigned::from(self.clone());
         user_operation_packed.encode().into()
@@ -37,6 +54,57 @@ impl UserOperation {
             ]
             .concat(),
         )
+    }
+
+    pub fn init_code(
+        &mut self,
+        factory_address: Address,
+        create_account_payload: Bytes,
+    ) -> &mut UserOperation {
+        self.init_code =
+            Bytes::from([factory_address.as_bytes(), create_account_payload.as_ref()].concat());
+        self
+    }
+
+    pub fn calldata(&mut self, calldata: Bytes) -> &mut UserOperation {
+        self.calldata = calldata;
+        self
+    }
+
+    pub fn nonce(&mut self, nonce: u64) -> &mut UserOperation {
+        self.nonce = nonce;
+        self
+    }
+
+    pub fn sender(&mut self, wallet_address: Address) -> &mut UserOperation {
+        self.sender = wallet_address;
+        self
+    }
+
+    pub fn paymaster_and_data(
+        &mut self,
+        data: ethers::abi::Bytes,
+        paymaster: Address,
+    ) -> &mut UserOperation {
+        self.paymaster_and_data =
+            Bytes::from([paymaster.as_bytes(), &data, &vec![0u8; 65]].concat());
+        self
+    }
+
+    pub fn signed_paymaster_and_data(
+        &mut self,
+        data: ethers::abi::Bytes,
+        paymaster: Address,
+        signed_hash: Bytes,
+    ) -> &mut UserOperation {
+        self.paymaster_and_data =
+            Bytes::from([paymaster.as_bytes(), &data, signed_hash.as_ref()].concat());
+        self
+    }
+
+    pub fn signature(&mut self, signature: Bytes) -> &mut UserOperation {
+        self.signature = signature;
+        self
     }
 }
 
