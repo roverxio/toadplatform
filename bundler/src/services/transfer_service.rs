@@ -186,8 +186,7 @@ impl TransferService {
         user_op_event_listener(
             CONFIG.get_chain().entrypoint_address,
             user_op_hash.clone().to_vec(),
-        )
-        .await;
+        );
         // Eventually, the transfer flow will end here with Ok(TransferResponse())
 
         let txn_hash = result.unwrap();
