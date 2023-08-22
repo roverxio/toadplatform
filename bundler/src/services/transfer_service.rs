@@ -166,9 +166,10 @@ impl TransferService {
                 .to_vec(),
         );
 
-        let txn_id: String; // generate and assign transaction_id
-                            // insert the user_op into user_transactions table
-                            // insert (user_op, txn_id) into user_op_hash table
+        let txn_id = "toad_random".to_string();
+        // generate and assign transaction_id
+        // insert the user_op into user_transactions table
+        // insert (user_op, txn_id) into user_op_hash table
 
         let user_op3 = UserOperation {
             signature,
