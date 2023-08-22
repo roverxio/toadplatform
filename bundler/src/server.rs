@@ -157,7 +157,7 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .app_data(Data::new(service.transfer_service.clone()))
             .app_data(Data::new(service.admin_service.clone()))
             .app_data(Data::new(service.metadata_service.clone()))
-            .app_data(service.db_pool.clone())
+            .app_data(Data::new(service.db_pool.clone()))
     })
     .bind(server.url())?
     .run()

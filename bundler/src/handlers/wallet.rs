@@ -1,6 +1,5 @@
-use crate::db::dao::transaction_dao::TransactionDao;
 use actix_web::web::{Data, Json, Query};
-use actix_web::HttpRequest;
+use actix_web::{HttpRequest, HttpResponse};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
@@ -64,12 +63,15 @@ pub async fn list_transactions(
 }
 
 pub async fn poll_transaction_status(
-    db_pool: Pool<SqliteConnectionManager>,
-    query: Query<PollTransactionStatusParams>,
-) -> Result<Json<BaseResponse<Vec<Transaction>>>, ApiError> {
+    _db_pool: Data<Pool<SqliteConnectionManager>>,
+    _query: Query<PollTransactionStatusParams>,
+) -> Result<HttpResponse, actix_web::Error> {
     // 1. query the user_transactions table for the status of transaction_id using
     //      a. db_pool
     //      b. query.transaction_id
-    // 2. respond with the status
+    // 2. prepare response(HttpResponse) using
+    //      a. body = TransactionResponse
+    //      b. error
+    // 3. OK(response)
     unimplemented!();
 }
