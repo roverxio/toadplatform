@@ -46,3 +46,7 @@ pub async fn contract_exists_at(address: String) -> bool {
 pub fn generate_transaction_ids() -> String {
     unimplemented!();
 }
+
+pub fn start_user_op_event_listener(hash: String) {
+    unimplemented!();
+}

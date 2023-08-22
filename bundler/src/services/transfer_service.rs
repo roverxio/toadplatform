@@ -1,7 +1,7 @@
-use std::str::{from_utf8, FromStr};
+use std::str::FromStr;
 
 use crate::bundler::bundler::Bundler;
-use ethers::abi::{encode, Token, Tokenizable};
+use ethers::abi::{encode, AbiEncode, Token, Tokenizable};
 use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
@@ -19,7 +19,7 @@ use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
-use crate::provider::helpers::generate_transaction_ids;
+use crate::provider::helpers::{generate_transaction_ids, start_user_op_event_listener};
 use crate::provider::verifying_paymaster_helper::{
     get_verifying_paymaster_user_operation_payload, VerifyingPaymaster,
 };
@@ -181,10 +181,7 @@ impl TransferService {
             CONFIG.chains[&CONFIG.run_config.current_chain].chain_id,
         );
         self.user_op_hash_dao
-            .create_user_op(
-                txn_id.clone(),
-                from_utf8(&user_op_hash).unwrap().to_string(),
-            )
+            .create_user_op(txn_id.clone(), user_op_hash.clone().to_vec().encode_hex())
             .await;
 
         let signature = Bytes::from(
@@ -199,6 +196,12 @@ impl TransferService {
             signature,
             ..user_op2
         };
+
+        // ideally, the userOp submission to the bundler, which will be split from the relayer, happens here
+
+        start_user_op_event_listener(user_op_hash.clone().to_vec().encode_hex());
+
+        // transfer_funds ideally terminates here, with empty transaction_hash and explorer fields in the response struct
 
         let result = self
             .bundler
