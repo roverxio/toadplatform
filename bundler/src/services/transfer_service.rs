@@ -208,7 +208,6 @@ impl TransferService {
                 status: "pending".to_string(),
                 explorer: CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
             },
-            // transaction_id: txn_id,
         })
     }
 
