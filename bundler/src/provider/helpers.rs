@@ -42,15 +42,3 @@ pub async fn contract_exists_at(address: String) -> bool {
     let code = PROVIDER.get_code(formatted_address, None).await.unwrap();
     !code.is_empty()
 }
-
-pub fn generate_transaction_ids() -> String {
-    unimplemented!();
-}
-
-pub fn start_user_op_event_listener(_hash: String) {
-    // start a thread to
-    // 1. open a socket to listen to entry point events with the user_op_hash
-    // 2. update the user_transactions table
-    // 3. delete the corresponding entry from user_op_hash table
-    unimplemented!();
-}
