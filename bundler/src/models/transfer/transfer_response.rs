@@ -4,5 +4,4 @@ use serde::Serialize;
 #[derive(Serialize)]
 pub struct TransferResponse {
     pub transaction: TransactionResponse,
-    // pub transaction_id: String,
 }
