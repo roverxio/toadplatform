@@ -9,9 +9,7 @@ impl MetadataService {
     pub fn get_chain(&self) -> Result<Metadata, ApiError> {
         Ok(Metadata {
             chain: CONFIG.run_config.current_chain.clone(),
-            currency: CONFIG.chains[&CONFIG.run_config.current_chain]
-                .currency
-                .clone(),
+            currency: CONFIG.get_chain().currency.clone(),
         })
     }
 }

@@ -20,8 +20,7 @@ mod services;
 
 lazy_static! {
     static ref CONFIG: Settings = Settings::new().expect("Failed to load config.");
-    static ref PROVIDER: Provider<Http> =
-        Web3Provider::new(CONFIG.chains[&CONFIG.run_config.current_chain].get_url());
+    static ref PROVIDER: Provider<Http> = Web3Provider::new(CONFIG.get_chain().get_url());
 }
 
 #[actix_web::main]
