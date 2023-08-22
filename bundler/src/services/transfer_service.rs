@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use crate::bundler::bundler::Bundler;
-use ethers::abi::{encode, AbiEncode, Token, Tokenizable};
+use ethers::abi::{encode, Token, Tokenizable};
 use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
@@ -12,14 +12,12 @@ use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
 use crate::contracts::simple_account_provider::SimpleAccount;
 use crate::contracts::usdc_provider::ERC20;
 use crate::db::dao::transaction_dao::TransactionDao;
-use crate::db::dao::user_op_hash_dao::UserOpHashDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
-use crate::provider::helpers::{generate_transaction_ids, start_user_op_event_listener};
 use crate::provider::verifying_paymaster_helper::{
     get_verifying_paymaster_user_operation_payload, VerifyingPaymaster,
 };
@@ -29,7 +27,6 @@ use crate::CONFIG;
 pub struct TransferService {
     pub wallet_dao: WalletDao,
     pub transaction_dao: TransactionDao,
-    pub user_op_hash_dao: UserOpHashDao,
     pub usdc_provider: ERC20<Provider<Http>>,
     pub entrypoint_provider: EntryPointProvider,
     pub simple_account_provider: SimpleAccount<Provider<Http>>,
@@ -59,11 +56,10 @@ impl TransferService {
         let calldata: Bytes;
         let mut init_code: Bytes = Bytes::from(vec![]);
         if request.metadata.currency.to_lowercase() == "native" {
-            calldata = self.transfer_native(request.receiver.clone(), request.value.clone());
+            calldata = self.transfer_native(request.receiver, request.value);
         } else if request.metadata.currency.to_lowercase() == "usdc" {
-            calldata = self.transfer_usdc(
-                self.get_transfer_payload(request.receiver.clone(), request.value.clone()),
-            );
+            calldata =
+                self.transfer_usdc(self.get_transfer_payload(request.receiver, request.value));
         } else {
             return Err(ApiError::NotFound("Currency not found".to_string()));
         }
@@ -78,9 +74,7 @@ impl TransferService {
                 .unwrap();
             init_code = Bytes::from(
                 [
-                    CONFIG.chains[&CONFIG.run_config.current_chain]
-                        .simple_account_factory_address
-                        .as_bytes(),
+                    CONFIG.get_chain().simple_account_factory_address.as_bytes(),
                     create_account_payload.as_ref(),
                 ]
                 .concat(),
@@ -99,9 +93,7 @@ impl TransferService {
         let params: Vec<Token> = vec![valid_until.into_token(), valid_after.into_token()];
         let data = encode(&params);
         let paymaster_and_data = [
-            CONFIG.chains[&CONFIG.run_config.current_chain]
-                .verifying_paymaster_address
-                .as_bytes(),
+            CONFIG.get_chain().verifying_paymaster_address.as_bytes(),
             data.as_ref(),
             &vec![0u8; 65],
         ]
@@ -148,9 +140,7 @@ impl TransferService {
             .unwrap()
             .to_vec();
         let paymaster_and_data_with_sign = [
-            CONFIG.chains[&CONFIG.run_config.current_chain]
-                .verifying_paymaster_address
-                .as_bytes(),
+            CONFIG.get_chain().verifying_paymaster_address.as_bytes(),
             data.as_ref(),
             &singed_hash,
         ]
@@ -162,31 +152,12 @@ impl TransferService {
             ..usr_op1
         };
 
-        let txn_id = generate_transaction_ids();
-        self.transaction_dao
-            .create_user_transaction(
-                wallet_address.to_string(),
-                txn_id.clone(),
-                wallet_address.to_string(),
-                request.receiver.clone().to_string(),
-                request.value.clone().parse().unwrap(),
-                request.metadata.currency.clone().to_string(),
-                "debit".to_string(),
-                "pending".to_string(),
-            )
-            .await;
-
-        let user_op_hash = user_op2.hash(
-            CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
-            CONFIG.chains[&CONFIG.run_config.current_chain].chain_id,
-        );
-        self.user_op_hash_dao
-            .create_user_op(txn_id.clone(), user_op_hash.clone().to_vec().encode_hex())
-            .await;
-
         let signature = Bytes::from(
             self.wallet_singer
-                .sign_message(user_op_hash.clone())
+                .sign_message(user_op2.hash(
+                    CONFIG.get_chain().entrypoint_address,
+                    CONFIG.get_chain().chain_id,
+                ))
                 .await
                 .unwrap()
                 .to_vec(),
@@ -196,12 +167,6 @@ impl TransferService {
             signature,
             ..user_op2
         };
-
-        // ideally, the userOp submission to the bundler, which will be split from the relayer, happens here
-
-        start_user_op_event_listener(user_op_hash.clone().to_vec().encode_hex());
-
-        // transfer_funds ideally terminates here, with empty transaction_hash and explorer fields in the response struct
 
         let result = self
             .bundler
@@ -213,7 +178,9 @@ impl TransferService {
 
         let txn_hash = result.unwrap();
         info!("Transaction sent successfully. Hash: {:?}", txn_hash);
-
+        self.transaction_dao
+            .create_transaction(txn_hash.clone(), wallet.wallet_address.clone())
+            .await;
         if !wallet.deployed {
             self.wallet_dao
                 .update_wallet_deployed(usr.to_string())
@@ -224,12 +191,8 @@ impl TransferService {
             transaction: TransactionResponse {
                 transaction_hash: txn_hash.clone(),
                 status: "pending".to_string(),
-                explorer: CONFIG.chains[&CONFIG.run_config.current_chain]
-                    .explorer_url
-                    .clone()
-                    + &txn_hash.clone(),
+                explorer: CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
             },
-            transaction_id: txn_id.clone(),
         })
     }
 
@@ -246,7 +209,7 @@ impl TransferService {
     fn transfer_usdc(&self, transfer_payload: Bytes) -> Bytes {
         self.simple_account_provider
             .execute(
-                CONFIG.chains[&CONFIG.run_config.current_chain].usdc_address,
+                CONFIG.get_chain().usdc_address,
                 U256::zero(),
                 transfer_payload,
             )

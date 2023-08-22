@@ -40,16 +40,14 @@ impl AdminService {
 
         let data = self
             .entrypoint_provider
-            .add_deposit(
-                CONFIG.chains[&CONFIG.run_config.current_chain].verifying_paymaster_address,
-            )
+            .add_deposit(CONFIG.get_chain().verifying_paymaster_address)
             .await;
         if data.is_err() {
             return Err(ApiError::BadRequest(String::from("failed to topup")));
         }
         let response = Web3Provider::execute(
             self.signing_client.clone(),
-            CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
+            CONFIG.get_chain().entrypoint_address,
             value,
             data.unwrap(),
             self.entrypoint_provider.abi(),
@@ -60,10 +58,7 @@ impl AdminService {
                 transaction: TransactionResponse::new(
                     txn_hash.clone(),
                     Status::PENDING,
-                    CONFIG.chains[&CONFIG.run_config.current_chain]
-                        .explorer_url
-                        .clone()
-                        + &txn_hash.clone(),
+                    CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
                 ),
                 transaction_id: "toad_admin0".to_string(),
             }),
@@ -80,8 +75,7 @@ impl AdminService {
             return Err(ApiError::BadRequest("Invalid currency".to_string()));
         }
         if Constants::PAYMASTER == entity {
-            let paymaster_address =
-                &CONFIG.chains[&CONFIG.run_config.current_chain].verifying_paymaster_address;
+            let paymaster_address = &CONFIG.get_chain().verifying_paymaster_address;
             let response = self.paymaster_provider.get_deposit().await;
             return Self::get_balance_response(paymaster_address, response, data.currency);
         }

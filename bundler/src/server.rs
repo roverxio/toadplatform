@@ -69,13 +69,13 @@ pub fn init_services() -> ToadService {
         client.clone(),
         wallet_signer
             .clone()
-            .with_chain_id(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id),
+            .with_chain_id(CONFIG.get_chain().chain_id),
     );
     let bundler_signing_client = SignerMiddleware::new(
         client.clone(),
         wallet_signer
             .clone()
-            .with_chain_id(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id),
+            .with_chain_id(CONFIG.get_chain().chain_id),
     );
 
     //daos
