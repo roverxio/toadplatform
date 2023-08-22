@@ -55,6 +55,6 @@ pub async fn list_transactions(
     query: Query<ListTransactionsParams>,
 ) -> Result<Json<BaseResponse<Vec<Transaction>>>, ApiError> {
     let query_params = query.into_inner();
-    let data = service.list_transactions(query_params.page_size, query_params.id);
+    let data = service.list_transactions(query_params.page_size.unwrap_or(10), query_params.id);
     respond_json(data)
 }
