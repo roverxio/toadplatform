@@ -20,7 +20,7 @@ pub fn routes(cfg: &mut ServiceConfig) {
                         .route("transact", web::post().to(transfer))
                         .route("transfer", web::post().to(transfer))
                         .route("transactions", web::get().to(list_transactions))
-                        .route("transaction/", web.get().to(poll_transaction_status)),
+                        .route("transaction/", web::get().to(poll_transaction_status)),
                 )
                 .service(
                     web::scope("admin")

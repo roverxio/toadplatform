@@ -63,7 +63,7 @@ pub async fn list_transactions(
 }
 
 pub async fn poll_transaction_status(
-    _db_pool: Pool<SqliteConnectionManager>,
+    _db_pool: Data<Pool<SqliteConnectionManager>>,
     _query: Query<PollTransactionStatusParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
     // 1. query the user_transactions table for the status of transaction_id using
