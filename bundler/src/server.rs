@@ -9,6 +9,8 @@ use ethers::middleware::SignerMiddleware;
 use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -39,6 +41,7 @@ pub struct ToadService {
     pub transfer_service: TransferService,
     pub admin_service: AdminService,
     pub metadata_service: MetadataService,
+    pub db_pool: Pool<SqliteConnectionManager>,
 }
 
 pub fn init_services() -> ToadService {
@@ -131,6 +134,7 @@ pub fn init_services() -> ToadService {
         transfer_service,
         admin_service,
         metadata_service,
+        db_pool: pool,
     }
 }
 
@@ -153,6 +157,7 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .app_data(Data::new(service.transfer_service.clone()))
             .app_data(Data::new(service.admin_service.clone()))
             .app_data(Data::new(service.metadata_service.clone()))
+            .app_data(service.db_pool.clone())
     })
     .bind(server.url())?
     .run()

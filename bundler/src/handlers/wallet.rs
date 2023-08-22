@@ -1,9 +1,13 @@
+use crate::db::dao::transaction_dao::TransactionDao;
 use actix_web::web::{Data, Json, Query};
 use actix_web::HttpRequest;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
+use crate::models::transaction::poll_transaction_status_params::PollTransactionStatusParams;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
@@ -57,4 +61,15 @@ pub async fn list_transactions(
     let query_params = query.into_inner();
     let data = service.list_transactions(query_params.page_size, query_params.id);
     respond_json(data)
+}
+
+pub async fn poll_transaction_status(
+    db_pool: Pool<SqliteConnectionManager>,
+    query: Query<PollTransactionStatusParams>,
+) -> Result<Json<BaseResponse<Vec<Transaction>>>, ApiError> {
+    // 1. query the user_transactions table for the status of transaction_id using
+    //      a. db_pool
+    //      b. query.transaction_id
+    // 2. respond with the status
+    unimplemented!();
 }
