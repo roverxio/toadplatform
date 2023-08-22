@@ -18,6 +18,7 @@ use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
+use crate::provider::helpers::user_op_event_listener;
 use crate::provider::verifying_paymaster_helper::{
     get_verifying_paymaster_user_operation_payload, VerifyingPaymaster,
 };
@@ -152,16 +153,22 @@ impl TransferService {
             ..usr_op1
         };
 
+        let user_op_hash = user_op2.hash(
+            CONFIG.get_chain().entrypoint_address,
+            CONFIG.get_chain().chain_id,
+        );
+
         let signature = Bytes::from(
             self.wallet_singer
-                .sign_message(user_op2.hash(
-                    CONFIG.get_chain().entrypoint_address,
-                    CONFIG.get_chain().chain_id,
-                ))
+                .sign_message(user_op_hash)
                 .await
                 .unwrap()
                 .to_vec(),
         );
+
+        let _txn_id = self.generate_transaction_id();
+        // insert the user_op into user_transactions table
+        // insert (user_op, txn_id) into user_op_hash table
 
         let user_op3 = UserOperation {
             signature,
@@ -175,6 +182,13 @@ impl TransferService {
         if result.is_err() {
             return Err(ApiError::BadRequest(result.err().unwrap()));
         }
+
+        user_op_event_listener(
+            CONFIG.get_chain().entrypoint_address,
+            user_op_hash.clone().to_vec(),
+        )
+        .await;
+        // Eventually, the transfer flow will end here with Ok(TransferResponse())
 
         let txn_hash = result.unwrap();
         info!("Transaction sent successfully. Hash: {:?}", txn_hash);
@@ -193,6 +207,7 @@ impl TransferService {
                 status: "pending".to_string(),
                 explorer: CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
             },
+            // transaction_id: txn_id,
         })
     }
 
@@ -228,5 +243,9 @@ impl TransferService {
             )
             .calldata()
             .unwrap()
+    }
+
+    fn generate_transaction_id(&self) -> String {
+        unimplemented!();
     }
 }
