@@ -166,9 +166,9 @@ impl TransferService {
                 .to_vec(),
         );
 
-        // generate txn_id
-        // insert the user_op into user_transactions table
-        // insert (user_op, txn_id) into user_op_hash table
+        let txn_id: String; // generate and assign transaction_id
+                            // insert the user_op into user_transactions table
+                            // insert (user_op, txn_id) into user_op_hash table
 
         let user_op3 = UserOperation {
             signature,
@@ -186,6 +186,7 @@ impl TransferService {
         user_op_event_listener(
             CONFIG.get_chain().entrypoint_address,
             user_op_hash.clone().to_vec(),
+            txn_id.clone(),
         );
         // Eventually, the transfer flow will end here with Ok(TransferResponse())
 

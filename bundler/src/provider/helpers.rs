@@ -43,13 +43,14 @@ pub async fn contract_exists_at(address: String) -> bool {
     !code.is_empty()
 }
 
-pub fn user_op_event_listener(_entry_point: Address, _user_op_hash: Vec<u8>) {
-    // spawn a tokio::task that does the following
-    // 1. open a new web socket
-    // 2. subscribe for entrypoint UserOperation events with topic1 as user_op_hash
-    // 3. update the user_transaction status in user_transactions table
-    // 4. delete entry from user_op_hash table
-    // 5. close the web socket
+pub fn user_op_event_listener(_entry_point: Address, _user_op_hash: Vec<u8>, _txn_id: String) {
+    // tokio::spawn an async block that does the following
+    // 1. subscribe for entrypoint UserOperation events with topic1 as user_op_hash
+    //      a. wait for response till <timeout>
+    //      b. in case of no response, return error
+    // 2. update the user_transaction status in user_transactions table
+    // 3. delete entry from user_op_hash table
+    // 4. close the web socket
 
     // handle the errors returned by the task, if any
     unimplemented!();
