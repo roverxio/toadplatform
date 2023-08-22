@@ -3,7 +3,7 @@ use actix_web::HttpRequest;
 
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
-use crate::models::transaction::poll_transaction_status_params::PollTransactionStatusParams;
+use crate::models::transaction::list_transactions_params::ListTransactionsParams;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
