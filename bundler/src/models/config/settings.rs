@@ -27,6 +27,7 @@ pub struct Server {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Database {
     pub file: String,
+    pub url: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]

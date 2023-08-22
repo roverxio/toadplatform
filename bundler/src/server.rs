@@ -15,8 +15,9 @@ use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
-use crate::db::connection::establish_connection;
+use crate::db::connection::{establish_connection, establish_sqlx_connection};
 use crate::db::dao::transaction_dao::TransactionDao;
+use crate::db::dao::user_dao::UserDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
 use crate::provider::paymaster_provider::PaymasterProvider;
@@ -40,7 +41,7 @@ pub struct ToadService {
     pub metadata_service: MetadataService,
 }
 
-pub fn init_services() -> ToadService {
+pub async fn init_services() -> ToadService {
     init_logging();
     info!("Starting server...");
     // contract providers
@@ -76,6 +77,10 @@ pub fn init_services() -> ToadService {
 
     //daos
     let pool = establish_connection(CONFIG.database.file.clone());
+    let postgres_pool = establish_sqlx_connection(CONFIG.database.url.clone()).await;
+    let user_dao = UserDao {
+        pool: postgres_pool.clone(),
+    };
     let wallet_dao = WalletDao { pool: pool.clone() };
     let transaction_dao = TransactionDao { pool: pool.clone() };
 
@@ -120,7 +125,7 @@ pub fn init_services() -> ToadService {
         signing_client: signing_client.clone(),
     };
     let metadata_service = MetadataService {};
-
+    user_dao.get().await;
     ToadService {
         hello_world_service,
         wallet_service,
