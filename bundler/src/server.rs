@@ -9,8 +9,6 @@ use ethers::middleware::SignerMiddleware;
 use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -19,7 +17,6 @@ use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::connection::establish_connection;
 use crate::db::dao::transaction_dao::TransactionDao;
-use crate::db::dao::user_op_hash_dao::UserOpHashDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
 use crate::provider::paymaster_provider::PaymasterProvider;
@@ -41,7 +38,6 @@ pub struct ToadService {
     pub transfer_service: TransferService,
     pub admin_service: AdminService,
     pub metadata_service: MetadataService,
-    pub db_pool: Pool<SqliteConnectionManager>,
 }
 
 pub fn init_services() -> ToadService {
@@ -82,7 +78,6 @@ pub fn init_services() -> ToadService {
     let pool = establish_connection(CONFIG.database.file.clone());
     let wallet_dao = WalletDao { pool: pool.clone() };
     let transaction_dao = TransactionDao { pool: pool.clone() };
-    let user_op_hash_dao = UserOpHashDao { pool: pool.clone() };
 
     // providers
     let verify_paymaster_provider = PaymasterProvider {
@@ -110,7 +105,6 @@ pub fn init_services() -> ToadService {
     let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
-        user_op_hash_dao: user_op_hash_dao.clone(),
         usdc_provider: erc20_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
         simple_account_provider: simple_account_provider.clone(),
@@ -134,7 +128,6 @@ pub fn init_services() -> ToadService {
         transfer_service,
         admin_service,
         metadata_service,
-        db_pool: pool,
     }
 }
 
@@ -157,7 +150,6 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .app_data(Data::new(service.transfer_service.clone()))
             .app_data(Data::new(service.admin_service.clone()))
             .app_data(Data::new(service.metadata_service.clone()))
-            .app_data(Data::new(service.db_pool.clone()))
     })
     .bind(server.url())?
     .run()
