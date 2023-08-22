@@ -166,7 +166,7 @@ impl TransferService {
                 .to_vec(),
         );
 
-        let _txn_id = self.generate_transaction_id();
+        // generate txn_id
         // insert the user_op into user_transactions table
         // insert (user_op, txn_id) into user_op_hash table
 
@@ -243,9 +243,5 @@ impl TransferService {
             )
             .calldata()
             .unwrap()
-    }
-
-    fn generate_transaction_id(&self) -> String {
-        unimplemented!();
     }
 }
