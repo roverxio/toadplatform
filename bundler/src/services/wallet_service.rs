@@ -182,7 +182,7 @@ impl WalletService {
                 transaction_hash: "0xtransaction_hash".to_string(),
                 timestamp: "2023-05-12T16:41:45.530002+00".to_string(),
                 explorer_url: "https://www.example.com".to_string(),
-                status: "failed".to_string(),
+                status: "success".to_string(),
             },
             from: UserInfo {
                 address: "0xfrom_address".to_string(),
