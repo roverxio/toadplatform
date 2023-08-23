@@ -167,9 +167,6 @@ impl TransferService {
         );
 
         let txn_id = "toad_random".to_string();
-        // generate and assign transaction_id
-        // insert the user_op into user_transactions table
-        // insert (user_op, txn_id) into user_op_hash table
 
         let user_op3 = UserOperation {
             signature,
@@ -189,7 +186,6 @@ impl TransferService {
             user_op_hash.clone().to_vec(),
             txn_id.clone(),
         );
-        // Eventually, the transfer flow will end here with Ok(TransferResponse())
 
         let txn_hash = result.unwrap();
         info!("Transaction sent successfully. Hash: {:?}", txn_hash);
@@ -208,6 +204,7 @@ impl TransferService {
                 status: "pending".to_string(),
                 explorer: CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
             },
+            // modify the transfer response to return transaction_id
         })
     }
 
