@@ -185,7 +185,8 @@ impl TransferService {
             CONFIG.get_chain().entrypoint_address,
             user_op_hash.clone().to_vec(),
             txn_id.clone(),
-        );
+        )
+        .await;
 
         let txn_hash = result.unwrap();
         info!("Transaction sent successfully. Hash: {:?}", txn_hash);

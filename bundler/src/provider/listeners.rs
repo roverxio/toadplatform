@@ -1,6 +1,10 @@
 use ethers::types::Address;
 
-pub fn user_op_event_listener(_entry_point: Address, _user_op_hash: Vec<u8>, _txn_id: String) {
+pub async fn user_op_event_listener(
+    _entry_point: Address,
+    _user_op_hash: Vec<u8>,
+    _txn_id: String,
+) {
     // tokio::spawn an async block that does the following
     // 1. subscribe for entrypoint UserOperation events with topic1 as user_op_hash
     //      a. wait for response till <timeout>
