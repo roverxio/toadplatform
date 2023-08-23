@@ -116,7 +116,7 @@ pub fn init_services() -> ToadService {
         entrypoint_provider: entrypoint_provider.clone(),
         simple_account_provider: simple_account_provider.clone(),
         simple_account_factory_provider: simple_account_factory_provider.clone(),
-        verifying_paymaster_provider: verifying_paymaster_provider.clone(),
+        verifying_paymaster_provider: verify_paymaster_provider.clone(),
         verifying_paymaster_signer: verifying_paymaster_signer.clone(),
         wallet_singer: wallet_signer.clone(),
         bundler: bundler.clone(),

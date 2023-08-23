@@ -85,20 +85,10 @@ impl UserOperation {
         &mut self,
         data: ethers::abi::Bytes,
         paymaster: Address,
+        sign: Option<Vec<u8>>,
     ) -> &mut UserOperation {
         self.paymaster_and_data =
-            Bytes::from([paymaster.as_bytes(), &data, &vec![0u8; 65]].concat());
-        self
-    }
-
-    pub fn signed_paymaster_and_data(
-        &mut self,
-        data: ethers::abi::Bytes,
-        paymaster: Address,
-        signed_hash: Bytes,
-    ) -> &mut UserOperation {
-        self.paymaster_and_data =
-            Bytes::from([paymaster.as_bytes(), &data, signed_hash.as_ref()].concat());
+            Bytes::from([paymaster.as_bytes(), &data, &sign.unwrap_or(vec![0u8; 65])].concat());
         self
     }
 

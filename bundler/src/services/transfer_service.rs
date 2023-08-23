@@ -1,5 +1,4 @@
 use ethers::abi::{encode, Tokenizable};
-use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
@@ -13,11 +12,12 @@ use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
+use crate::models::currency::Currency;
+use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
-use crate::provider::verifying_paymaster_helper::{
-    get_verifying_paymaster_user_operation_payload, VerifyingPaymaster,
-};
+use crate::provider::paymaster_provider::PaymasterProvider;
+use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -28,7 +28,7 @@ pub struct TransferService {
     pub entrypoint_provider: EntryPointProvider,
     pub simple_account_provider: SimpleAccountProvider,
     pub simple_account_factory_provider: SimpleAccountFactoryProvider,
-    pub verifying_paymaster_provider: VerifyingPaymaster<Provider<Http>>,
+    pub verifying_paymaster_provider: PaymasterProvider,
     pub verifying_paymaster_signer: LocalWallet,
     pub wallet_singer: LocalWallet,
     pub bundler: Bundler,
@@ -71,7 +71,7 @@ impl TransferService {
         let valid_after: u64 = 4660;
         let data = encode(&vec![valid_until.into_token(), valid_after.into_token()]);
         user_op0
-            .paymaster_and_data(data.clone(), wallet_address.clone())
+            .paymaster_and_data(data.clone(), wallet_address.clone(), None)
             .nonce(
                 self.entrypoint_provider
                     .get_nonce(wallet_address)
@@ -89,25 +89,13 @@ impl TransferService {
                 .to_vec(),
         ));
 
-        let hash = self
-            .verifying_paymaster_provider
-            .get_hash(
-                get_verifying_paymaster_user_operation_payload(user_op0.clone()),
-                valid_until,
-                valid_after,
-            )
-            .await
-            .unwrap();
         let singed_hash = self
-            .verifying_paymaster_signer
-            .sign_message(&hash)
-            .await
-            .unwrap()
-            .to_vec();
-        user_op0.signed_paymaster_and_data(
+            .get_signed_hash(user_op0.clone(), valid_until, valid_after)
+            .await;
+        user_op0.paymaster_and_data(
             data,
             CONFIG.chains[&CONFIG.run_config.current_chain].verifying_paymaster_address,
-            Bytes::from(singed_hash),
+            Some(singed_hash),
         );
         let signature = Bytes::from(
             self.wallet_singer
@@ -143,7 +131,7 @@ impl TransferService {
         Ok(TransferResponse {
             transaction: TransactionResponse {
                 transaction_hash: txn_hash.clone(),
-                status: "pending".to_string(),
+                status: Status::PENDING.to_string(),
                 explorer: CONFIG.chains[&CONFIG.run_config.current_chain]
                     .explorer_url
                     .clone()
@@ -152,14 +140,31 @@ impl TransferService {
         })
     }
 
+    async fn get_signed_hash(
+        &self,
+        user_op0: UserOperation,
+        valid_until: u64,
+        valid_after: u64,
+    ) -> Vec<u8> {
+        let hash = self
+            .verifying_paymaster_provider
+            .get_hash(
+                get_verifying_paymaster_user_operation_payload(user_op0),
+                valid_until,
+                valid_after,
+            )
+            .await
+            .unwrap();
+        self.verifying_paymaster_signer
+            .sign_message(hash)
+            .await
+            .unwrap()
+            .to_vec()
+    }
+
     fn get_call_data(&self, to: String, value: String, currency: String) -> Result<Bytes, String> {
-        if currency.to_lowercase() == "native" {
-            Ok(self
-                .simple_account_provider
-                .execute(to.parse().unwrap(), value, Bytes::from(vec![]))
-                .unwrap())
-        } else if currency.to_lowercase() == "usdc" {
-            Ok(self
+        match Currency::from_str(currency) {
+            Some(Currency::Usdc) => Ok(self
                 .simple_account_provider
                 .execute(
                     to.parse().unwrap(),
@@ -168,9 +173,12 @@ impl TransferService {
                         .transfer(to.parse().unwrap(), value)
                         .unwrap(),
                 )
-                .unwrap())
-        } else {
-            return Err("Currency not found".to_string());
+                .unwrap()),
+            Some(Currency::SepoliaEth | Currency::GoerliEth | Currency::LocalEth) => Ok(self
+                .simple_account_provider
+                .execute(to.parse().unwrap(), value, Bytes::from(vec![]))
+                .unwrap()),
+            None => Err("Currency not found".to_string()),
         }
     }
 }

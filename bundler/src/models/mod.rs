@@ -1,9 +1,10 @@
 pub mod admin;
 pub mod config;
 pub mod contract_interaction;
+pub mod currency;
 pub mod hello_world;
 pub mod metadata;
 pub mod response;
+pub mod transaction;
 pub mod transfer;
 pub mod wallet;
-pub mod transaction;
