@@ -8,6 +8,7 @@ pub struct Transaction {
     pub from: UserInfo,
     pub id: i64,
     pub to: UserInfo,
+    #[serde(rename = "type")]
     pub transaction_type: String,
 }
 
