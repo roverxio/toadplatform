@@ -132,7 +132,7 @@ impl WalletService {
             transaction_type: "credit".to_string(),
         });
         transactions.push(Transaction {
-            transaction_id: "txn_id_1".to_string(),
+            transaction_id: "txn_id_2".to_string(),
             amount: Amount {
                 currency: "usdc".to_string(),
                 value: "10000000".to_string(),
@@ -164,7 +164,7 @@ impl WalletService {
             transaction_type: "credit".to_string(),
         });
         transactions.push(Transaction {
-            transaction_id: "txn_id_1".to_string(),
+            transaction_id: "txn_id_3".to_string(),
             amount: Amount {
                 currency: "usdc".to_string(),
                 value: "10000000".to_string(),
@@ -196,7 +196,7 @@ impl WalletService {
             transaction_type: "credit".to_string(),
         });
         transactions.push(Transaction {
-            transaction_id: "txn_id_1".to_string(),
+            transaction_id: "txn_id_4".to_string(),
             amount: Amount {
                 currency: "usdc".to_string(),
                 value: "1000000".to_string(),
@@ -228,7 +228,7 @@ impl WalletService {
             transaction_type: "debit".to_string(),
         });
         transactions.push(Transaction {
-            transaction_id: "txn_id_1".to_string(),
+            transaction_id: "txn_id_5".to_string(),
             amount: Amount {
                 currency: "usdc".to_string(),
                 value: "1000000".to_string(),
@@ -260,7 +260,7 @@ impl WalletService {
             transaction_type: "debit".to_string(),
         });
         transactions.push(Transaction {
-            transaction_id: "txn_id_1".to_string(),
+            transaction_id: "txn_id_6".to_string(),
             amount: Amount {
                 currency: "usdc".to_string(),
                 value: "1000000".to_string(),
