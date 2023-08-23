@@ -1,9 +1,12 @@
 use actix_web::web::{Data, Json, Query};
-use actix_web::HttpRequest;
+use actix_web::{HttpRequest, HttpResponse};
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
+use crate::models::transaction::poll_transaction_status_params::PollTransactionStatusParams;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
@@ -57,4 +60,18 @@ pub async fn list_transactions(
     let query_params = query.into_inner();
     let data = service.list_transactions(query_params.page_size, query_params.id);
     respond_json(data)
+}
+
+pub async fn poll_transaction_status(
+    _db_pool: Data<Pool<SqliteConnectionManager>>,
+    _query: Query<PollTransactionStatusParams>,
+) -> Result<HttpResponse, actix_web::Error> {
+    // 1. query the user_transactions table for the status of transaction_id using
+    //      a. db_pool
+    //      b. query.transaction_id
+    // 2. prepare response(HttpResponse) using
+    //      a. body = TransactionResponse
+    //      b. error
+    // 3. OK(response)
+    unimplemented!();
 }
