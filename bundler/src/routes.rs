@@ -1,7 +1,7 @@
 use actix_web::web;
 use actix_web::web::ServiceConfig;
 
-use crate::handlers::admin::{admin_get_balance, topup_paymaster_deposit};
+use crate::handlers::admin::{add_currency_metadata, admin_get_balance, topup_paymaster_deposit};
 use crate::handlers::hello_world::hello_world;
 use crate::handlers::metadata::get_metadata;
 use crate::handlers::wallet::{get_address, get_balance, list_transactions, transfer};
@@ -25,7 +25,8 @@ pub fn routes(cfg: &mut ServiceConfig) {
                             "deposit/{paymaster}",
                             web::post().to(topup_paymaster_deposit),
                         ) // the paymaster name
-                        .route("balance/{entity}", web::get().to(admin_get_balance)),
+                        .route("balance/{entity}", web::get().to(admin_get_balance))
+                        .route("metadata", web::post().to(add_currency_metadata)),
                 ) // entity can be a paymaster or the EOA
                 .route("hello", web::get().to(hello_world))
                 .route("metadata", web::get().to(get_metadata)),

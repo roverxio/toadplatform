@@ -16,6 +16,7 @@ use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvi
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::connection::establish_connection;
+use crate::db::dao::metadata_dao::MetadataDao;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
@@ -78,6 +79,7 @@ pub fn init_services() -> ToadService {
     let pool = establish_connection(CONFIG.database.file.clone());
     let wallet_dao = WalletDao { pool: pool.clone() };
     let transaction_dao = TransactionDao { pool: pool.clone() };
+    let meatadata_dao = MetadataDao { pool: pool.clone() };
 
     // providers
     let verify_paymaster_provider = PaymasterProvider {
@@ -118,8 +120,11 @@ pub fn init_services() -> ToadService {
         paymaster_provider: verify_paymaster_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
         signing_client: signing_client.clone(),
+        metadata_dao: meatadata_dao.clone(),
     };
-    let metadata_service = MetadataService {};
+    let metadata_service = MetadataService {
+        metadata_dao: meatadata_dao.clone(),
+    };
 
     ToadService {
         hello_world_service,

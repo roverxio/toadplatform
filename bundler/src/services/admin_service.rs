@@ -6,7 +6,9 @@ use std::sync::Arc;
 
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
+use crate::db::dao::metadata_dao::MetadataDao;
 use crate::errors::ApiError;
+use crate::models::admin::add_metadata_request::AddMetadataRequest;
 use crate::models::metadata::Metadata;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
@@ -22,6 +24,7 @@ pub struct AdminService {
     pub paymaster_provider: PaymasterProvider,
     pub entrypoint_provider: EntryPointProvider,
     pub signing_client: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
+    pub metadata_dao: MetadataDao,
 }
 
 impl AdminService {
@@ -99,5 +102,33 @@ impl AdminService {
             )),
             Err(error) => Err(ApiError::InternalServer(error)),
         };
+    }
+
+    pub async fn add_currency_metadata(
+        &self,
+        metadata: AddMetadataRequest,
+    ) -> Result<Metadata, ApiError> {
+        self.metadata_dao
+            .add_metadata(
+                metadata.get_chain().clone(),
+                metadata.get_currency(),
+                metadata.get_contract_address(),
+                metadata.get_exponent(),
+            )
+            .await;
+        let supported_currencies = self
+            .metadata_dao
+            .get_metadata_for_chain(metadata.get_chain())
+            .await;
+
+        let exponent_metadata = Metadata::new().to(
+            supported_currencies.clone(),
+            supported_currencies[0].chain.clone(),
+            CONFIG.chains[&supported_currencies[0].chain.clone()]
+                .currency
+                .clone(),
+        );
+
+        Ok(exponent_metadata)
     }
 }

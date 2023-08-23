@@ -9,6 +9,6 @@ use crate::services::metada_service::MetadataService;
 pub async fn get_metadata(
     service: Data<MetadataService>,
 ) -> Result<Json<BaseResponse<Metadata>>, ApiError> {
-    let response = service.get_chain()?;
+    let response = service.get_chain().await?;
     respond_json(response)
 }
