@@ -3,7 +3,6 @@ use ethers::abi::Address;
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Bytes, U256};
-use log::info;
 use std::sync::Arc;
 
 abigen!(ERC20, "abi/ERC20.json");
