@@ -3,7 +3,7 @@ use std::future::{ready, Ready};
 use crate::errors::ApiError;
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error,
+    Error, HttpMessage,
 };
 use futures::future::LocalBoxFuture;
 use log::error;
@@ -51,7 +51,11 @@ where
                 error!("Unauthorized request");
                 Box::pin(async { Err(Error::from(ApiError::Unauthorized)) })
             }
-            Some(_) => Box::pin(self.service.call(req)),
+            Some(user) => {
+                req.extensions_mut()
+                    .insert(user.to_str().unwrap().to_string());
+                Box::pin(self.service.call(req))
+            }
         }
     }
 }

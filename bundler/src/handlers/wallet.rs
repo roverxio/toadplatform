@@ -1,4 +1,4 @@
-use actix_web::web::{Data, Json, Query};
+use actix_web::web::{Data, Json, Query, ReqData};
 use actix_web::HttpRequest;
 
 use crate::errors::ApiError;
@@ -24,14 +24,14 @@ pub async fn get_address(
 pub async fn get_balance(
     service: Data<BalanceService>,
     body: Query<BalanceRequest>,
-    req: HttpRequest,
+    user: ReqData<String>,
 ) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
     let balance_request = body.get_balance_request();
     let data = service
         .get_wallet_balance(
             &balance_request.chain,
             &balance_request.currency.to_lowercase(),
-            &get_user(req),
+            &user.into_inner(),
         )
         .await?;
     respond_json(data)
