@@ -29,8 +29,8 @@ pub struct TransferService {
     pub simple_account_provider: SimpleAccountProvider,
     pub simple_account_factory_provider: SimpleAccountFactoryProvider,
     pub verifying_paymaster_provider: PaymasterProvider,
-    pub verifying_paymaster_signer: LocalWallet,
-    pub wallet_singer: LocalWallet,
+    pub verifying_paymaster_wallet: LocalWallet,
+    pub scw_owner_wallet: LocalWallet,
     pub bundler: Bundler,
 }
 
@@ -82,7 +82,7 @@ impl TransferService {
             .sender(wallet_address.clone());
 
         user_op0.signature(Bytes::from(
-            self.verifying_paymaster_signer
+            self.verifying_paymaster_wallet
                 .sign_typed_data(&user_op0)
                 .await
                 .unwrap()
@@ -98,7 +98,7 @@ impl TransferService {
             Some(singed_hash),
         );
         let signature = Bytes::from(
-            self.wallet_singer
+            self.scw_owner_wallet
                 .sign_message(user_op0.hash(
                     CONFIG.get_chain().entrypoint_address,
                     CONFIG.get_chain().chain_id,
@@ -152,7 +152,7 @@ impl TransferService {
             )
             .await
             .unwrap();
-        self.verifying_paymaster_signer
+        self.verifying_paymaster_wallet
             .sign_message(hash)
             .await
             .unwrap()

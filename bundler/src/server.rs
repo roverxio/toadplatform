@@ -52,24 +52,27 @@ pub fn init_services() -> ToadService {
     let simple_account = SimpleAccountProvider::init_abi(client.clone(), Address::zero());
     let verifying_paymaster_provider =
         get_verifying_paymaster_abi(&CONFIG.run_config.current_chain, client.clone());
-    //signers
-    let verifying_paymaster_signer: LocalWallet = std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY")
+
+    //wallets
+    let verifying_paymaster_wallet: LocalWallet = std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY")
         .expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set")
         .parse::<LocalWallet>()
         .unwrap();
-    let wallet_signer: LocalWallet = std::env::var("WALLET_PRIVATE_KEY")
+    let relayer_wallet: LocalWallet = std::env::var("WALLET_PRIVATE_KEY")
         .expect("WALLET_PRIVATE_KEY must be set")
         .parse::<LocalWallet>()
         .unwrap();
-    let signing_client = SignerMiddleware::new(
+
+    //signers
+    let relayer_signer = SignerMiddleware::new(
         client.clone(),
-        wallet_signer
+        relayer_wallet
             .clone()
             .with_chain_id(CONFIG.get_chain().chain_id),
     );
-    let bundler_signing_client = SignerMiddleware::new(
+    let bundler_signer = SignerMiddleware::new(
         client.clone(),
-        wallet_signer
+        relayer_wallet
             .clone()
             .with_chain_id(CONFIG.get_chain().chain_id),
     );
@@ -87,7 +90,7 @@ pub fn init_services() -> ToadService {
         abi: entrypoint.clone(),
     };
     let bundler = Bundler {
-        signing_client: bundler_signing_client.clone(),
+        signer: bundler_signer.clone(),
         entrypoint: entrypoint_provider.clone(),
     };
     let usdc_provider = USDCProvider { abi: erc20.clone() };
@@ -117,14 +120,14 @@ pub fn init_services() -> ToadService {
         simple_account_provider: simple_account_provider.clone(),
         simple_account_factory_provider: simple_account_factory_provider.clone(),
         verifying_paymaster_provider: verify_paymaster_provider.clone(),
-        verifying_paymaster_signer: verifying_paymaster_signer.clone(),
-        wallet_singer: wallet_signer.clone(),
+        verifying_paymaster_wallet: verifying_paymaster_wallet.clone(),
+        scw_owner_wallet: relayer_wallet.clone(),
         bundler: bundler.clone(),
     };
     let admin_service = AdminService {
         paymaster_provider: verify_paymaster_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
-        signing_client: signing_client.clone(),
+        relayer_signer: relayer_signer.clone(),
     };
     let metadata_service = MetadataService {};
 

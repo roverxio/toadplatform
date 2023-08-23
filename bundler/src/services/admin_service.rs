@@ -21,7 +21,7 @@ use crate::CONFIG;
 pub struct AdminService {
     pub paymaster_provider: PaymasterProvider,
     pub entrypoint_provider: EntryPointProvider,
-    pub signing_client: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
+    pub relayer_signer: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
 }
 
 impl AdminService {
@@ -46,7 +46,7 @@ impl AdminService {
             return Err(ApiError::BadRequest(String::from("failed to topup")));
         }
         let response = Web3Provider::execute(
-            self.signing_client.clone(),
+            self.relayer_signer.clone(),
             CONFIG.get_chain().entrypoint_address,
             value,
             data.unwrap(),
