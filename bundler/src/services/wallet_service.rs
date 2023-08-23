@@ -124,7 +124,7 @@ impl WalletService {
                 address: "0xfrom_address".to_string(),
                 name: "".to_string(),
             },
-            id: 2,
+            id: 6,
             to: UserInfo {
                 address: "0xto_address".to_string(),
                 name: "a toad user".to_string(),
@@ -132,7 +132,71 @@ impl WalletService {
             transaction_type: "credit".to_string(),
         });
         transactions.push(Transaction {
-            transaction_id: "txn_id_1".to_string(),
+            transaction_id: "txn_id_2".to_string(),
+            amount: Amount {
+                currency: "usdc".to_string(),
+                value: "10000000".to_string(),
+                exponent: "6".to_string(),
+            },
+            metadata: Metadata {
+                chain: CONFIG.run_config.current_chain.clone(),
+                gas: Amount {
+                    currency: CONFIG.chains[&CONFIG.run_config.current_chain]
+                        .currency
+                        .clone(),
+                    value: "100000000000".to_string(),
+                    exponent: "18".to_string(),
+                },
+                transaction_hash: "0xtransaction_hash".to_string(),
+                timestamp: "2023-05-12T16:41:45.530002+00".to_string(),
+                explorer_url: "https://www.example.com".to_string(),
+                status: "success".to_string(),
+            },
+            from: UserInfo {
+                address: "0xfrom_address".to_string(),
+                name: "".to_string(),
+            },
+            id: 5,
+            to: UserInfo {
+                address: "0xto_address".to_string(),
+                name: "a toad user".to_string(),
+            },
+            transaction_type: "credit".to_string(),
+        });
+        transactions.push(Transaction {
+            transaction_id: "txn_id_3".to_string(),
+            amount: Amount {
+                currency: "usdc".to_string(),
+                value: "10000000".to_string(),
+                exponent: "6".to_string(),
+            },
+            metadata: Metadata {
+                chain: CONFIG.run_config.current_chain.clone(),
+                gas: Amount {
+                    currency: CONFIG.chains[&CONFIG.run_config.current_chain]
+                        .currency
+                        .clone(),
+                    value: "100000000000".to_string(),
+                    exponent: "18".to_string(),
+                },
+                transaction_hash: "0xtransaction_hash".to_string(),
+                timestamp: "2023-05-12T16:41:45.530002+00".to_string(),
+                explorer_url: "https://www.example.com".to_string(),
+                status: "success".to_string(),
+            },
+            from: UserInfo {
+                address: "0xfrom_address".to_string(),
+                name: "".to_string(),
+            },
+            id: 4,
+            to: UserInfo {
+                address: "0xto_address".to_string(),
+                name: "a toad user".to_string(),
+            },
+            transaction_type: "credit".to_string(),
+        });
+        transactions.push(Transaction {
+            transaction_id: "txn_id_4".to_string(),
             amount: Amount {
                 currency: "usdc".to_string(),
                 value: "1000000".to_string(),
@@ -151,6 +215,70 @@ impl WalletService {
                 timestamp: "2023-05-11T16:41:45.530002+00".to_string(),
                 explorer_url: "https://www.example.com".to_string(),
                 status: "pending".to_string(),
+            },
+            from: UserInfo {
+                address: "0xfrom_address".to_string(),
+                name: "a toad user".to_string(),
+            },
+            id: 3,
+            to: UserInfo {
+                address: "0xto_address".to_string(),
+                name: "".to_string(),
+            },
+            transaction_type: "debit".to_string(),
+        });
+        transactions.push(Transaction {
+            transaction_id: "txn_id_5".to_string(),
+            amount: Amount {
+                currency: "usdc".to_string(),
+                value: "1000000".to_string(),
+                exponent: "6".to_string(),
+            },
+            metadata: Metadata {
+                chain: CONFIG.run_config.current_chain.clone(),
+                gas: Amount {
+                    currency: CONFIG.chains[&CONFIG.run_config.current_chain]
+                        .currency
+                        .clone(),
+                    value: "800000000000".to_string(),
+                    exponent: "18".to_string(),
+                },
+                transaction_hash: "0xtransaction_hash".to_string(),
+                timestamp: "2023-05-11T16:41:45.530002+00".to_string(),
+                explorer_url: "https://www.example.com".to_string(),
+                status: "success".to_string(),
+            },
+            from: UserInfo {
+                address: "0xfrom_address".to_string(),
+                name: "a toad user".to_string(),
+            },
+            id: 2,
+            to: UserInfo {
+                address: "0xto_address".to_string(),
+                name: "".to_string(),
+            },
+            transaction_type: "debit".to_string(),
+        });
+        transactions.push(Transaction {
+            transaction_id: "txn_id_6".to_string(),
+            amount: Amount {
+                currency: "usdc".to_string(),
+                value: "1000000".to_string(),
+                exponent: "6".to_string(),
+            },
+            metadata: Metadata {
+                chain: CONFIG.run_config.current_chain.clone(),
+                gas: Amount {
+                    currency: CONFIG.chains[&CONFIG.run_config.current_chain]
+                        .currency
+                        .clone(),
+                    value: "800000000000".to_string(),
+                    exponent: "18".to_string(),
+                },
+                transaction_hash: "0xtransaction_hash".to_string(),
+                timestamp: "2023-05-11T16:41:45.530002+00".to_string(),
+                explorer_url: "https://www.example.com".to_string(),
+                status: "failed".to_string(),
             },
             from: UserInfo {
                 address: "0xfrom_address".to_string(),

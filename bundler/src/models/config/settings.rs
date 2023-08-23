@@ -93,4 +93,8 @@ impl Settings {
 
         s.try_deserialize()
     }
+
+    pub fn get_chain(&self) -> &Chain {
+        &self.chains[&self.run_config.current_chain]
+    }
 }

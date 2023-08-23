@@ -94,14 +94,14 @@ impl TransferService {
             .await;
         user_op0.paymaster_and_data(
             data,
-            CONFIG.chains[&CONFIG.run_config.current_chain].verifying_paymaster_address,
+            CONFIG.get_chain().verifying_paymaster_address,
             Some(singed_hash),
         );
         let signature = Bytes::from(
             self.wallet_singer
                 .sign_message(user_op0.hash(
-                    CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
-                    CONFIG.chains[&CONFIG.run_config.current_chain].chain_id,
+                    CONFIG.get_chain().entrypoint_address,
+                    CONFIG.get_chain().chain_id,
                 ))
                 .await
                 .unwrap()
@@ -132,10 +132,7 @@ impl TransferService {
             transaction: TransactionResponse {
                 transaction_hash: txn_hash.clone(),
                 status: Status::PENDING.to_string(),
-                explorer: CONFIG.chains[&CONFIG.run_config.current_chain]
-                    .explorer_url
-                    .clone()
-                    + &txn_hash.clone(),
+                explorer: CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
             },
         })
     }
