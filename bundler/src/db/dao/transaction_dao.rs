@@ -1,3 +1,4 @@
+use log::info;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 use serde::{Deserialize, Serialize};
@@ -7,6 +8,56 @@ use crate::db::dao::connect::connect;
 #[derive(Clone)]
 pub struct TransactionDao {
     pub pool: Pool<SqliteConnectionManager>,
+}
+
+impl TransactionDao {
+    pub async fn list_transactions(
+        &self,
+        page_size: i32,
+        id: i32,
+        user_wallet: String,
+    ) -> Vec<UserTransactionWithExponent> {
+        let conn = connect(self.pool.clone()).await;
+
+        let mut stmt = conn
+            .prepare(
+                "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
+            t1.to_address, t1.amount, t1.currency, t1.type, t1.status, t1.metadata, t1.created_at, \
+            t1.updated_at, t2.exponent from user_transactions t1 join supported_currencies t2 on \
+            t1.currency = t2.currency where user_address = ? and id < ? order by id desc limit ?",
+            )
+            .unwrap();
+        let rows: Vec<UserTransactionWithExponent> = stmt
+            .query_map(
+                [user_wallet, id.to_string(), page_size.to_string()],
+                |row| {
+                    let metadata: TransactionMetadata =
+                        serde_json::from_str(&row.get::<_, String>(9).unwrap()).unwrap();
+                    let amount: u64 = row.get(5).unwrap();
+
+                    Ok(UserTransactionWithExponent {
+                        user_transaction: UserTransaction {
+                            id: row.get(0)?,
+                            user_address: row.get(1)?,
+                            transaction_id: row.get(2)?,
+                            from_address: row.get(3)?,
+                            to_address: row.get(4)?,
+                            amount: amount.to_string(),
+                            currency: row.get(6)?,
+                            transaction_type: row.get(7)?,
+                            status: row.get(8)?,
+                            metadata,
+                            created_at: row.get(10)?,
+                            updated_at: row.get(11)?,
+                        },
+                        exponent: row.get(12)?,
+                    })
+                },
+            )
+            .and_then(Iterator::collect)
+            .unwrap();
+        rows
+    }
 }
 
 impl TransactionDao {
@@ -129,4 +180,9 @@ impl UserTransaction {
         self.metadata = metadata;
         self
     }
+}
+
+pub struct UserTransactionWithExponent {
+    pub user_transaction: UserTransaction,
+    pub exponent: i32,
 }

@@ -105,6 +105,7 @@ pub fn init_services() -> ToadService {
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {
         wallet_dao: wallet_dao.clone(),
+        transaction_dao: transaction_dao.clone(),
         simple_account_factory_provider: simple_account_factory.clone(),
         client: client.clone(),
     };
