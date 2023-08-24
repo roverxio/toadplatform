@@ -6,6 +6,8 @@ use actix_web::{App, HttpServer};
 use dotenvy::dotenv;
 use env_logger::{init_from_env, Env};
 use ethers::middleware::SignerMiddleware;
+use ethers::prelude::Provider;
+use ethers::providers::Http;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
 
@@ -123,6 +125,7 @@ fn init_logging() {
 pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
     dotenv().ok();
 
+    let web3_provider= get_web3_provider();
     HttpServer::new(move || {
         App::new()
             .wrap(Logger::default())
@@ -133,8 +136,14 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .app_data(Data::new(service.transfer_service.clone()))
             .app_data(Data::new(service.admin_service.clone()))
             .app_data(Data::new(service.metadata_service.clone()))
+            .app_data(Data::new(web3_provider.clone()))
     })
     .bind(server.url())?
     .run()
     .await
+}
+
+pub fn get_web3_provider() -> Provider<Http> {
+    let chain_url = CONFIG.chains[&CONFIG.run_config.current_chain].get_url();
+    return Provider::try_from(chain_url).unwrap();
 }
