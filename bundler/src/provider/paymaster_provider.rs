@@ -31,7 +31,6 @@ impl PaymasterProvider {
         let response = self
             .provider
             .get_hash(user_operation, valid_until, valid_after)
-            .call()
             .await;
         if response.is_err() {
             error!("Paymaster: Hash: {:?}", response.err().unwrap().to_string());

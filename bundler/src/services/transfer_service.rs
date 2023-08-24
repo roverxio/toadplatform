@@ -164,7 +164,7 @@ impl TransferService {
             Some(Currency::Usdc) => Ok(self
                 .simple_account_provider
                 .execute(
-                    to.parse().unwrap(),
+                    CONFIG.get_chain().usdc_address,
                     0.to_string(),
                     self.usdc_provider
                         .transfer(to.parse().unwrap(), value)
