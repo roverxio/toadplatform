@@ -36,4 +36,4 @@ create table if not exists supported_currencies (
 );
 
 create unique index if not exists supported_currencies_chain_currency_exponent_uindex
-    on supported_currencies (chain, currency, exponent);
+    on supported_currencies (chain, currency);
