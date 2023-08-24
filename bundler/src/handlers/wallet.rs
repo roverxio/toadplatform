@@ -15,8 +15,8 @@ use crate::models::wallet::balance_request::BalanceRequest;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::helpers::{get_user, respond_json};
 use crate::services::balance_service::BalanceService;
-use crate::services::transfer_service::TransferService;
-use crate::services::wallet_service::{get_status, WalletService};
+use crate::services::transfer_service::{get_status, TransferService};
+use crate::services::wallet_service::WalletService;
 
 pub async fn get_address(
     service: Data<WalletService>,

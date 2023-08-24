@@ -1,3 +1,4 @@
+use actix_web::web::Data;
 use std::str::FromStr;
 
 use crate::bundler::bundler::Bundler;
@@ -6,6 +7,8 @@ use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
@@ -229,5 +232,16 @@ impl TransferService {
             )
             .calldata()
             .unwrap()
+    }
+}
+
+pub fn get_status(
+    _db_pool: Data<Pool<SqliteConnectionManager>>,
+    _txn_id: String,
+) -> TransactionResponse {
+    TransactionResponse {
+        transaction_hash: "txn_hash".to_string(),
+        status: "pending".to_string(),
+        explorer: "explorer".to_string(),
     }
 }
