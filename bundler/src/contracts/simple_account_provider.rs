@@ -21,11 +21,9 @@ impl SimpleAccountProvider {
     }
 
     pub fn execute(&self, to: Address, value: String, data: Bytes) -> Result<Bytes, String> {
-        let value: f64 = value.parse().unwrap();
-        let amount = value * 1e18;
         let data = self
             .abi
-            .execute(to, U256::from(amount as u64), data)
+            .execute(to, U256::from_dec_str(&value).unwrap(), data)
             .calldata();
         if data.is_none() {
             return Err("execute data failed".to_string());
