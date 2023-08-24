@@ -16,7 +16,7 @@ use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::helpers::{get_user, respond_json};
 use crate::services::balance_service::BalanceService;
 use crate::services::transfer_service::TransferService;
-use crate::services::wallet_service::WalletService;
+use crate::services::wallet_service::{get_status, WalletService};
 
 pub async fn get_address(
     service: Data<WalletService>,
@@ -63,15 +63,15 @@ pub async fn list_transactions(
 }
 
 pub async fn poll_transaction_status(
-    _db_pool: Data<Pool<SqliteConnectionManager>>,
-    _query: Query<PollTransactionStatusParams>,
+    db_pool: Data<Pool<SqliteConnectionManager>>,
+    query: Query<PollTransactionStatusParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    // 1. query the user_transactions table for the status of transaction_id using
-    //      a. db_pool
-    //      b. query.transaction_id
-    // 2. prepare response(HttpResponse) using
-    //      a. body = TransactionResponse
-    //      b. error
-    // 3. OK(response)
-    unimplemented!();
+    let transaction = get_status(db_pool, query.transaction_id.clone());
+
+    let response_body = TransferResponse {
+        transaction,
+        transaction_id: query.transaction_id.clone(),
+    };
+
+    Ok(HttpResponse::Ok().body(serde_json::to_string(&response_body).unwrap()))
 }

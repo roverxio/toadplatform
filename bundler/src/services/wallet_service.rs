@@ -1,15 +1,19 @@
+use actix_web::web::Data;
 use std::sync::Arc;
 use std::time::SystemTime;
 
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use log::{debug, info, warn};
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
 use crate::models::transaction::transaction::{Amount, Metadata, Transaction, UserInfo};
+use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
 use crate::CONFIG;
@@ -164,6 +168,17 @@ impl WalletService {
             transaction_type: "debit".to_string(),
         });
         transactions
+    }
+}
+
+pub fn get_status(
+    _db_pool: Data<Pool<SqliteConnectionManager>>,
+    _txn_id: String,
+) -> TransactionResponse {
+    TransactionResponse {
+        transaction_hash: "txn_hash".to_string(),
+        status: "pending".to_string(),
+        explorer: "explorer".to_string(),
     }
 }
 
