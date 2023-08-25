@@ -3,7 +3,7 @@ use std::time::SystemTime;
 
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
-use log::{debug, info, warn};
+use log::{info, warn};
 
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
