@@ -27,9 +27,13 @@ create table if not exists user_transactions (
 );
 
 create table if not exists supported_currencies (
+    chain varchar not null,
     currency varchar not null,
     contract_address varchar not null,
     exponent int not null,
     created_at timestamp not null default current_timestamp,
     updated_at timestamp not null default current_timestamp
 );
+
+create unique index if not exists supported_currencies_chain_currency_exponent_uindex
+    on supported_currencies (chain, currency);
