@@ -1,0 +1,14 @@
+database:
+  storage:
+    db_file: ~/roverx-rpc/bundler/toad.db
+    query_dir: ~/roverx-rpc/sync-pipelines/queries
+  postgres:
+    db_name: my_db
+    username: admin
+    password: admin123
+    host: localhost
+
+process_pool: 20
+last_sync_time: ~/roverx-rpc/sync-pipelines/last_seen_blocktimestamp.txt
+day_delta: 3
+erc20_contracts: []
