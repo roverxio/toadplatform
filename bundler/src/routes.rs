@@ -5,7 +5,7 @@ use crate::handlers::admin::{admin_get_balance, topup_paymaster_deposit};
 use crate::handlers::hello_world::hello_world;
 use crate::handlers::metadata::get_metadata;
 use crate::handlers::wallet::{
-    get_address, get_balance, list_transactions, poll_transaction_status, transfer,
+    get_address, get_balance, list_transactions, poll_transaction, transfer,
 };
 use crate::CONFIG;
 
@@ -20,7 +20,7 @@ pub fn routes(cfg: &mut ServiceConfig) {
                         .route("transact", web::post().to(transfer))
                         .route("transfer", web::post().to(transfer))
                         .route("transactions", web::get().to(list_transactions))
-                        .route("transaction", web::get().to(poll_transaction_status)),
+                        .route("transaction", web::get().to(poll_transaction)),
                 )
                 .service(
                     web::scope("admin")

@@ -19,6 +19,7 @@ use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::transaction::transaction::{Amount, Metadata, Transaction, UserInfo};
+use crate::models::transfer::status::Status::PENDING;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
@@ -235,9 +236,12 @@ impl TransferService {
     }
 }
 
-pub fn get_status(_db_pool: Data<Pool<SqliteConnectionManager>>, _txn_id: String) -> Transaction {
-    Transaction {
-        transaction_id: "toad_txn_id".to_string(),
+pub fn get_status(
+    _db_pool: Data<Pool<SqliteConnectionManager>>,
+    _txn_id: String,
+) -> Result<Transaction, ApiError> {
+    Ok(Transaction {
+        transaction_id: _txn_id,
         amount: Amount {
             currency: "usdc".to_string(),
             value: "10000000".to_string(),
@@ -246,16 +250,14 @@ pub fn get_status(_db_pool: Data<Pool<SqliteConnectionManager>>, _txn_id: String
         metadata: Metadata {
             chain: CONFIG.run_config.current_chain.clone(),
             gas: Amount {
-                currency: CONFIG.chains[&CONFIG.run_config.current_chain]
-                    .currency
-                    .clone(),
+                currency: CONFIG.get_chain().currency.clone(),
                 value: "1000000".to_string(),
                 exponent: "18".to_string(),
             },
             transaction_hash: "0xtransaction_hash".to_string(),
             timestamp: "2023-05-12T16:41:45.530002+00".to_string(),
             explorer_url: "https://www.example.com".to_string(),
-            status: "pending".to_string(),
+            status: PENDING.to_string(),
         },
         from: UserInfo {
             address: "0xfrom_address".to_string(),
@@ -267,5 +269,5 @@ pub fn get_status(_db_pool: Data<Pool<SqliteConnectionManager>>, _txn_id: String
             name: "a toad user".to_string(),
         },
         transaction_type: "credit".to_string(),
-    }
+    })
 }

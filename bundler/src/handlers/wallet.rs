@@ -6,7 +6,7 @@ use r2d2_sqlite::SqliteConnectionManager;
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
-use crate::models::transaction::poll_transaction_status_params::PollTransactionStatusParams;
+use crate::models::transaction::poll_transaction_params::PollTransactionParams;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
@@ -62,11 +62,11 @@ pub async fn list_transactions(
     respond_json(data)
 }
 
-pub async fn poll_transaction_status(
+pub async fn poll_transaction(
     db_pool: Data<Pool<SqliteConnectionManager>>,
-    query: Query<PollTransactionStatusParams>,
+    query: Query<PollTransactionParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    let transaction = get_status(db_pool, query.transaction_id.clone());
+    let transaction = get_status(db_pool, query.transaction_id.clone()).unwrap();
 
     Ok(HttpResponse::Ok().body(serde_json::to_string(&transaction).unwrap()))
 }
