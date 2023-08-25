@@ -141,12 +141,12 @@ impl WalletService {
                 },
                 from: UserInfo {
                     address: transaction.from_address,
-                    name: "".to_string(),
+                    name: transaction.metadata.from_name,
                 },
                 id: transaction.id,
                 to: UserInfo {
                     address: transaction.to_address,
-                    name: "".to_string(),
+                    name: transaction.metadata.to_name,
                 },
                 transaction_type: transaction.transaction_type,
             })
