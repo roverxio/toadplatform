@@ -5,10 +5,19 @@ import os
 import structlog
 import yaml
 
+from utils.constants import development, production, staging
+
 
 def read_yaml_config_file(dirname):
+    # get environment
+    env = os.getenv("ENV", development)
+    if env not in [development, production, staging]:
+        log.info("Invalid environment. Should be one of development, staging, production")
+        exit(1)
+    config_file = f"config_{env}.yml"
+
     try:
-        with open(os.path.join(dirname, "config.yml"), "r") as f:
+        with open(os.path.join(dirname, config_file), "r") as f:
             configuration = yaml.safe_load(f)
         return configuration
     except FileNotFoundError:

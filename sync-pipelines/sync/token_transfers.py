@@ -2,7 +2,7 @@ from config import log
 from db.dao.erc20_transfers import get_token_transfers
 
 
-def sync_token_transfers():
+def sync_token_transfers(start_time):
     log.info(get_token_transfers())
     for token_transfer in get_token_transfers():
         log.info(token_transfer)

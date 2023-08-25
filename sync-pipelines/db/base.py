@@ -1,8 +1,7 @@
-from peewee import PostgresqlDatabase
-
 import sqlite3
 
-from utils.constants import db_path
+from peewee import PostgresqlDatabase
+
 from config import config
 
 psql_db = PostgresqlDatabase(
@@ -14,8 +13,8 @@ psql_db = PostgresqlDatabase(
 )
 
 
-def get_connections():
-    conn = sqlite3.connect(f"{db_path}.db")
+def get_connection():
+    conn = sqlite3.connect(config["database"]["storage"]["db_file"])
     cur = conn.cursor()
     return cur, conn
 

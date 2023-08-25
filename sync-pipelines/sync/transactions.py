@@ -1,8 +1,39 @@
-from config import log
+import datetime
+
+from config import log, config
 from db.dao.transactions import get_transactions
+from db.dao.user_transaction import create
+from db.dao.users import get_user_wallets
+from utils.utils import get_transaction_id
 
 
-def sync_transactions():
-    for transaction in get_transactions():
-        log.info(transaction)
-    log.info("hello transactions!")
+def sync_transactions(start_time):
+    user_transactions = []
+    for transaction in get_transactions(start_time, [user[0] for user in get_user_wallets()]):
+        user_transactions.append({
+            "user_address": transaction.to_address,
+            "transaction_id": get_transaction_id(),
+            "from_address": transaction.from_address,
+            "to_address": transaction.to_address,
+            "amount": transaction.value,
+            "currency": config['native_currency'],
+            "type": "credit",
+            "status": "success",
+            "metadata": {
+                "transaction_hash": transaction.hash,
+                "chain": config['chain'],
+                "gas_erc20": {
+                    "value": 0,
+                    "currency": ""
+                },
+                "gas": {
+                    "value": 0,
+                    "currency": ""
+                },
+                "from_name": "",
+                "to_name": ""
+            }
+        })
+    create(user_transactions)
+
+    return datetime.datetime.now()

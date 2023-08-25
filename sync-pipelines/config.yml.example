@@ -1,7 +1,6 @@
 database:
   storage:
     db_file: ~/roverx-rpc/bundler/toad.db
-    query_dir: ~/roverx-rpc/sync-pipelines/queries
   postgres:
     db_name: my_db
     username: admin
@@ -9,6 +8,11 @@ database:
     host: localhost
 
 process_pool: 20
-last_sync_time: ~/roverx-rpc/sync-pipelines/last_seen_blocktimestamp.txt
+last_sync_time:
+  transactions: ~/roverx-rpc/sync-pipelines/transaction_last_sync_blocktimestamp.txt
+  token_transfers: ~/roverx-rpc/sync-pipelines/erc20_last_sync_blocktimestamp.txt
 day_delta: 3
 erc20_contracts: []
+transaction_id_prefix: toad_
+native_currency: sepoliaeth
+chain: sepolia
