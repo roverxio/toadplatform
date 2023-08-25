@@ -12,7 +12,8 @@ last_sync_time:
   transactions: ~/roverx-rpc/sync-pipelines/transaction_last_sync_blocktimestamp.txt
   token_transfers: ~/roverx-rpc/sync-pipelines/erc20_last_sync_blocktimestamp.txt
 day_delta: 3
-erc20_contracts: []
+erc20_contracts:
+    '0x0': usdc
 transaction_id_prefix: toad_
 native_currency: sepoliaeth
 chain: sepolia
