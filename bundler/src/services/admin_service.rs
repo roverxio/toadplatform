@@ -60,7 +60,6 @@ impl AdminService {
                     Status::PENDING,
                     CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
                 ),
-                transaction_id: "".to_string(),
             }),
             Err(err) => Err(ApiError::BadRequest(err)),
         }

@@ -68,10 +68,5 @@ pub async fn poll_transaction_status(
 ) -> Result<HttpResponse, actix_web::Error> {
     let transaction = get_status(db_pool, query.transaction_id.clone());
 
-    let response_body = TransferResponse {
-        transaction,
-        transaction_id: query.transaction_id.clone(),
-    };
-
-    Ok(HttpResponse::Ok().body(serde_json::to_string(&response_body).unwrap()))
+    Ok(HttpResponse::Ok().body(serde_json::to_string(&transaction).unwrap()))
 }
