@@ -238,10 +238,10 @@ impl TransferService {
 
 pub fn get_status(
     _db_pool: Data<Pool<SqliteConnectionManager>>,
-    _txn_id: String,
+    txn_id: String,
 ) -> Result<Transaction, ApiError> {
     Ok(Transaction {
-        transaction_id: _txn_id,
+        transaction_id: txn_id,
         amount: Amount {
             currency: "usdc".to_string(),
             value: "10000000".to_string(),
