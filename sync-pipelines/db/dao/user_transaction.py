@@ -8,6 +8,7 @@ def create(user_transactions):
     query = ("INSERT OR IGNORE INTO user_transactions (user_address, transaction_id, from_address, to_address, amount, "
              "currency, type, status, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);")
     cur, conn = get_connection()
+    log.info(user_transactions)
     cur.executemany(query, [(
         user_transaction['user_address'],
         user_transaction['transaction_id'],

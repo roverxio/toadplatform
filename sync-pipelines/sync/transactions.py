@@ -1,6 +1,4 @@
-import datetime
-
-from config import log, config
+from config import config
 from db.dao.transactions import get_transactions
 from db.dao.user_transaction import create
 from db.dao.users import get_user_wallets
@@ -9,13 +7,14 @@ from utils.utils import get_transaction_id
 
 def sync_transactions(start_time):
     user_transactions = []
-    for transaction in get_transactions(start_time, [user[0] for user in get_user_wallets()]):
+    transactions = get_transactions(start_time, [user[0] for user in get_user_wallets()])
+    for transaction in transactions:
         user_transactions.append({
             "user_address": transaction.to_address,
             "transaction_id": get_transaction_id(),
             "from_address": transaction.from_address,
             "to_address": transaction.to_address,
-            "amount": transaction.value,
+            "amount": str(transaction.value),
             "currency": config['native_currency'],
             "type": "credit",
             "status": "success",
@@ -34,6 +33,6 @@ def sync_transactions(start_time):
                 "to_name": ""
             }
         })
-    create(user_transactions)
 
-    return datetime.datetime.now()
+    create(user_transactions)
+    return transactions[0].block_timestamp if transactions else start_time
