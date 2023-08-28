@@ -1,3 +1,4 @@
+use ethers::types::H256;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
@@ -18,7 +19,12 @@ impl TransactionDao {
         stmt.execute([wallet_address, transaction_hash]).unwrap();
     }
 
-    pub async fn update_user_transactions(&self) {
-        unimplemented!();
+    pub async fn update_user_transactions(
+        &self,
+        _txn_id: String,
+        _txn_hash: H256,
+        _status: String,
+    ) {
+        // unimplemented!();
     }
 }

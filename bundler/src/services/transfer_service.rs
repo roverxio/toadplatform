@@ -182,8 +182,9 @@ impl TransferService {
         }
 
         user_op_event_listener(
+            self.transaction_dao.clone(),
             CONFIG.get_chain().entrypoint_address,
-            user_op_hash.clone().to_vec(),
+            user_op_hash.clone(),
             txn_id.clone(),
         )
         .await;
