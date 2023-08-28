@@ -4,3 +4,4 @@ peewee~=3.16.3
 structlog~=23.1.0
 psycopg2-binary~=2.9.7
 nanoid~=2.0.0
+black~=23.7.0

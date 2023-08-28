@@ -12,7 +12,9 @@ def read_yaml_config_file(dirname):
     # get environment
     env = os.getenv("ENV", development)
     if env not in [development, production, staging]:
-        log.info("Invalid environment. Should be one of development, staging, production")
+        log.info(
+            "Invalid environment. Should be one of development, staging, production"
+        )
         exit(1)
     config_file = f"config_{env}.yaml"
 
