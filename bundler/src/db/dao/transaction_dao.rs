@@ -45,7 +45,7 @@ impl TransactionDao {
                             transaction_id: row.get(2)?,
                             from_address: row.get(3)?,
                             to_address: row.get(4)?,
-                            amount: row.get(5)?,
+                            amount,
                             currency: row.get(6)?,
                             transaction_type: row.get(7)?,
                             status: row.get(8)?,
