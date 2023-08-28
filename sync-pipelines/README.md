@@ -19,4 +19,4 @@ This serves as a simple data pipeline to read data from a "transactions" and "to
 4. The destination database is sqlite as of now. When we move to a different database, we will have to change a few things wrt the insert queries and the way we connect to the database.
 
 ## Formatting
-The code is formatted using [Black formatter](https://github.com/psf/black). To format the code, run `python black .` in the terminal before pushing any change.
+The code is formatted using [Black formatter](https://github.com/psf/black). To format the code, run `black .` in the terminal before pushing any change.
