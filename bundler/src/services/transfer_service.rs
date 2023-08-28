@@ -162,9 +162,9 @@ impl TransferService {
         user_txn
             .user_address(wallet_address.clone())
             .transaction_id(generate_txn_id())
-            .from_address(wallet_address)
-            .to_address(to.clone())
-            .amount(value.parse().unwrap())
+            .sender_address(wallet_address)
+            .receiver_address(to.clone())
+            .amount(value.clone())
             .currency(currency.clone())
             .transaction_type(TransactionType::Debit.to_string())
             .status(Status::PENDING.to_string())

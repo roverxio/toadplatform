@@ -95,12 +95,12 @@ impl UserTransaction {
         self
     }
 
-    pub fn from_address(&mut self, from_address: String) -> &mut UserTransaction {
+    pub fn sender_address(&mut self, from_address: String) -> &mut UserTransaction {
         self.from_address = from_address;
         self
     }
 
-    pub fn to_address(&mut self, to_address: String) -> &mut UserTransaction {
+    pub fn receiver_address(&mut self, to_address: String) -> &mut UserTransaction {
         self.to_address = to_address;
         self
     }
