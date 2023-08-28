@@ -108,13 +108,7 @@ impl WalletService {
             .get_wallet_address(user_id.to_string())
             .await;
 
-        let mut row_id = i32::MAX;
-        match id {
-            None => {}
-            Some(id) => {
-                row_id = id;
-            }
-        }
+        let row_id = id.unwrap_or(i32::MAX);
 
         let mut transactions = Vec::new();
         let result = self

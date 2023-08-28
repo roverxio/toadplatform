@@ -57,9 +57,7 @@ impl TransactionDao {
             .unwrap();
         rows
     }
-}
 
-impl TransactionDao {
     pub async fn create_user_transaction(&self, txn: UserTransaction) {
         let conn = connect(self.pool.clone()).await;
         let mut stmt = conn
