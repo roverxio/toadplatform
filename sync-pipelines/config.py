@@ -14,7 +14,7 @@ def read_yaml_config_file(dirname):
     if env not in [development, production, staging]:
         log.info("Invalid environment. Should be one of development, staging, production")
         exit(1)
-    config_file = f"config_{env}.yml"
+    config_file = f"config_{env}.yaml"
 
     try:
         with open(os.path.join(dirname, config_file), "r") as f:
