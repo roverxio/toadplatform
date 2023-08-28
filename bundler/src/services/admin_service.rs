@@ -9,6 +9,7 @@ use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::dao::metadata_dao::MetadataDao;
 use crate::errors::ApiError;
 use crate::models::admin::add_metadata_request::AddMetadataRequest;
+use crate::models::admin::metadata_response::MetadataResponse;
 use crate::models::metadata::Metadata;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
@@ -108,7 +109,7 @@ impl AdminService {
     pub async fn add_currency_metadata(
         &self,
         metadata: AddMetadataRequest,
-    ) -> Result<Metadata, ApiError> {
+    ) -> Result<MetadataResponse, ApiError> {
         self.metadata_dao
             .add_metadata(
                 metadata.get_chain().clone(),
@@ -122,7 +123,7 @@ impl AdminService {
             .get_metadata_for_chain(metadata.get_chain())
             .await;
 
-        let exponent_metadata = Metadata::new().to(
+        let exponent_metadata = MetadataResponse::new().to(
             supported_currencies.clone(),
             supported_currencies[0].chain.clone(),
             CONFIG.chains[&supported_currencies[0].chain.clone()]
