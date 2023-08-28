@@ -17,4 +17,8 @@ impl TransactionDao {
             .unwrap();
         stmt.execute([wallet_address, transaction_hash]).unwrap();
     }
+
+    pub async fn update_user_transactions(&self) {
+        unimplemented!();
+    }
 }
