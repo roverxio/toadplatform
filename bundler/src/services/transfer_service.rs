@@ -126,7 +126,9 @@ impl TransferService {
         let txn_hash = result.unwrap();
         info!("Transaction sent successfully. Hash: {:?}", txn_hash);
         user_txn.metadata.transaction_hash(txn_hash.clone());
-        self.transaction_dao.create_user_transaction(user_txn).await;
+        self.transaction_dao
+            .create_user_transaction(user_txn.clone())
+            .await;
         if !wallet.deployed {
             self.wallet_dao
                 .update_wallet_deployed(usr.to_string())
@@ -139,6 +141,7 @@ impl TransferService {
                 status: Status::PENDING.to_string(),
                 explorer: CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
             },
+            transaction_id: user_txn.transaction_id,
         })
     }
 
