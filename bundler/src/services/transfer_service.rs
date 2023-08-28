@@ -17,7 +17,7 @@ use crate::models::transaction_type::TransactionType;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
-use crate::provider::helpers::generate_txn_id;
+use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
 use crate::CONFIG;
@@ -139,7 +139,7 @@ impl TransferService {
             transaction: TransactionResponse {
                 transaction_hash: txn_hash.clone(),
                 status: Status::PENDING.to_string(),
-                explorer: CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
+                explorer: get_explorer_url(&txn_hash),
             },
             transaction_id: user_txn.transaction_id,
         })

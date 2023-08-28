@@ -54,3 +54,7 @@ pub fn generate_txn_id() -> String {
         .collect();
     format!("{}_{}", prefix, id).to_string()
 }
+
+pub fn get_explorer_url(txn_hash: &str) -> String {
+    CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone()
+}
