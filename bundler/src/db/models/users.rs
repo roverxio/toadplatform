@@ -3,10 +3,10 @@ use sqlx::{FromRow, Row};
 
 #[derive(FromRow, Debug)]
 pub struct User {
-    pub email: String,
-    pub wallet_address: String,
-    pub salt: String,
-    pub deployed: bool,
+    pub email: Option<String>,
+    pub wallet_address: Option<String>,
+    pub salt: Option<String>,
+    pub deployed: Option<bool>,
 }
 
 impl User {

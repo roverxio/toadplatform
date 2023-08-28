@@ -125,7 +125,7 @@ pub async fn init_services() -> ToadService {
         signing_client: signing_client.clone(),
     };
     let metadata_service = MetadataService {};
-    user_dao.get().await;
+    user_dao.init().await;
     ToadService {
         hello_world_service,
         wallet_service,
