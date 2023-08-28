@@ -19,4 +19,4 @@ if __name__ == '__main__':
     else:
         end_time = sync_token_transfers(start_time)
 
-    # update_last_synced_time(sync, end_time)
+    update_last_synced_time(sync, end_time)

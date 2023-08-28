@@ -10,7 +10,7 @@ from config import config, log
 def get_last_synced_time(arg):
     Path(config["last_sync_time"][arg]).touch(exist_ok=True)
     with open(config["last_sync_time"][arg], "r+") as f:
-        start_time = (f.readline() or (datetime.datetime.now()).isoformat())
+        start_time = f.readline() or config['last_sync_time']['start_time'][arg]
         log.info(f"{arg} | start time -> {start_time}", )
         f.close()
         return start_time

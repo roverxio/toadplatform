@@ -13,7 +13,7 @@ This serves as a simple data pipeline to read data from a "transactions" and "to
 6. Ideally, the script should be run as a cron job to sync the data periodically. This is written to be run as a cron job every minute
 
 ## How it works
-1. The script reads the last synced block number from the "transaction_last_synced_blocktimestamp" file for transactions and from "erc20_last_synced_blocktimestamp" file for token_transfers. If the file is not present, it starts from current time.
+1. The script reads the last synced block number from the "transaction_last_synced_blocktimestamp" file for transactions and from "erc20_last_synced_blocktimestamp" file for token_transfers. If the file is not present, it starts from the time mentioned in config file.
 2. It then queries the respective table for all the transactions that have happened since the last synced block time.
 3. It goes on to push the transactions to the "user_transactions" table. It also updates the respective file with the latest block number.
 4. The destination database is sqlite as of now. When we move to a different database, we will have to change a few things wrt the insert queries and the way we connect to the database.
