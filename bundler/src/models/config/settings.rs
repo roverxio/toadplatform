@@ -10,6 +10,7 @@ pub struct RunConfig {
     pub account_owner: Address,
     pub paymaster_account_owner: Address,
     pub deployed_by_identifier: String,
+    pub transaction_id_prefix: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]

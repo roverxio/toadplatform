@@ -8,14 +8,16 @@ use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
-use crate::db::dao::transaction_dao::TransactionDao;
+use crate::db::dao::transaction_dao::{TransactionDao, TransactionMetadata, UserTransaction};
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::currency::Currency;
+use crate::models::transaction_type::TransactionType;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
+use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
 use crate::CONFIG;
@@ -52,6 +54,8 @@ impl TransferService {
                 wallet = user_wallet.unwrap();
             }
         }
+        let mut user_txn =
+            self.get_user_transaction(&to, &value, &currency, wallet.wallet_address.clone());
         let mut user_op0 = UserOperation::new();
         user_op0.calldata(self.get_call_data(to, value, currency).unwrap());
         if !wallet.deployed {
@@ -114,13 +118,16 @@ impl TransferService {
             .submit(user_op0, CONFIG.run_config.account_owner)
             .await;
         if result.is_err() {
+            user_txn.status(Status::FAILED.to_string());
+            self.transaction_dao.create_user_transaction(user_txn).await;
             return Err(ApiError::BadRequest(result.err().unwrap()));
         }
 
         let txn_hash = result.unwrap();
         info!("Transaction sent successfully. Hash: {:?}", txn_hash);
+        user_txn.metadata.transaction_hash(txn_hash.clone());
         self.transaction_dao
-            .create_transaction(txn_hash.clone(), wallet.wallet_address.clone())
+            .create_user_transaction(user_txn.clone())
             .await;
         if !wallet.deployed {
             self.wallet_dao
@@ -132,9 +139,37 @@ impl TransferService {
             transaction: TransactionResponse {
                 transaction_hash: txn_hash.clone(),
                 status: Status::PENDING.to_string(),
-                explorer: CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
+                explorer: get_explorer_url(&txn_hash),
             },
+            transaction_id: user_txn.transaction_id,
         })
+    }
+
+    fn get_transaction_metadata(&self) -> TransactionMetadata {
+        let mut txn_metadata = TransactionMetadata::new();
+        txn_metadata.chain(CONFIG.run_config.current_chain.clone());
+        txn_metadata
+    }
+
+    fn get_user_transaction(
+        &self,
+        to: &String,
+        value: &String,
+        currency: &String,
+        wallet_address: String,
+    ) -> UserTransaction {
+        let mut user_txn = UserTransaction::new();
+        user_txn
+            .user_address(wallet_address.clone())
+            .transaction_id(generate_txn_id())
+            .sender_address(wallet_address)
+            .receiver_address(to.clone())
+            .amount(value.clone())
+            .currency(currency.clone())
+            .transaction_type(TransactionType::Debit.to_string())
+            .status(Status::PENDING.to_string())
+            .metadata(self.get_transaction_metadata());
+        user_txn
     }
 
     async fn get_signed_hash(

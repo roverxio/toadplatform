@@ -6,5 +6,6 @@ pub mod hello_world;
 pub mod metadata;
 pub mod response;
 pub mod transaction;
+pub mod transaction_type;
 pub mod transfer;
 pub mod wallet;

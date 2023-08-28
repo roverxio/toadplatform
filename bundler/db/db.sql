@@ -5,19 +5,13 @@ create table if not exists users (
     deployed boolean not null default false
 );
 
-create table if not exists transactions (
-    wallet_address varchar(42) not null,
-    transaction_hash varchar(66) not null,
-    created_at timestamp not null default current_timestamp
-); --will be replaced by user_transactions once we move to postgres
-
 create table if not exists user_transactions (
     id integer primary key autoincrement,
     user_address varchar(42) not null,
     transaction_id varchar not null,
     from_address varchar(42) not null,
     to_address varchar(42) not null,
-    amount numeric not null,
+    amount varchar not null,
     currency varchar not null,
     type varchar(6) not null,
     status varchar(10) not null,
