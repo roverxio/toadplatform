@@ -22,7 +22,7 @@ impl TransactionDao {
             .prepare(
                 "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
             t1.to_address, t1.amount, t1.currency, t1.type, t1.status, t1.metadata, t1.created_at, \
-            t1.updated_at, t2.exponent from user_transactions t1 join supported_currencies t2 on \
+            t1.updated_at, t2.exponent from user_transactions t1 left join supported_currencies t2 on \
             t1.currency = t2.currency where user_address = ? and id < ? order by id desc limit ?",
             )
             .unwrap();
@@ -32,7 +32,11 @@ impl TransactionDao {
                 |row| {
                     let metadata: TransactionMetadata =
                         serde_json::from_str(&row.get::<_, String>(9).unwrap()).unwrap();
-                    let amount: u64 = row.get(5).unwrap();
+                    let amount: String = row.get(5).unwrap();
+                    let mut exponent = row.get(12);
+                    if exponent.is_err() {
+                        exponent = Ok(0);
+                    }
 
                     Ok(UserTransactionWithExponent {
                         user_transaction: UserTransaction {
@@ -41,7 +45,7 @@ impl TransactionDao {
                             transaction_id: row.get(2)?,
                             from_address: row.get(3)?,
                             to_address: row.get(4)?,
-                            amount: amount.to_string(),
+                            amount: row.get(5)?,
                             currency: row.get(6)?,
                             transaction_type: row.get(7)?,
                             status: row.get(8)?,
@@ -49,7 +53,7 @@ impl TransactionDao {
                             created_at: row.get(10)?,
                             updated_at: row.get(11)?,
                         },
-                        exponent: row.get(12)?,
+                        exponent: exponent?,
                     })
                 },
             )

@@ -17,7 +17,7 @@ create table if not exists user_transactions (
     transaction_id varchar not null,
     from_address varchar(42) not null,
     to_address varchar(42) not null,
-    amount numeric not null,
+    amount varchar not null,
     currency varchar not null,
     type varchar(6) not null,
     status varchar(10) not null,
