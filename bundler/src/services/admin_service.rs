@@ -100,6 +100,7 @@ impl AdminService {
                 balance,
                 format!("{:?}", address),
                 currency,
+                0, // sending parsed eth here for ease of readability
             )),
             Err(error) => Err(ApiError::InternalServer(error)),
         };

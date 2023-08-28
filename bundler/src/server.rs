@@ -113,6 +113,7 @@ pub fn init_services() -> ToadService {
     };
     let balance_service = BalanceService {
         wallet_dao: wallet_dao.clone(),
+        metadata_dao: meatadata_dao.clone(),
         erc20_provider: erc20.clone(),
     };
     let transfer_service = TransferService {

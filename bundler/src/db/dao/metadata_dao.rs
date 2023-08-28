@@ -44,6 +44,29 @@ impl MetadataDao {
             .unwrap();
         rows
     }
+
+    pub async fn get_metadata_for_chain_and_currency(
+        &self,
+        chain: String,
+        currency: String,
+    ) -> Vec<SupportedCurrency> {
+        let conn = connect(self.pool.clone()).await;
+        let mut stmt = conn
+            .prepare("SELECT chain, currency, exponent FROM supported_currencies WHERE chain = ?1 AND currency = ?2 limit 1")
+            .unwrap();
+
+        let rows: Vec<SupportedCurrency> = stmt
+            .query_map([chain, currency], |row| {
+                Ok(SupportedCurrency {
+                    chain: row.get(0)?,
+                    currency: row.get(1)?,
+                    exponent: row.get(2)?,
+                })
+            })
+            .and_then(Iterator::collect)
+            .unwrap();
+        rows
+    }
 }
 
 #[derive(Clone)]
