@@ -27,14 +27,9 @@ pub async fn user_op_event_listener(
     };
 
     let txn_hash = logs[0].transaction_hash.unwrap().to_string();
-    let data = decode(&[Uint(256), Bool, Uint(256), Uint(256)], &*logs[0].data)
-        .unwrap()
-        .get(1)
-        .unwrap()
-        .clone()
-        .into_bool()
-        .unwrap();
-    let status = if data {
+    let data = decode(&[Uint(256), Bool, Uint(256), Uint(256)], &*logs[0].data).unwrap();
+    let txn_status = data.get(1).unwrap().clone().into_bool().unwrap();
+    let status = if txn_status {
         "success".to_string()
     } else {
         "failed".to_string()
