@@ -16,12 +16,11 @@ use crate::models::currency::Currency;
 use crate::models::transaction_type::TransactionType;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
-use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
+use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::listeners::user_op_event_listener;
-use crate::provider::verifying_paymaster_helper::{
-    get_verifying_paymaster_user_operation_payload, VerifyingPaymaster,
-};
+use crate::provider::paymaster_provider::PaymasterProvider;
+use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -103,12 +102,14 @@ impl TransferService {
             CONFIG.get_chain().verifying_paymaster_address,
             Some(singed_hash),
         );
+
+        let user_op_hash = user_op0.hash(
+            CONFIG.get_chain().entrypoint_address,
+            CONFIG.get_chain().chain_id,
+        );
         let signature = Bytes::from(
             self.scw_owner_wallet
-                .sign_message(user_op0.hash(
-                    CONFIG.get_chain().entrypoint_address,
-                    CONFIG.get_chain().chain_id,
-                ))
+                .sign_message(user_op_hash.clone())
                 .await
                 .unwrap()
                 .to_vec(),
@@ -128,8 +129,8 @@ impl TransferService {
         let _ = user_op_event_listener(
             self.transaction_dao.clone(),
             self.entrypoint_provider.clone(),
-            user_op_hash.clone(),
-            txn_id.clone(),
+            user_op_hash,
+            user_txn.transaction_id.clone(),
         );
 
         let txn_hash = result.unwrap();
