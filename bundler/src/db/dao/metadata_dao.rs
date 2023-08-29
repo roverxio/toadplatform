@@ -65,11 +65,15 @@ impl MetadataDao {
             })
             .and_then(Iterator::collect)
             .unwrap();
-        rows
+        if rows.len() == 0 {
+            vec![SupportedCurrency::default()]
+        } else {
+            rows
+        }
     }
 }
 
-#[derive(Clone)]
+#[derive(Default, Clone)]
 pub struct SupportedCurrency {
     pub chain: String,
     pub currency: String,
