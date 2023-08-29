@@ -56,7 +56,11 @@ impl MetadataDao {
             })
             .and_then(Iterator::collect)
             .unwrap();
-        rows
+        if rows.len() > 0 {
+            rows
+        } else {
+            vec![SupportedCurrency::default()]
+        }
     }
 }
 
