@@ -25,7 +25,7 @@ impl BalanceService {
         user: &str,
     ) -> Result<BalanceResponse, ApiError> {
         info!("Chain: {:?}", chain); // will be relevant when we add support for multiple chains
-        let mut balance: String = "0".to_string();
+        let balance: String;
         let address = self.wallet_dao.get_wallet_address(user.to_string()).await;
         if address.is_empty() {
             return Err(ApiError::NotFound("Wallet not found".to_string()));
@@ -57,7 +57,7 @@ impl BalanceService {
             currency: currency.to_string(),
             exponent: self
                 .metadata_dao
-                .get_metadata_for_chain_and_currency(chain.clone(), currency.to_string())
+                .get_metadata_for_chain(chain.clone(), Some(currency.clone()))
                 .await[0]
                 .exponent,
         })

@@ -12,7 +12,7 @@ impl MetadataService {
     pub async fn get_chain(&self) -> Result<MetadataResponse, ApiError> {
         let supported_currencies = self
             .metadata_dao
-            .get_metadata_for_chain(CONFIG.run_config.current_chain.clone())
+            .get_metadata_for_chain(CONFIG.run_config.current_chain.clone(), None)
             .await;
 
         Ok(MetadataResponse::new().to(
