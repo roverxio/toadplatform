@@ -1,7 +1,8 @@
 use r2d2::Pool;
-use r2d2_sqlite::rusqlite::{Result, Row};
+use r2d2_sqlite::rusqlite::{params, Params, Result, Row, ToSql};
 use r2d2_sqlite::SqliteConnectionManager;
 use serde::{Deserialize, Serialize};
+use std::ops::Deref;
 
 use crate::db::dao::connect::connect;
 
@@ -17,24 +18,13 @@ impl TransactionDao {
         id: i32,
         user_wallet: String,
     ) -> Vec<UserTransactionWithExponent> {
-        let conn = connect(self.pool.clone()).await;
-
-        let mut stmt = conn
-            .prepare(
-                "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
+        let query = "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
             t1.to_address, t1.amount, t1.currency, t1.type, t1.status, t1.metadata, t1.created_at, \
             t1.updated_at, t2.exponent from user_transactions t1 left join supported_currencies t2 on \
-            t1.currency = t2.currency where user_address = ? and id < ? order by id desc limit ?",
-            )
-            .unwrap();
-        let rows: Vec<UserTransactionWithExponent> = stmt
-            .query_map(
-                [user_wallet, id.to_string(), page_size.to_string()],
-                |row| get_user_transaction_with_exponent(row),
-            )
-            .and_then(Iterator::collect)
-            .unwrap();
-        rows
+            t1.currency = t2.currency where user_address = ? and id < ? order by id desc limit ?".to_string();
+
+        let params = params![user_wallet, id.to_string(), page_size.to_string()];
+        get_user_transactions(self.pool.clone(), query, params).await
     }
 
     pub async fn create_user_transaction(&self, txn: UserTransaction) {
@@ -60,18 +50,18 @@ impl TransactionDao {
 }
 
 pub async fn get_transaction_by_id(
-    db_pool: Pool<SqliteConnectionManager>,
+    pool: Pool<SqliteConnectionManager>,
     txn_id: String,
 ) -> UserTransactionWithExponent {
-    let conn = connect(db_pool).await;
-    let mut stmt = conn
-        .prepare("SELECT id, user_address, transaction_id, from_address, to_address, amount, currency, type, status, metadata, created_at, updated_at FROM user_transactions WHERE transaction_id = ?")
-        .unwrap();
-    let user_transaction = stmt
-        .query_row([txn_id], |row| get_user_transaction_with_exponent(row))
-        .unwrap();
-
-    user_transaction
+    let query = "SELECT id, user_address, transaction_id, from_address, to_address, amount, currency, type, status, metadata, created_at, updated_at FROM user_transactions WHERE transaction_id = ?".to_string();
+    let params = params![txn_id];
+    let user_transaction_data = get_user_transactions(pool, query, params).await;
+    if user_transaction_data.is_empty() {
+        Default::default()
+    } else {
+        let transaction = user_transaction_data.get(0).unwrap();
+        (*transaction).clone()
+    }
 }
 
 #[derive(Clone, Default)]
@@ -173,6 +163,7 @@ impl UserTransaction {
     }
 }
 
+#[derive(Default, Clone)]
 pub struct UserTransactionWithExponent {
     pub user_transaction: UserTransaction,
     pub exponent: i32,
@@ -204,4 +195,19 @@ fn get_user_transaction_with_exponent(row: &Row) -> Result<UserTransactionWithEx
         },
         exponent: exponent?,
     })
+}
+
+async fn get_user_transactions(
+    pool: Pool<SqliteConnectionManager>,
+    query: String,
+    params: &[&dyn ToSql],
+) -> Vec<UserTransactionWithExponent> {
+    let conn = connect(pool.clone()).await;
+
+    let mut stmt = conn.prepare(&query).unwrap();
+    let rows: Vec<UserTransactionWithExponent> = stmt
+        .query_map(params, |row| get_user_transaction_with_exponent(row))
+        .and_then(Iterator::collect)
+        .unwrap();
+    rows
 }
