@@ -24,6 +24,6 @@ impl TransactionDao {
         _txn_hash: String,
         _status: String,
     ) {
-        // unimplemented!();
+        // function to update user_transactions table
     }
 }
