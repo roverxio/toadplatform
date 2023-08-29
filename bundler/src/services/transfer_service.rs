@@ -11,18 +11,18 @@ use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvi
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::dao::transaction_dao::{
-    get_user_transaction, TransactionDao, TransactionMetadata, UserTransaction,
+    get_transaction_by_id, TransactionDao, TransactionMetadata, UserTransaction,
 };
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::currency::Currency;
-use crate::models::transaction::transaction::{Amount, Metadata, Transaction, UserInfo};
+use crate::models::transaction::transaction::Transaction;
 use crate::models::transaction_type::TransactionType;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
-use crate::provider::helpers::{generate_txn_id, get_explorer_url};
+use crate::provider::helpers::{generate_txn_id, get_explorer_url, get_transaction};
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
 use crate::CONFIG;
@@ -224,33 +224,7 @@ pub async fn get_status(
     db_pool: Pool<SqliteConnectionManager>,
     txn_id: String,
 ) -> Result<Transaction, ApiError> {
-    let transaction_and_exponent = get_user_transaction(db_pool, txn_id).await;
-    let transaction = transaction_and_exponent.user_transaction;
+    let transaction_and_exponent = get_transaction_by_id(db_pool, txn_id).await;
 
-    Ok(Transaction {
-        transaction_id: transaction.transaction_id,
-        amount: Amount {
-            currency: transaction.currency,
-            value: transaction.amount,
-            exponent: transaction_and_exponent.exponent,
-        },
-        metadata: Metadata {
-            chain: transaction.metadata.chain,
-            gas: Amount::default(),
-            transaction_hash: transaction.metadata.transaction_hash.clone(),
-            timestamp: transaction.updated_at,
-            explorer_url: get_explorer_url(&transaction.metadata.transaction_hash),
-            status: transaction.status,
-        },
-        from: UserInfo {
-            address: transaction.from_address,
-            name: transaction.metadata.from_name,
-        },
-        id: transaction.id,
-        to: UserInfo {
-            address: transaction.to_address,
-            name: transaction.metadata.to_name,
-        },
-        transaction_type: transaction.transaction_type,
-    })
+    Ok(get_transaction(transaction_and_exponent))
 }

@@ -14,7 +14,7 @@ pub enum ApiError {
 #[derive(Debug, Default, Deserialize, Serialize)]
 pub struct Error {
     #[serde(skip_serializing_if = "String::is_empty")]
-    pub message: String,
+    message: String,
 }
 
 #[derive(Serialize)]

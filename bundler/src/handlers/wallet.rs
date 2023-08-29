@@ -85,8 +85,6 @@ pub async fn poll_transaction(
 
     Ok(HttpResponse::Ok().json(BaseResponse {
         data: transaction,
-        err: Error {
-            message: "".to_string(),
-        },
+        err: Default::default(),
     }))
 }
