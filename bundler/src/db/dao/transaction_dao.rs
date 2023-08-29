@@ -59,7 +59,7 @@ pub async fn get_transaction_by_id(
         Default::default()
     } else {
         let transaction = user_transaction_data.get(0).unwrap();
-        (*transaction).clone()
+        transaction.clone()
     }
 }
 
