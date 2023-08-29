@@ -33,7 +33,7 @@ impl BalanceService {
         let user: Address = address.parse().unwrap();
 
         match Currency::from_str(currency.clone()) {
-            None => {}
+            None => return Err(ApiError::BadRequest("Currency not supported".to_string())),
             Some(Currency::Usdc) => {
                 balance = self
                     .erc20_provider
