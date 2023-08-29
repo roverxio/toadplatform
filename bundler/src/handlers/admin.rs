@@ -4,8 +4,8 @@ use actix_web::HttpRequest;
 use crate::constants::Constants;
 use crate::errors::ApiError;
 use crate::models::admin::add_metadata_request::AddMetadataRequest;
+use crate::models::admin::metadata_response::MetadataResponse;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
-use crate::models::metadata::Metadata;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
@@ -48,7 +48,7 @@ pub async fn add_currency_metadata(
     service: Data<AdminService>,
     body: Json<AddMetadataRequest>,
     req: HttpRequest,
-) -> Result<Json<BaseResponse<Metadata>>, ApiError> {
+) -> Result<Json<BaseResponse<MetadataResponse>>, ApiError> {
     if Constants::ADMIN != get_user(req) {
         return Err(ApiError::BadRequest("Invalid credentials".to_string()));
     }
