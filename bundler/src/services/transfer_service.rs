@@ -181,13 +181,12 @@ impl TransferService {
             return Err(ApiError::BadRequest(result.err().unwrap()));
         }
 
-        user_op_event_listener(
+        let _ = user_op_event_listener(
             self.transaction_dao.clone(),
-            CONFIG.get_chain().entrypoint_address,
+            self.entrypoint_provider.clone(),
             user_op_hash.clone(),
             txn_id.clone(),
-        )
-        .await;
+        );
 
         let txn_hash = result.unwrap();
         info!("Transaction sent successfully. Hash: {:?}", txn_hash);

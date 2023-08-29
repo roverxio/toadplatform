@@ -1,21 +1,20 @@
+use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
-use crate::PROVIDER;
+use crate::provider::constants::USER_OPERATION_EVENT;
+use crate::{CONFIG, PROVIDER};
 use ethers::abi::decode;
 use ethers::abi::ParamType::{Bool, Uint};
 use ethers::providers::Middleware;
-use ethers::types::{Address, Filter, H256};
-
-const USER_OPERATION_EVENT: &str =
-    "0x49628fd1471006c1482da88028e9ce4dbb080b815c9b0344d39e5a8e6ec1419f";
+use ethers::types::{Filter, H256};
 
 pub async fn user_op_event_listener(
     transaction_dao: TransactionDao,
-    entry_point: Address,
+    entrypoint_provider: EntryPointProvider,
     user_op_hash: [u8; 32],
     txn_id: String,
 ) {
     let filter = Filter::new()
-        .address(entry_point)
+        .address(CONFIG.get_chain().entrypoint_address)
         .topic0(H256::from(USER_OPERATION_EVENT.parse::<H256>().unwrap()))
         .topic1(H256::from(user_op_hash));
 
