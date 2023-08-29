@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json, Query};
-use actix_web::{HttpRequest, HttpResponse};
+use actix_web::{Error, HttpRequest, HttpResponse};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
@@ -78,7 +78,7 @@ pub async fn list_transactions(
 pub async fn poll_transaction(
     db_pool: Data<Pool<SqliteConnectionManager>>,
     query: Query<PollTransactionParams>,
-) -> Result<HttpResponse, actix_web::Error> {
+) -> Result<HttpResponse, Error> {
     let transaction = get_status(db_pool.get_ref().clone(), query.transaction_id.clone())
         .await
         .unwrap();
