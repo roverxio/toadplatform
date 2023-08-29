@@ -221,7 +221,7 @@ impl TransferService {
 }
 
 pub async fn get_status(
-    db_pool: Pool<SqliteConnectionManager>,
+    db_pool: &Pool<SqliteConnectionManager>,
     txn_id: String,
 ) -> Result<Transaction, ApiError> {
     let transaction_and_exponent = get_transaction_by_id(db_pool, txn_id).await;

@@ -23,7 +23,7 @@ impl TransactionDao {
             t1.currency = t2.currency where user_address = ? and id < ? order by id desc limit ?".to_string();
 
         let params = params![user_wallet, id.to_string(), page_size.to_string()];
-        get_user_transactions(self.pool.clone(), query, params).await
+        get_user_transactions(&self.pool.clone(), query, params).await
     }
 
     pub async fn create_user_transaction(&self, txn: UserTransaction) {
@@ -49,7 +49,7 @@ impl TransactionDao {
 }
 
 pub async fn get_transaction_by_id(
-    pool: Pool<SqliteConnectionManager>,
+    pool: &Pool<SqliteConnectionManager>,
     txn_id: String,
 ) -> UserTransactionWithExponent {
     let query = "SELECT id, user_address, transaction_id, from_address, to_address, amount, currency, type, status, metadata, created_at, updated_at FROM user_transactions WHERE transaction_id = ?".to_string();
@@ -197,7 +197,7 @@ fn get_user_transaction_with_exponent(row: &Row) -> Result<UserTransactionWithEx
 }
 
 async fn get_user_transactions(
-    pool: Pool<SqliteConnectionManager>,
+    pool: &Pool<SqliteConnectionManager>,
     query: String,
     params: &[&dyn ToSql],
 ) -> Vec<UserTransactionWithExponent> {

@@ -79,7 +79,7 @@ pub async fn poll_transaction(
     db_pool: Data<Pool<SqliteConnectionManager>>,
     query: Query<PollTransactionParams>,
 ) -> Result<HttpResponse, Error> {
-    let transaction = get_status(db_pool.get_ref().clone(), query.transaction_id.clone())
+    let transaction = get_status(db_pool.get_ref(), query.transaction_id.clone())
         .await
         .unwrap();
 
