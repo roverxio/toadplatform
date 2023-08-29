@@ -121,7 +121,7 @@ impl AdminService {
             .await;
         let supported_currencies = self
             .metadata_dao
-            .get_metadata_for_chain(metadata.get_chain())
+            .get_metadata_for_chain(metadata.get_chain(), None)
             .await;
 
         let exponent_metadata = MetadataResponse::new().to(
