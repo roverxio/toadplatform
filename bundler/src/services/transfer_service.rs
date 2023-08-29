@@ -1,5 +1,3 @@
-use actix_web::web::Data;
-
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
@@ -222,7 +220,7 @@ impl TransferService {
 }
 
 pub fn get_status(
-    _db_pool: Data<Pool<SqliteConnectionManager>>,
+    _db_pool: Pool<SqliteConnectionManager>,
     txn_id: String,
 ) -> Result<Transaction, ApiError> {
     Ok(Transaction {
