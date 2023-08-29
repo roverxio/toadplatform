@@ -31,12 +31,6 @@ pub struct Database {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct DefaultChain {
-    pub chain: String,
-    pub currency: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
 pub struct Chain {
     pub chain_id: u64,
     pub url: String,
@@ -73,7 +67,6 @@ pub struct Settings {
     pub log: Log,
     pub database: Database,
     pub server: Server,
-    pub default_chain: DefaultChain,
     pub chains: Map<String, Chain>,
     pub default_gas: DefaultGas,
     pub env: ENV,

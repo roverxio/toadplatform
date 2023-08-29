@@ -13,10 +13,6 @@ prefix = "app"
 [log]
 level = "info"
 
-[default_chain]
-chain = "Sepolia"
-currency = "native"
-
 [database]
 file = "toad.db"
 
