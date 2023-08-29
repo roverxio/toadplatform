@@ -1,6 +1,7 @@
 use crate::CONFIG;
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
+use ethers::types::{Address, Bytes, U256};
 use std::sync::Arc;
 
 abigen!(SimpleAccountFactory, "abi/SimpleAccountFactory.json");
@@ -20,5 +21,14 @@ impl SimpleAccountFactoryProvider {
             client,
         );
         contract
+    }
+
+    pub fn create_account(&self, owner: Address, salt: U256) -> Result<Bytes, String> {
+        let data = self.abi.create_account(owner, salt).calldata();
+        if data.is_none() {
+            return Err("create data failed".to_string());
+        }
+
+        Ok(data.unwrap())
     }
 }

@@ -3,20 +3,22 @@ use std::time::SystemTime;
 
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
-use log::{debug, info, warn};
+use log::{info, warn};
 
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
+use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
 use crate::models::transaction::transaction::{Amount, Metadata, Transaction, UserInfo};
 use crate::models::wallet::address_response::AddressResponse;
-use crate::provider::helpers::{contract_exists_at, get_hash};
+use crate::provider::helpers::{contract_exists_at, get_explorer_url, get_hash};
 use crate::CONFIG;
 
 #[derive(Clone)]
 pub struct WalletService {
     pub wallet_dao: WalletDao,
+    pub transaction_dao: TransactionDao,
     pub simple_account_factory_provider: SimpleAccountFactory<Provider<Http>>,
     pub client: Arc<Provider<Http>>,
 }
@@ -95,74 +97,55 @@ impl WalletService {
         }
     }
 
-    pub fn list_transactions(&self, page_size: i32, id: Option<i32>) -> Vec<Transaction> {
-        debug!("page_size -> {}", page_size);
-        debug!("id -> {:?}", id);
+    pub async fn list_transactions(
+        &self,
+        page_size: i32,
+        id: Option<i32>,
+        user_id: &String,
+    ) -> Vec<Transaction> {
+        let user_wallet_address = self
+            .wallet_dao
+            .get_wallet_address(user_id.to_string())
+            .await;
+
+        let row_id = id.unwrap_or(i32::MAX);
+
         let mut transactions = Vec::new();
-        transactions.push(Transaction {
-            transaction_id: "txn_id_1".to_string(),
-            amount: Amount {
-                currency: "usdc".to_string(),
-                value: "10000000".to_string(),
-                exponent: "6".to_string(),
-            },
-            metadata: Metadata {
-                chain: CONFIG.run_config.current_chain.clone(),
-                gas: Amount {
-                    currency: CONFIG.chains[&CONFIG.run_config.current_chain]
-                        .currency
-                        .clone(),
-                    value: "100000000000".to_string(),
-                    exponent: "18".to_string(),
+        let result = self
+            .transaction_dao
+            .list_transactions(page_size, row_id, user_wallet_address)
+            .await;
+
+        for transaction_and_exponent in result {
+            let transaction = transaction_and_exponent.user_transaction;
+            transactions.push(Transaction {
+                transaction_id: transaction.transaction_id,
+                amount: Amount {
+                    currency: transaction.currency,
+                    value: transaction.amount,
+                    exponent: transaction_and_exponent.exponent,
                 },
-                transaction_hash: "0xtransaction_hash".to_string(),
-                timestamp: "2023-05-12T16:41:45.530002+00".to_string(),
-                explorer_url: "https://www.example.com".to_string(),
-                status: "pending".to_string(),
-            },
-            from: UserInfo {
-                address: "0xfrom_address".to_string(),
-                name: "".to_string(),
-            },
-            id: 2,
-            to: UserInfo {
-                address: "0xto_address".to_string(),
-                name: "a toad user".to_string(),
-            },
-            transaction_type: "credit".to_string(),
-        });
-        transactions.push(Transaction {
-            transaction_id: "txn_id_1".to_string(),
-            amount: Amount {
-                currency: "usdc".to_string(),
-                value: "1000000".to_string(),
-                exponent: "6".to_string(),
-            },
-            metadata: Metadata {
-                chain: CONFIG.run_config.current_chain.clone(),
-                gas: Amount {
-                    currency: CONFIG.chains[&CONFIG.run_config.current_chain]
-                        .currency
-                        .clone(),
-                    value: "800000000000".to_string(),
-                    exponent: "18".to_string(),
+                metadata: Metadata {
+                    chain: transaction.metadata.chain,
+                    gas: Amount::default(),
+                    transaction_hash: transaction.metadata.transaction_hash.clone(),
+                    timestamp: transaction.updated_at,
+                    explorer_url: get_explorer_url(&transaction.metadata.transaction_hash),
+                    status: transaction.status,
                 },
-                transaction_hash: "0xtransaction_hash".to_string(),
-                timestamp: "2023-05-11T16:41:45.530002+00".to_string(),
-                explorer_url: "https://www.example.com".to_string(),
-                status: "pending".to_string(),
-            },
-            from: UserInfo {
-                address: "0xfrom_address".to_string(),
-                name: "a toad user".to_string(),
-            },
-            id: 1,
-            to: UserInfo {
-                address: "0xto_address".to_string(),
-                name: "".to_string(),
-            },
-            transaction_type: "debit".to_string(),
-        });
+                from: UserInfo {
+                    address: transaction.from_address,
+                    name: transaction.metadata.from_name,
+                },
+                id: transaction.id,
+                to: UserInfo {
+                    address: transaction.to_address,
+                    name: transaction.metadata.to_name,
+                },
+                transaction_type: transaction.transaction_type,
+            })
+        }
+
         transactions
     }
 }
