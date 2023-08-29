@@ -1,4 +1,3 @@
-use ethers::types::H256;
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
@@ -22,7 +21,7 @@ impl TransactionDao {
     pub async fn update_user_transactions(
         &self,
         _txn_id: String,
-        _txn_hash: H256,
+        _txn_hash: String,
         _status: String,
     ) {
         // unimplemented!();
