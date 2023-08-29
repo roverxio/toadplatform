@@ -23,10 +23,17 @@ impl BalanceService {
     ) -> Result<BalanceResponse, ApiError> {
         info!("Chain: {:?}", chain); // will be relevant when we add support for multiple chains
         let mut balance: String = "0".to_string();
-        let address = self.wallet_dao.get_wallet_address(user.to_string()).await;
-        if address.is_empty() {
-            return Err(ApiError::NotFound("Wallet not found".to_string()));
+        // let address = self.wallet_dao.get_wallet_address(user.to_string()).await;
+        // if address.is_empty() {
+        //     return Err(ApiError::NotFound("Wallet not found".to_string()));
+        // }
+        let result = self.wallet_dao.get_wallet_address(user.to_string()).await;
+        let address = match result {
+            Ok(address) => {address};
+            Err(thiserror) =>
         }
+
+
         let user: Address = address.parse().unwrap();
         if currency == "native" {
             balance = PROVIDER
