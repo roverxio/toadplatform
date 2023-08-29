@@ -6,16 +6,17 @@ pub struct Transaction {
     pub amount: Amount,
     pub metadata: Metadata,
     pub from: UserInfo,
-    pub id: i64,
+    pub id: i32,
     pub to: UserInfo,
+    #[serde(rename = "type")]
     pub transaction_type: String,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct Amount {
     pub currency: String,
     pub value: String,
-    pub exponent: String,
+    pub exponent: i32,
 }
 
 #[derive(Serialize, Deserialize)]

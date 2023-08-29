@@ -6,7 +6,10 @@ use std::sync::Arc;
 
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
+use crate::db::dao::metadata_dao::MetadataDao;
 use crate::errors::ApiError;
+use crate::models::admin::add_metadata_request::AddMetadataRequest;
+use crate::models::admin::metadata_response::MetadataResponse;
 use crate::models::metadata::Metadata;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
@@ -21,7 +24,8 @@ use crate::CONFIG;
 pub struct AdminService {
     pub paymaster_provider: PaymasterProvider,
     pub entrypoint_provider: EntryPointProvider,
-    pub signing_client: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
+    pub relayer_signer: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
+    pub metadata_dao: MetadataDao,
 }
 
 impl AdminService {
@@ -46,7 +50,7 @@ impl AdminService {
             return Err(ApiError::BadRequest(String::from("failed to topup")));
         }
         let response = Web3Provider::execute(
-            self.signing_client.clone(),
+            self.relayer_signer.clone(),
             CONFIG.get_chain().entrypoint_address,
             value,
             data.unwrap(),
@@ -60,6 +64,7 @@ impl AdminService {
                     Status::PENDING,
                     CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone(),
                 ),
+                transaction_id: "".to_string(),
             }),
             Err(err) => Err(ApiError::BadRequest(err)),
         }
@@ -96,8 +101,37 @@ impl AdminService {
                 balance,
                 format!("{:?}", address),
                 currency,
+                0, // sending parsed eth here for ease of readability
             )),
             Err(error) => Err(ApiError::InternalServer(error)),
         };
+    }
+
+    pub async fn add_currency_metadata(
+        &self,
+        metadata: AddMetadataRequest,
+    ) -> Result<MetadataResponse, ApiError> {
+        self.metadata_dao
+            .add_metadata(
+                metadata.get_chain().clone(),
+                metadata.get_currency(),
+                metadata.get_contract_address(),
+                metadata.get_exponent(),
+            )
+            .await;
+        let supported_currencies = self
+            .metadata_dao
+            .get_metadata_for_chain(metadata.get_chain())
+            .await;
+
+        let exponent_metadata = MetadataResponse::new().to(
+            supported_currencies.clone(),
+            supported_currencies[0].chain.clone(),
+            CONFIG.chains[&supported_currencies[0].chain.clone()]
+                .currency
+                .clone(),
+        );
+
+        Ok(exponent_metadata)
     }
 }
