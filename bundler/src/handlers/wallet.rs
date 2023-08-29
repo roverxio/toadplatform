@@ -79,7 +79,7 @@ pub async fn poll_transaction(
     db_pool: Data<Pool<SqliteConnectionManager>>,
     query: Query<PollTransactionParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    let transaction = get_status(db_pool, query.transaction_id.clone()).unwrap();
+    let transaction = get_status(*db_pool.get_ref().clone(), query.transaction_id.clone()).unwrap();
 
     Ok(HttpResponse::Ok().json(transaction))
 }
