@@ -1,8 +1,7 @@
 use r2d2::Pool;
-use r2d2_sqlite::rusqlite::{params, Params, Result, Row, ToSql};
+use r2d2_sqlite::rusqlite::{params, Result, Row, ToSql};
 use r2d2_sqlite::SqliteConnectionManager;
 use serde::{Deserialize, Serialize};
-use std::ops::Deref;
 
 use crate::db::dao::connect::connect;
 

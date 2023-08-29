@@ -3,7 +3,7 @@ use actix_web::{HttpRequest, HttpResponse};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
-use crate::errors::{ApiError, Error};
+use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
 use crate::models::transaction::poll_transaction_params::PollTransactionParams;
