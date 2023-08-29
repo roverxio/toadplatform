@@ -6,11 +6,13 @@ use actix_web::web::Json;
 use actix_web::HttpRequest;
 use ethers::providers::Middleware;
 use ethers::types::Address;
+use rand::distributions::Alphanumeric;
+use rand::Rng;
 use serde::Serialize;
 
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
-use crate::PROVIDER;
+use crate::{CONFIG, PROVIDER};
 
 pub fn respond_json<T>(data: T) -> Result<Json<BaseResponse<T>>, ApiError>
 where
@@ -41,4 +43,18 @@ pub async fn contract_exists_at(address: String) -> bool {
     let formatted_address: Address = address.parse().unwrap();
     let code = PROVIDER.get_code(formatted_address, None).await.unwrap();
     !code.is_empty()
+}
+
+pub fn generate_txn_id() -> String {
+    let prefix = &CONFIG.run_config.transaction_id_prefix;
+    let id: String = rand::thread_rng()
+        .sample_iter(&Alphanumeric)
+        .take(6)
+        .map(char::from)
+        .collect();
+    format!("{}_{}", prefix, id).to_string()
+}
+
+pub fn get_explorer_url(txn_hash: &str) -> String {
+    CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone()
 }

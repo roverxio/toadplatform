@@ -91,7 +91,7 @@ impl WalletDao {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct User {
     pub email: String,
     pub wallet_address: String,
