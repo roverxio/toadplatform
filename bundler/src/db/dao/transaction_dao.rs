@@ -83,13 +83,12 @@ impl TransactionDao {
         .unwrap();
     }
 
-    pub async fn update_user_transactions(
-        &self,
-        _txn_id: String,
-        _txn_hash: String,
-        _status: String,
-    ) {
-        // function to update user_transactions table
+    pub async fn update_user_transactions(&self, txn_id: String, txn_hash: String, status: String) {
+        let conn = connect(self.pool.clone()).await;
+        let mut stmt = conn
+            .prepare("UPDATE user_transactions set status=?, metadata = json_set(metadata, '$.transaction_hash', ?) where transaction_id=?")
+            .unwrap();
+        stmt.execute([status.clone(), txn_hash, txn_id]).unwrap();
     }
 }
 
