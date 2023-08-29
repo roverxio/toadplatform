@@ -3,7 +3,7 @@ use actix_web::{HttpRequest, HttpResponse};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 
-use crate::errors::ApiError;
+use crate::errors::{ApiError, Error};
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
 use crate::models::transaction::poll_transaction_params::PollTransactionParams;
@@ -79,7 +79,14 @@ pub async fn poll_transaction(
     db_pool: Data<Pool<SqliteConnectionManager>>,
     query: Query<PollTransactionParams>,
 ) -> Result<HttpResponse, actix_web::Error> {
-    let transaction = get_status(db_pool.get_ref().clone(), query.transaction_id.clone()).unwrap();
+    let transaction = get_status(db_pool.get_ref().clone(), query.transaction_id.clone())
+        .await
+        .unwrap();
 
-    Ok(HttpResponse::Ok().json(transaction))
+    Ok(HttpResponse::Ok().json(BaseResponse {
+        data: transaction,
+        err: Error {
+            message: "".to_string(),
+        },
+    }))
 }

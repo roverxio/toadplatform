@@ -84,6 +84,47 @@ impl TransactionDao {
     }
 }
 
+pub async fn get_user_transaction(
+    db_pool: Pool<SqliteConnectionManager>,
+    txn_id: String,
+) -> UserTransactionWithExponent {
+    let conn = connect(db_pool).await;
+    let mut stmt = conn
+        .prepare("SELECT * FROM user_transactions WHERE transaction_id = ?")
+        .unwrap();
+    let user_transaction = stmt
+        .query_row([txn_id], |row| {
+            let metadata: TransactionMetadata =
+                serde_json::from_str(&row.get::<_, String>(9).unwrap()).unwrap();
+            let amount: String = row.get(5).unwrap();
+            let mut exponent = row.get(12);
+            if exponent.is_err() {
+                exponent = Ok(0);
+            }
+
+            Ok(UserTransactionWithExponent {
+                user_transaction: UserTransaction {
+                    id: row.get(0)?,
+                    user_address: row.get(1)?,
+                    transaction_id: row.get(2)?,
+                    from_address: row.get(3)?,
+                    to_address: row.get(4)?,
+                    amount,
+                    currency: row.get(6)?,
+                    transaction_type: row.get(7)?,
+                    status: row.get(8)?,
+                    metadata,
+                    created_at: row.get(10)?,
+                    updated_at: row.get(11)?,
+                },
+                exponent: exponent?,
+            })
+        })
+        .unwrap();
+
+    user_transaction
+}
+
 #[derive(Clone, Default)]
 pub struct UserTransaction {
     pub id: i32,
