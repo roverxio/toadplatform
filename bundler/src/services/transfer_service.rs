@@ -1,8 +1,6 @@
 use actix_web::web::Data;
-use std::str::FromStr;
 
-use ethers::abi::{encode, Token, Tokenizable};
-use ethers::providers::{Http, Provider};
+use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
@@ -232,14 +230,14 @@ pub fn get_status(
         amount: Amount {
             currency: "usdc".to_string(),
             value: "10000000".to_string(),
-            exponent: "6".to_string(),
+            exponent: 6,
         },
         metadata: Metadata {
             chain: CONFIG.run_config.current_chain.clone(),
             gas: Amount {
                 currency: CONFIG.get_chain().currency.clone(),
                 value: "1000000".to_string(),
-                exponent: "18".to_string(),
+                exponent: 18,
             },
             transaction_hash: "0xtransaction_hash".to_string(),
             timestamp: "2023-05-12T16:41:45.530002+00".to_string(),
