@@ -22,7 +22,7 @@ use crate::models::transaction_type::TransactionType;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
-use crate::provider::helpers::{generate_txn_id, get_explorer_url, get_transaction};
+use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
 use crate::CONFIG;
@@ -226,5 +226,5 @@ pub async fn get_status(
 ) -> Result<Transaction, ApiError> {
     let transaction_and_exponent = get_transaction_by_id(db_pool, txn_id).await;
 
-    Ok(get_transaction(transaction_and_exponent))
+    Ok(Transaction::from(transaction_and_exponent))
 }

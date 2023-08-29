@@ -12,7 +12,7 @@ use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
-use crate::provider::helpers::{contract_exists_at, get_hash, get_transaction};
+use crate::provider::helpers::{contract_exists_at, get_hash};
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -117,7 +117,7 @@ impl WalletService {
             .await;
 
         for transaction_and_exponent in result {
-            transactions.push(get_transaction(transaction_and_exponent))
+            transactions.push(Transaction::from(transaction_and_exponent))
         }
 
         transactions
