@@ -1,3 +1,4 @@
+use crate::db::dao::wallet_dao::WalletDao;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::web::{Data, Json, Query};
 use actix_web::{Error, HttpRequest, HttpResponse};
@@ -78,16 +79,23 @@ pub async fn list_transactions(
 
 pub async fn poll_transaction(
     db_pool: Data<Pool<SqliteConnectionManager>>,
+    wallet_dao: Data<WalletDao>,
     query: Query<PollTransactionParams>,
     req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
-    if get_user(req).is_empty() {
+    let user_id = get_user(req);
+    if user_id.is_empty() {
         return Err(ErrorUnauthorized(""));
     }
 
-    let transaction = TransferService::get_status(db_pool.get_ref(), query.transaction_id.clone())
-        .await
-        .unwrap();
+    let transaction = TransferService::get_status(
+        db_pool.get_ref(),
+        query.transaction_id.clone(),
+        wallet_dao.get_ref(),
+        user_id,
+    )
+    .await
+    .unwrap();
 
     Ok(HttpResponse::Ok().json(BaseResponse {
         data: transaction,

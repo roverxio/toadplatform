@@ -220,8 +220,13 @@ impl TransferService {
     pub async fn get_status(
         db_pool: &Pool<SqliteConnectionManager>,
         txn_id: String,
+        wallet_dao: &WalletDao,
+        user_id: String,
     ) -> Result<Transaction, ApiError> {
-        let transaction_and_exponent = TransactionDao::get_transaction_by_id(db_pool, txn_id).await;
+        let user_wallet_address = wallet_dao.get_wallet_address(user_id.to_string()).await;
+
+        let transaction_and_exponent =
+            TransactionDao::get_transaction_by_id(db_pool, txn_id, user_wallet_address).await;
 
         Ok(Transaction::from(transaction_and_exponent))
     }

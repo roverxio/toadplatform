@@ -50,12 +50,13 @@ impl TransactionDao {
     pub async fn get_transaction_by_id(
         pool: &Pool<SqliteConnectionManager>,
         txn_id: String,
+        user_wallet_address: String,
     ) -> UserTransactionWithExponent {
         let query = "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
             t1.to_address, t1.amount, t1.currency, t1.type, t1.status, t1.metadata, t1.created_at, \
             t1.updated_at, t2.exponent from user_transactions t1 left join supported_currencies t2 on \
-            t1.currency = t2.currency where t1.transaction_id = ?".to_string();
-        let params = params![txn_id];
+            t1.currency = t2.currency where t1.transaction_id = ? and t1.user_address = ?".to_string();
+        let params = params![txn_id, user_wallet_address];
         let user_transaction_data = Self::get_user_transactions(pool, query, params).await;
         if user_transaction_data.is_empty() {
             Default::default()

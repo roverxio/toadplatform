@@ -43,6 +43,7 @@ pub struct ToadService {
     pub admin_service: AdminService,
     pub metadata_service: MetadataService,
     pub db_pool: Pool<SqliteConnectionManager>,
+    pub wallet_dao: WalletDao,
 }
 
 pub fn init_services() -> ToadService {
@@ -150,6 +151,7 @@ pub fn init_services() -> ToadService {
         admin_service,
         metadata_service,
         db_pool: pool,
+        wallet_dao,
     }
 }
 
@@ -174,6 +176,7 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .app_data(Data::new(service.metadata_service.clone()))
             // will eventually be renamed from service to resource
             .app_data(Data::new(service.db_pool.clone()))
+            .app_data(Data::new(service.wallet_dao.clone()))
     })
     .bind(server.url())?
     .run()
