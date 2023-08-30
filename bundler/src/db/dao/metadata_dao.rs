@@ -18,14 +18,14 @@ impl MetadataDao {
         chain: String,
         currency: String,
         address: String,
-        exponent: u8,
+        exponent: i32,
     ) {
         let query = query!(
             "INSERT INTO supported_currencies (chain, currency, contract_address, exponent) VALUES ($1, $2, $3, $4)",
             chain,
             currency,
             address,
-            exponent as i32);
+            exponent);
         let result = query.execute(&self.db_pool).await;
         if result.is_err() {
             warn!("Failed to create metadata: {}", chain);
@@ -73,5 +73,5 @@ impl MetadataDao {
 pub struct SupportedCurrency {
     pub chain: String,
     pub currency: String,
-    pub exponent: u8,
+    pub exponent: i32,
 }

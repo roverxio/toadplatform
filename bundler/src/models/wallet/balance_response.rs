@@ -5,7 +5,7 @@ pub struct BalanceResponse {
     pub address: String,
     pub balance: String,
     pub currency: String,
-    pub exponent: u8,
+    pub exponent: i32,
 }
 
 impl BalanceResponse {
@@ -13,7 +13,7 @@ impl BalanceResponse {
         balance: String,
         address: String,
         currency: String,
-        exponent: u8,
+        exponent: i32,
     ) -> BalanceResponse {
         BalanceResponse {
             balance,

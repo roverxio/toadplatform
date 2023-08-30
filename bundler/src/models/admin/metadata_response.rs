@@ -6,7 +6,7 @@ use std::collections::HashMap;
 pub struct MetadataResponse {
     pub currency: String,
     pub chain: String,
-    pub exponents: HashMap<String, u8>,
+    pub exponents: HashMap<String, i32>,
 }
 impl MetadataResponse {
     pub fn new() -> MetadataResponse {
@@ -18,7 +18,7 @@ impl MetadataResponse {
         chain: String,
         currency: String,
     ) -> MetadataResponse {
-        let mut exponents: HashMap<String, u8> = HashMap::new();
+        let mut exponents: HashMap<String, i32> = HashMap::new();
 
         for item in metadata {
             exponents.insert(item.currency, item.exponent);

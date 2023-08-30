@@ -5,7 +5,7 @@ pub struct AddMetadataRequest {
     pub chain: String,
     pub currency: String,
     pub contract_address: String,
-    pub exponent: u8,
+    pub exponent: i32,
 }
 
 impl AddMetadataRequest {
@@ -21,7 +21,7 @@ impl AddMetadataRequest {
         self.contract_address.to_lowercase()
     }
 
-    pub fn get_exponent(&self) -> u8 {
+    pub fn get_exponent(&self) -> i32 {
         self.exponent
     }
 }
