@@ -15,7 +15,7 @@ use crate::models::wallet::balance_request::BalanceRequest;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::helpers::{get_user, respond_json};
 use crate::services::balance_service::BalanceService;
-use crate::services::transfer_service::{get_status, TransferService};
+use crate::services::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
 
 pub async fn get_address(
@@ -79,7 +79,7 @@ pub async fn poll_transaction(
     db_pool: Data<Pool<SqliteConnectionManager>>,
     query: Query<PollTransactionParams>,
 ) -> Result<HttpResponse, Error> {
-    let transaction = get_status(db_pool.get_ref(), query.transaction_id.clone())
+    let transaction = TransferService::get_status(db_pool.get_ref(), query.transaction_id.clone())
         .await
         .unwrap();
 

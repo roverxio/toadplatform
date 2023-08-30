@@ -216,13 +216,13 @@ impl TransferService {
             None => Err("Currency not found".to_string()),
         }
     }
-}
 
-pub async fn get_status(
-    db_pool: &Pool<SqliteConnectionManager>,
-    txn_id: String,
-) -> Result<Transaction, ApiError> {
-    let transaction_and_exponent = TransactionDao::get_transaction_by_id(db_pool, txn_id).await;
+    pub async fn get_status(
+        db_pool: &Pool<SqliteConnectionManager>,
+        txn_id: String,
+    ) -> Result<Transaction, ApiError> {
+        let transaction_and_exponent = TransactionDao::get_transaction_by_id(db_pool, txn_id).await;
 
-    Ok(Transaction::from(transaction_and_exponent))
+        Ok(Transaction::from(transaction_and_exponent))
+    }
 }
