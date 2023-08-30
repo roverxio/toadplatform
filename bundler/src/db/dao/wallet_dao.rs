@@ -1,22 +1,28 @@
+use log::warn;
 use r2d2::Pool;
 use r2d2_sqlite::rusqlite::Statement;
 use r2d2_sqlite::SqliteConnectionManager;
+use sqlx::{query, Postgres};
 
 use crate::db::dao::connect::connect;
 
 #[derive(Clone)]
 pub struct WalletDao {
     pub pool: Pool<SqliteConnectionManager>,
+    pub db_pool: sqlx::Pool<Postgres>,
 }
 
 impl WalletDao {
     pub async fn update_wallet_deployed(&self, user_id: String) {
-        let conn = connect(self.pool.clone()).await;
-
-        let mut stmt = conn
-            .prepare("UPDATE users SET deployed = ? WHERE email = ?")
-            .unwrap();
-        stmt.execute([true.to_string(), user_id]).unwrap();
+        let query = query!(
+            "UPDATE users SET deployed = $1 WHERE email = $2",
+            true,
+            user_id
+        );
+        let result = query.execute(&self.db_pool).await;
+        if result.is_err() {
+            warn!("Failed to update deployed status for user: {}", user_id);
+        }
     }
 
     pub async fn get_wallet_address(&self, user_id: String) -> String {
