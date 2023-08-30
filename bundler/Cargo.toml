@@ -20,3 +20,5 @@ rand = "0.8.5"
 reqwest = "0.11.18"
 serde = "1.0.177"
 serde_json = "1.0.104"
+sqlx = { version = "0.7.1", features = ["runtime-async-std", "postgres", "chrono"] }
+chrono = "0.4.26"
