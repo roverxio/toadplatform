@@ -88,7 +88,10 @@ pub async fn init_services() -> ToadService {
     let transaction_dao = TransactionDao {
         pool: db_pool.clone(),
     };
-    let meatadata_dao = MetadataDao { pool: pool.clone() };
+    let meatadata_dao = MetadataDao {
+        pool: pool.clone(),
+        db_pool: db_pool.clone(),
+    };
 
     // providers
     let verify_paymaster_provider = PaymasterProvider {
