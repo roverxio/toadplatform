@@ -1,3 +1,4 @@
+use actix_web::error::ErrorBadRequest;
 use actix_web::web::{Data, Json, Query};
 use actix_web::{Error, HttpRequest, HttpResponse};
 use r2d2::Pool;
@@ -78,7 +79,12 @@ pub async fn list_transactions(
 pub async fn poll_transaction(
     db_pool: Data<Pool<SqliteConnectionManager>>,
     query: Query<PollTransactionParams>,
+    req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
+    if get_user(req).is_empty() {
+        return Err(ErrorBadRequest(""));
+    }
+
     let transaction = TransferService::get_status(db_pool.get_ref(), query.transaction_id.clone())
         .await
         .unwrap();
