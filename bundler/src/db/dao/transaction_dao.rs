@@ -1,12 +1,16 @@
+use log::{error, warn};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use sqlx::{query, Postgres};
 
 use crate::db::dao::connect::connect;
 
 #[derive(Clone)]
 pub struct TransactionDao {
     pub pool: Pool<SqliteConnectionManager>,
+    pub db_pool: sqlx::Pool<Postgres>,
 }
 
 impl TransactionDao {
@@ -63,13 +67,18 @@ impl TransactionDao {
     }
 
     pub async fn create_user_transaction(&self, txn: UserTransaction) {
-        let conn = connect(self.pool.clone()).await;
-        let mut stmt = conn
-            .prepare(
-                "INSERT INTO user_transactions (user_address, transaction_id, from_address, to_address, amount, currency, type, status, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            )
-            .unwrap();
-        stmt.execute([
+        let metadata: Value;
+        match serde_json::to_value(&txn.metadata) {
+            Ok(data) => metadata = data,
+            Err(_) => {
+                error!("Metadata conversion failed: {}", txn.transaction_id);
+                return;
+            }
+        }
+        let query = query!(
+            "INSERT INTO user_transactions (user_address, transaction_id, from_address,\
+                to_address, amount, currency, type, status, metadata) VALUES \
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             txn.user_address.clone(),
             txn.transaction_id.clone(),
             txn.from_address.clone(),
@@ -78,9 +87,12 @@ impl TransactionDao {
             txn.currency.clone(),
             txn.transaction_type.clone(),
             txn.status.clone(),
-            serde_json::to_string(&txn.metadata).unwrap(),
-        ])
-        .unwrap();
+            metadata
+        );
+        let result = query.execute(&self.db_pool).await;
+        if result.is_err() {
+            warn!("Failed to create user transaction: {}", txn.transaction_id);
+        }
     }
 }
 
