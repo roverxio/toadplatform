@@ -15,9 +15,7 @@ pub async fn user_op_event_listener(
 ) {
     let filter = Filter::new()
         .address(CONFIG.get_chain().entrypoint_address)
-        .topic0(H256::from(
-            Constants::USER_OPERATION_EVENT.parse::<H256>().unwrap(),
-        ))
+        .topic0(Constants::USER_OPERATION_EVENT.parse::<H256>().unwrap())
         .topic1(H256::from(user_op_hash));
 
     let logs = loop {
