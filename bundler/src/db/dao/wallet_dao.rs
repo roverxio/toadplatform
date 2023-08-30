@@ -50,15 +50,17 @@ impl WalletDao {
         salt: String,
         deployed: bool,
     ) {
-        let conn = connect(self.pool.clone()).await;
-
-        let mut stmt = conn
-            .prepare(
-                "INSERT INTO users (email, wallet_address, salt, deployed) VALUES (?, ?, ?, ?)",
-            )
-            .unwrap();
-        stmt.execute([user_id, wallet_address, salt, deployed.to_string()])
-            .unwrap();
+        let query = query!(
+            "INSERT INTO users (email, wallet_address, salt, deployed) VALUES ($1, $2, $3, $4)",
+            user_id,
+            wallet_address,
+            salt,
+            deployed
+        );
+        let result = query.execute(&self.db_pool).await;
+        if result.is_err() {
+            warn!("Failed to create user: {}", user_id);
+        }
     }
 
     fn get_user(user_id: String, stmt: &mut Statement) -> Vec<User> {
