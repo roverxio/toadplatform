@@ -1,16 +1,11 @@
 use log::{error, warn};
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::{query, query_as, Error, Postgres};
-
-use crate::db::dao::connect::connect;
+use sqlx::{query, Pool, Postgres};
 
 #[derive(Clone)]
 pub struct TransactionDao {
-    pub pool: Pool<SqliteConnectionManager>,
-    pub db_pool: sqlx::Pool<Postgres>,
+    pub pool: Pool<Postgres>,
 }
 
 impl TransactionDao {
@@ -29,7 +24,7 @@ impl TransactionDao {
             id,
             page_size
         );
-        let result = query.fetch_all(&self.db_pool).await;
+        let result = query.fetch_all(&self.pool).await;
         return match result {
             Ok(rows) => {
                 let mut transactions = Vec::new();
@@ -86,7 +81,7 @@ impl TransactionDao {
             txn.status.clone(),
             metadata
         );
-        let result = query.execute(&self.db_pool).await;
+        let result = query.execute(&self.pool).await;
         if result.is_err() {
             warn!("Failed to create user transaction: {}", txn.transaction_id);
         }
