@@ -35,21 +35,12 @@ impl WalletDao {
     }
 
     pub async fn get_wallet(&self, user_id: String) -> Option<User> {
-        let conn = connect(self.pool.clone()).await;
-        let mut stmt = conn
-            .prepare("SELECT * from users where email = ? limit 1")
-            .unwrap();
-        let rows = Self::get_user(user_id, &mut stmt);
-
-        if !rows.is_empty() {
-            return Some(User {
-                email: rows[0].email.to_string(),
-                wallet_address: rows[0].wallet_address.to_string(),
-                salt: rows[0].salt.clone(),
-                deployed: rows[0].deployed,
-            });
-        }
-        return None;
+        let query = query_as!(User, "SELECT * from users where email = $1", user_id);
+        let result: Result<Option<User>, Error> = query.fetch_optional(&self.db_pool).await;
+        return match result {
+            Ok(user) => user,
+            Err(_) => None,
+        };
     }
 
     pub async fn create_wallet(
