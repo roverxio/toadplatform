@@ -1,15 +1,9 @@
 use log::warn;
-use r2d2::Pool;
-use r2d2_sqlite::rusqlite::Statement;
-use r2d2_sqlite::SqliteConnectionManager;
-use sqlx::{query, query_as, Error, Postgres};
-
-use crate::db::dao::connect::connect;
+use sqlx::{query, query_as, Error, Pool, Postgres};
 
 #[derive(Clone)]
 pub struct WalletDao {
-    pub pool: Pool<SqliteConnectionManager>,
-    pub db_pool: sqlx::Pool<Postgres>,
+    pub pool: Pool<Postgres>,
 }
 
 impl WalletDao {
@@ -19,7 +13,7 @@ impl WalletDao {
             true,
             user_id
         );
-        let result = query.execute(&self.db_pool).await;
+        let result = query.execute(&self.pool).await;
         if result.is_err() {
             warn!("Failed to update deployed status for user: {}", user_id);
         }
@@ -27,7 +21,7 @@ impl WalletDao {
 
     pub async fn get_wallet_address(&self, user_id: String) -> String {
         let query = query_as!(User, "SELECT * from users where email = $1", user_id);
-        let result: Result<User, Error> = query.fetch_one(&self.db_pool).await;
+        let result: Result<User, Error> = query.fetch_one(&self.pool).await;
         return match result {
             Ok(user) => user.wallet_address,
             Err(_) => "".to_string(),
@@ -36,7 +30,7 @@ impl WalletDao {
 
     pub async fn get_wallet(&self, user_id: String) -> Option<User> {
         let query = query_as!(User, "SELECT * from users where email = $1", user_id);
-        let result: Result<Option<User>, Error> = query.fetch_optional(&self.db_pool).await;
+        let result: Result<Option<User>, Error> = query.fetch_optional(&self.pool).await;
         return match result {
             Ok(user) => user,
             Err(_) => None,
@@ -57,31 +51,10 @@ impl WalletDao {
             salt,
             deployed
         );
-        let result = query.execute(&self.db_pool).await;
+        let result = query.execute(&self.pool).await;
         if result.is_err() {
             warn!("Failed to create user: {}", user_id);
         }
-    }
-
-    fn get_user(user_id: String, stmt: &mut Statement) -> Vec<User> {
-        let rows: Vec<User> = stmt
-            .query_map([user_id], |row| {
-                let deployed_str: String = row.get(3)?;
-                let deployed = match deployed_str.as_str() {
-                    "true" => true,
-                    "false" => false,
-                    _ => false,
-                };
-                Ok(User {
-                    email: row.get(0)?,
-                    wallet_address: row.get(1)?,
-                    salt: row.get(2)?,
-                    deployed,
-                })
-            })
-            .and_then(Iterator::collect)
-            .unwrap();
-        rows
     }
 }
 

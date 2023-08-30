@@ -83,8 +83,7 @@ pub async fn init_services() -> ToadService {
     let db_pool = DatabaseConnection::init(CONFIG.database.url.clone()).await;
 
     let wallet_dao = WalletDao {
-        pool: pool.clone(),
-        db_pool: db_pool.clone(),
+        pool: db_pool.clone(),
     };
     let transaction_dao = TransactionDao { pool: pool.clone() };
     let meatadata_dao = MetadataDao { pool: pool.clone() };
