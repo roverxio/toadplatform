@@ -15,6 +15,7 @@ level = "info"
 
 [database]
 file = "toad.db"
+url = "postgres://<user>:<pwd>@<host>/<db_name>"
 
 [chains.sepolia]
 chain_id = 11155111
