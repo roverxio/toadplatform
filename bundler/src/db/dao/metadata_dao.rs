@@ -1,15 +1,9 @@
 use log::warn;
-use r2d2::Pool;
-use r2d2_sqlite::rusqlite::params_from_iter;
-use r2d2_sqlite::SqliteConnectionManager;
-use sqlx::{query, query_as, Error, Postgres};
-
-use crate::db::dao::connect::connect;
+use sqlx::{query, query_as, Error, Pool, Postgres};
 
 #[derive(Clone)]
 pub struct MetadataDao {
-    pub pool: Pool<SqliteConnectionManager>,
-    pub db_pool: sqlx::Pool<Postgres>,
+    pub pool: Pool<Postgres>,
 }
 
 impl MetadataDao {
@@ -26,7 +20,7 @@ impl MetadataDao {
             currency,
             address,
             exponent);
-        let result = query.execute(&self.db_pool).await;
+        let result = query.execute(&self.pool).await;
         if result.is_err() {
             warn!("Failed to create metadata: {}", chain);
         }
@@ -44,7 +38,7 @@ impl MetadataDao {
                     "SELECT chain, currency, exponent FROM supported_currencies WHERE chain = $1",
                     chain
                 );
-                query.fetch_all(&self.db_pool).await
+                query.fetch_all(&self.pool).await
             }
             Some(currency) => {
                 let query = query_as!(
@@ -53,7 +47,7 @@ impl MetadataDao {
                 chain,
                 currency
             );
-                query.fetch_all(&self.db_pool).await
+                query.fetch_all(&self.pool).await
             }
         };
         return match result {
