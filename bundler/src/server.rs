@@ -15,7 +15,7 @@ use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
-use crate::db::connection::{establish_connection, DatabaseConnection};
+use crate::db::connection::DatabaseConnection;
 use crate::db::dao::metadata_dao::MetadataDao;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
@@ -79,7 +79,6 @@ pub async fn init_services() -> ToadService {
     );
 
     //daos
-    let pool = establish_connection(CONFIG.database.file.clone());
     let db_pool = DatabaseConnection::init(CONFIG.database.url.clone()).await;
 
     let wallet_dao = WalletDao {
