@@ -88,7 +88,7 @@ pub async fn init_services() -> ToadService {
     let transaction_dao = TransactionDao {
         pool: db_pool.clone(),
     };
-    let meatadata_dao = MetadataDao {
+    let metadata_dao = MetadataDao {
         pool: db_pool.clone(),
     };
 
@@ -121,7 +121,7 @@ pub async fn init_services() -> ToadService {
     };
     let balance_service = BalanceService {
         wallet_dao: wallet_dao.clone(),
-        metadata_dao: meatadata_dao.clone(),
+        metadata_dao: metadata_dao.clone(),
         erc20_provider: erc20.clone(),
     };
     let transfer_service = TransferService {
@@ -140,10 +140,10 @@ pub async fn init_services() -> ToadService {
         paymaster_provider: verify_paymaster_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
         relayer_signer: relayer_signer.clone(),
-        metadata_dao: meatadata_dao.clone(),
+        metadata_dao: metadata_dao.clone(),
     };
     let metadata_service = MetadataService {
-        metadata_dao: meatadata_dao.clone(),
+        metadata_dao: metadata_dao.clone(),
     };
 
     ToadService {
