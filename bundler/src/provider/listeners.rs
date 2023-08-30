@@ -1,9 +1,7 @@
-use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::{CONFIG, PROVIDER};
-use ethers::abi::decode;
-use ethers::abi::ParamType::{Bool, Uint};
+use ethers::abi::RawLog;
 use ethers::providers::Middleware;
 use ethers::types::{Filter, H256};
 
@@ -13,28 +11,46 @@ pub async fn user_op_event_listener(
     user_op_hash: [u8; 32],
     txn_id: String,
 ) {
+    let event = entrypoint_provider
+        .abi()
+        .event("UserOperationEvent")
+        .unwrap();
+
     let filter = Filter::new()
         .address(CONFIG.get_chain().entrypoint_address)
-        .topic0(Constants::USER_OPERATION_EVENT.parse::<H256>().unwrap())
+        .topic0(event.signature())
         .topic1(H256::from(user_op_hash));
 
-    let logs = loop {
+    let log_data = loop {
         let logs = PROVIDER.get_logs(&filter).await.unwrap();
         if logs.iter().len() > 0 {
-            break logs;
+            break logs[0].clone();
         }
     };
 
-    let txn_hash = logs[0].transaction_hash.unwrap().to_string();
-    let data = decode(&[Uint(256), Bool, Uint(256), Uint(256)], &*logs[0].data).unwrap();
-    let txn_status = data.get(1).unwrap().clone().into_bool().unwrap();
-    let status = if txn_status {
+    let txn_hash = format!("{:?}", log_data.transaction_hash.unwrap());
+
+    let log = event
+        .parse_log(RawLog {
+            topics: log_data.topics,
+            data: log_data.data.to_vec(),
+        })
+        .unwrap();
+
+    let success_param = log
+        .params
+        .into_iter()
+        .find(|param| param.name == "success")
+        .unwrap();
+    let success = success_param.value.into_bool().unwrap();
+
+    let status = if success {
         "success".to_string()
     } else {
         "failed".to_string()
     };
 
     transaction_dao
-        .update_user_transactions(txn_id, txn_hash, status)
+        .update_user_transactions(txn_id, txn_hash.to_string(), status)
         .await;
 }
