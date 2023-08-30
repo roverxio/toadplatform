@@ -6,17 +6,22 @@ use actix_web::{App, HttpServer};
 use dotenvy::dotenv;
 use env_logger::{init_from_env, Env};
 use ethers::middleware::SignerMiddleware;
+use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
 
+use crate::bundler::bundler::Bundler;
+use crate::contracts::entrypoint_provider::EntryPointProvider;
+use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
+use crate::contracts::simple_account_provider::SimpleAccountProvider;
+use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::connection::establish_connection;
+use crate::db::dao::metadata_dao::MetadataDao;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
-use crate::provider::entrypoint_helper::get_entrypoint_abi;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
-use crate::provider::web3_provider::Web3Provider;
 use crate::routes::routes;
 use crate::services::admin_service::AdminService;
 use crate::services::balance_service::BalanceService;
@@ -41,68 +46,97 @@ pub fn init_services() -> ToadService {
     info!("Starting server...");
     // contract providers
     let client = Arc::new(PROVIDER.clone());
-    let simple_account_factory_provider = Web3Provider::get_simple_account_factory_abi(
-        &CONFIG.run_config.current_chain,
-        client.clone(),
-    );
-    let erc20_provider =
-        Web3Provider::get_erc20_abi(&CONFIG.run_config.current_chain, client.clone());
-    let entrypoint_provider = get_entrypoint_abi(&CONFIG.run_config.current_chain, client.clone());
-    let simple_account_provider = Web3Provider::get_simpleaccount_abi(client.clone());
+    let simple_account_factory =
+        SimpleAccountFactoryProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
+    let erc20 = USDCProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
+    let entrypoint = EntryPointProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
+    let simple_account = SimpleAccountProvider::init_abi(client.clone(), Address::zero());
     let verifying_paymaster_provider =
         get_verifying_paymaster_abi(&CONFIG.run_config.current_chain, client.clone());
-    //signers
-    let verifying_paymaster_signer: LocalWallet = std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY")
+
+    //wallets
+    let verifying_paymaster_wallet: LocalWallet = std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY")
         .expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set")
         .parse::<LocalWallet>()
         .unwrap();
-    let wallet_signer: LocalWallet = std::env::var("WALLET_PRIVATE_KEY")
+    let relayer_wallet: LocalWallet = std::env::var("WALLET_PRIVATE_KEY")
         .expect("WALLET_PRIVATE_KEY must be set")
         .parse::<LocalWallet>()
         .unwrap();
-    let signing_client = SignerMiddleware::new(
+
+    //signers
+    let relayer_signer = SignerMiddleware::new(
         client.clone(),
-        wallet_signer
+        relayer_wallet
             .clone()
-            .with_chain_id(CONFIG.chains[&CONFIG.run_config.current_chain].chain_id),
+            .with_chain_id(CONFIG.get_chain().chain_id),
+    );
+    let bundler_signer = SignerMiddleware::new(
+        client.clone(),
+        relayer_wallet
+            .clone()
+            .with_chain_id(CONFIG.get_chain().chain_id),
     );
 
     //daos
     let pool = establish_connection(CONFIG.database.file.clone());
     let wallet_dao = WalletDao { pool: pool.clone() };
     let transaction_dao = TransactionDao { pool: pool.clone() };
+    let meatadata_dao = MetadataDao { pool: pool.clone() };
 
     // providers
     let verify_paymaster_provider = PaymasterProvider {
         provider: verifying_paymaster_provider.clone(),
+    };
+    let entrypoint_provider = EntryPointProvider {
+        abi: entrypoint.clone(),
+    };
+    let bundler = Bundler {
+        signer: bundler_signer.clone(),
+        entrypoint: entrypoint_provider.clone(),
+    };
+    let usdc_provider = USDCProvider { abi: erc20.clone() };
+    let simple_account_provider = SimpleAccountProvider {
+        abi: simple_account.clone(),
+    };
+    let simple_account_factory_provider = SimpleAccountFactoryProvider {
+        abi: simple_account_factory.clone(),
     };
 
     // Services
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {
         wallet_dao: wallet_dao.clone(),
-        simple_account_factory_provider: simple_account_factory_provider.clone(),
+        transaction_dao: transaction_dao.clone(),
+        simple_account_factory_provider: simple_account_factory.clone(),
+        client: client.clone(),
     };
     let balance_service = BalanceService {
         wallet_dao: wallet_dao.clone(),
-        erc20_provider: erc20_provider.clone(),
+        metadata_dao: meatadata_dao.clone(),
+        erc20_provider: erc20.clone(),
     };
     let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
-        usdc_provider: erc20_provider.clone(),
+        usdc_provider,
         entrypoint_provider: entrypoint_provider.clone(),
         simple_account_provider: simple_account_provider.clone(),
         simple_account_factory_provider: simple_account_factory_provider.clone(),
-        verifying_paymaster_provider: verifying_paymaster_provider.clone(),
-        verifying_paymaster_signer: verifying_paymaster_signer.clone(),
-        wallet_singer: wallet_signer.clone(),
-        signing_client: signing_client.clone(),
+        verifying_paymaster_provider: verify_paymaster_provider.clone(),
+        verifying_paymaster_wallet: verifying_paymaster_wallet.clone(),
+        scw_owner_wallet: relayer_wallet.clone(),
+        bundler: bundler.clone(),
     };
     let admin_service = AdminService {
         paymaster_provider: verify_paymaster_provider.clone(),
+        entrypoint_provider: entrypoint_provider.clone(),
+        relayer_signer: relayer_signer.clone(),
+        metadata_dao: meatadata_dao.clone(),
     };
-    let metadata_service = MetadataService {};
+    let metadata_service = MetadataService {
+        metadata_dao: meatadata_dao.clone(),
+    };
 
     ToadService {
         hello_world_service,

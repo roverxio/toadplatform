@@ -3,6 +3,8 @@ use actix_web::HttpRequest;
 
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
+use crate::models::transaction::list_transactions_params::ListTransactionsParams;
+use crate::models::transaction::transaction::Transaction;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::address_response::AddressResponse;
@@ -42,8 +44,30 @@ pub async fn transfer(
     body: Json<TransferRequest>,
     req: HttpRequest,
 ) -> Result<Json<BaseResponse<TransferResponse>>, ApiError> {
+    let body = body.into_inner();
     let data = service
-        .transfer_funds(body.into_inner(), &get_user(req))
+        .transfer_funds(
+            body.receiver,
+            body.value,
+            body.metadata.currency,
+            &get_user(req),
+        )
         .await?;
+    respond_json(data)
+}
+
+pub async fn list_transactions(
+    service: Data<WalletService>,
+    query: Query<ListTransactionsParams>,
+    req: HttpRequest,
+) -> Result<Json<BaseResponse<Vec<Transaction>>>, ApiError> {
+    let query_params = query.into_inner();
+    let data = service
+        .list_transactions(
+            query_params.page_size.unwrap_or(10),
+            query_params.id,
+            &get_user(req),
+        )
+        .await;
     respond_json(data)
 }

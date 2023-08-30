@@ -9,6 +9,8 @@ pub struct RunConfig {
     pub current_chain: String,
     pub account_owner: Address,
     pub paymaster_account_owner: Address,
+    pub deployed_by_identifier: String,
+    pub transaction_id_prefix: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -26,17 +28,6 @@ pub struct Server {
 #[derive(Debug, Deserialize, Clone)]
 pub struct Database {
     pub file: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct Urls {
-    pub signing_server: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct DefaultChain {
-    pub chain: String,
-    pub currency: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -75,9 +66,7 @@ pub struct Settings {
     pub run_config: RunConfig,
     pub log: Log,
     pub database: Database,
-    pub urls: Urls,
     pub server: Server,
-    pub default_chain: DefaultChain,
     pub chains: Map<String, Chain>,
     pub default_gas: DefaultGas,
     pub env: ENV,
@@ -97,5 +86,9 @@ impl Settings {
             .build()?;
 
         s.try_deserialize()
+    }
+
+    pub fn get_chain(&self) -> &Chain {
+        &self.chains[&self.run_config.current_chain]
     }
 }

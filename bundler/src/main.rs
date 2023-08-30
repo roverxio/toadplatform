@@ -4,9 +4,11 @@ use lazy_static::lazy_static;
 use crate::models::config::server::Server;
 use crate::models::config::settings::Settings;
 use crate::provider::web3_provider::Web3Provider;
-use crate::server::{run, init_services};
+use crate::server::{init_services, run};
 
+mod bundler;
 mod constants;
+mod contracts;
 mod db;
 mod errors;
 mod handlers;
@@ -18,8 +20,7 @@ mod services;
 
 lazy_static! {
     static ref CONFIG: Settings = Settings::new().expect("Failed to load config.");
-    static ref PROVIDER: Provider<Http> =
-        Web3Provider::new(CONFIG.chains[&CONFIG.run_config.current_chain].get_url());
+    static ref PROVIDER: Provider<Http> = Web3Provider::new(CONFIG.get_chain().get_url());
 }
 
 #[actix_web::main]

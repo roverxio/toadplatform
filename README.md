@@ -16,8 +16,13 @@ If you are running this project on localhost, you need to have a local node runn
     RPC_URL=http://localhost:8545
    PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
    CHAIN_ID=31337
+   ENTRYPOINT_SALT=1
+   SIMPLE_ACCOUNT_FACTORY_SALT=2
+   TEST_ERC20_SALT=3
+   VERIFYING_PAYMASTER_SALT=4
     ```
-5. run `bash deploy_local.sh`. This should start a local anvil node and deploy the contracts
+   The salt values can be changed if required. This will affect the addresses at which the contracts are deployed.
+5. run `bash script/deploy_local.sh`. This should start a local anvil node and deploy the contracts
 
 You can find the deployed contracts in the console logs. Copy the very first private-key from the logs and use it to populate the values of `WALLET_PRIVATE_KEY` and `VERIFYING_PAYMASTER_PRIVATE_KEY` in env variables. This key is the deployer for all the contracts.
 
@@ -35,10 +40,6 @@ By default, the server uses "Development.toml" as the config file. If you want t
 3. Staging
 
 The project does not come with a "Production.toml", but you can create one and use it. The config file should be in the same format as "Development.toml".
-
-### Signing the userop
-The server also uses a node service for signing called "signing-server". It needs to be running to be able to use this repo. You can find it under "roverx-rpc/signing-server". It is a simple node server that exposes a REST API for signing. You can find the instructions to run it in the README.md of the signing-server repo.
-
 
 ## Account Abstraction Deployment & Testing
 
