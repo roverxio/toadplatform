@@ -1,6 +1,6 @@
+use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
-use crate::provider::constants::USER_OPERATION_EVENT;
 use crate::{CONFIG, PROVIDER};
 use ethers::abi::decode;
 use ethers::abi::ParamType::{Bool, Uint};
@@ -15,7 +15,9 @@ pub async fn user_op_event_listener(
 ) {
     let filter = Filter::new()
         .address(CONFIG.get_chain().entrypoint_address)
-        .topic0(H256::from(USER_OPERATION_EVENT.parse::<H256>().unwrap()))
+        .topic0(H256::from(
+            Constants::USER_OPERATION_EVENT.parse::<H256>().unwrap(),
+        ))
         .topic1(H256::from(user_op_hash));
 
     let logs = loop {
