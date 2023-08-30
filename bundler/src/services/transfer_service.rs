@@ -10,9 +10,7 @@ use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
-use crate::db::dao::transaction_dao::{
-    get_transaction_by_id, TransactionDao, TransactionMetadata, UserTransaction,
-};
+use crate::db::dao::transaction_dao::{TransactionDao, TransactionMetadata, UserTransaction};
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
@@ -224,7 +222,7 @@ pub async fn get_status(
     db_pool: &Pool<SqliteConnectionManager>,
     txn_id: String,
 ) -> Result<Transaction, ApiError> {
-    let transaction_and_exponent = get_transaction_by_id(db_pool, txn_id).await;
+    let transaction_and_exponent = TransactionDao::get_transaction_by_id(db_pool, txn_id).await;
 
     Ok(Transaction::from(transaction_and_exponent))
 }
