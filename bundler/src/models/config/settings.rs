@@ -26,12 +26,6 @@ pub struct Server {
 }
 
 #[derive(Debug, Deserialize, Clone)]
-pub struct Database {
-    pub file: String,
-    pub url: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
 pub struct Chain {
     pub chain_id: u64,
     pub url: String,
@@ -66,7 +60,6 @@ pub struct DefaultGas {
 pub struct Settings {
     pub run_config: RunConfig,
     pub log: Log,
-    pub database: Database,
     pub server: Server,
     pub chains: Map<String, Chain>,
     pub default_gas: DefaultGas,
