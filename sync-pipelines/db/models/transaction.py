@@ -1,10 +1,10 @@
 from peewee import CharField, BigIntegerField
 from playhouse.postgres_ext import DateTimeTZField
 
-from db.models.base import BaseModel
+from db.models.base import RoverXBaseModel
 
 
-class Transactions(BaseModel):
+class Transactions(RoverXBaseModel):
     hash = CharField(primary_key=True)
     block_number = None
     from_address = CharField()
