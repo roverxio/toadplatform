@@ -1,75 +1,87 @@
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
+use log::error;
 use serde::{Deserialize, Serialize};
-
-use crate::db::dao::connect::connect;
+use serde_json::Value;
+use sqlx::{query, Pool, Postgres};
 
 #[derive(Clone)]
 pub struct TransactionDao {
-    pub pool: Pool<SqliteConnectionManager>,
+    pub pool: Pool<Postgres>,
 }
 
 impl TransactionDao {
     pub async fn list_transactions(
         &self,
-        page_size: i32,
+        page_size: i64,
         id: i32,
         user_wallet: String,
     ) -> Vec<UserTransactionWithExponent> {
-        let conn = connect(self.pool.clone()).await;
-
-        let mut stmt = conn
-            .prepare(
-                "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
-            t1.to_address, t1.amount, t1.currency, t1.type, t1.status, t1.metadata, t1.created_at, \
-            t1.updated_at, t2.exponent from user_transactions t1 left join supported_currencies t2 on \
-            t1.currency = t2.currency where user_address = ? and id < ? order by id desc limit ?",
-            )
-            .unwrap();
-        let rows: Vec<UserTransactionWithExponent> = stmt
-            .query_map(
-                [user_wallet, id.to_string(), page_size.to_string()],
-                |row| {
-                    let metadata: TransactionMetadata =
-                        serde_json::from_str(&row.get::<_, String>(9).unwrap()).unwrap();
-                    let amount: String = row.get(5).unwrap();
-                    let mut exponent = row.get(12);
-                    if exponent.is_err() {
-                        exponent = Ok(0);
+        let query = query!(
+            "SELECT t1.*, t1.type as transaction_type, t2.exponent from user_transactions t1 left \
+            join supported_currencies t2 on t1.currency = t2.currency \
+            where user_address = $1 and id < $2 order by id desc limit $3",
+            user_wallet,
+            id,
+            page_size
+        );
+        let result = query.fetch_all(&self.pool).await;
+        return match result {
+            Ok(rows) => {
+                let mut transactions = Vec::new();
+                for row in rows {
+                    let metadata: TransactionMetadata;
+                    match serde_json::from_value(row.metadata) {
+                        Ok(data) => metadata = data,
+                        Err(err) => {
+                            error!(
+                                "Metadata deserialization failed: {}, err: {:?}",
+                                row.transaction_id, err
+                            );
+                            continue;
+                        }
                     }
-
-                    Ok(UserTransactionWithExponent {
+                    transactions.push(UserTransactionWithExponent {
                         user_transaction: UserTransaction {
-                            id: row.get(0)?,
-                            user_address: row.get(1)?,
-                            transaction_id: row.get(2)?,
-                            from_address: row.get(3)?,
-                            to_address: row.get(4)?,
-                            amount,
-                            currency: row.get(6)?,
-                            transaction_type: row.get(7)?,
-                            status: row.get(8)?,
+                            id: row.id,
+                            user_address: row.user_address,
+                            transaction_id: row.transaction_id,
+                            from_address: row.from_address,
+                            to_address: row.to_address,
+                            amount: row.amount,
+                            currency: row.currency,
+                            transaction_type: row.transaction_type,
+                            status: row.status,
                             metadata,
-                            created_at: row.get(10)?,
-                            updated_at: row.get(11)?,
+                            created_at: row.created_at.to_string(),
+                            updated_at: row.updated_at.to_string(),
                         },
-                        exponent: exponent?,
+                        exponent: row.exponent,
                     })
-                },
-            )
-            .and_then(Iterator::collect)
-            .unwrap();
-        rows
+                }
+                transactions
+            }
+            Err(error) => {
+                error!("Failed to fetch transactions: {:?}", error);
+                vec![]
+            }
+        };
     }
 
     pub async fn create_user_transaction(&self, txn: UserTransaction) {
-        let conn = connect(self.pool.clone()).await;
-        let mut stmt = conn
-            .prepare(
-                "INSERT INTO user_transactions (user_address, transaction_id, from_address, to_address, amount, currency, type, status, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            )
-            .unwrap();
-        stmt.execute([
+        let metadata: Value;
+        match serde_json::to_value(&txn.metadata) {
+            Ok(data) => metadata = data,
+            Err(err) => {
+                error!(
+                    "Metadata conversion failed: {}, err: {:?}",
+                    txn.transaction_id, err
+                );
+                return;
+            }
+        }
+        let query = query!(
+            "INSERT INTO user_transactions (user_address, transaction_id, from_address,\
+                to_address, amount, currency, type, status, metadata) VALUES \
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             txn.user_address.clone(),
             txn.transaction_id.clone(),
             txn.from_address.clone(),
@@ -78,9 +90,16 @@ impl TransactionDao {
             txn.currency.clone(),
             txn.transaction_type.clone(),
             txn.status.clone(),
-            serde_json::to_string(&txn.metadata).unwrap(),
-        ])
-        .unwrap();
+            metadata
+        );
+        let result = query.execute(&self.pool).await;
+        if result.is_err() {
+            error!(
+                "Failed to create user transaction: {}, err: {:?}",
+                txn.transaction_id,
+                result.err()
+            );
+        }
     }
 }
 

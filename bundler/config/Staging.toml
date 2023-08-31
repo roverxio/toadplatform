@@ -13,9 +13,6 @@ prefix = "app"
 [log]
 level = "info"
 
-[database]
-file = "toad.db"
-
 [chains.sepolia]
 chain_id = 11155111
 url = "https://sepolia.infura.io/v3/"

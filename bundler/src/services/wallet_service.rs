@@ -99,7 +99,7 @@ impl WalletService {
 
     pub async fn list_transactions(
         &self,
-        page_size: i32,
+        page_size: i64,
         id: Option<i32>,
         user_id: &String,
     ) -> Vec<Transaction> {

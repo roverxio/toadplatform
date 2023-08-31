@@ -15,7 +15,7 @@ use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
-use crate::db::connection::establish_connection;
+use crate::db::connection::DatabaseConnection;
 use crate::db::dao::metadata_dao::MetadataDao;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
@@ -41,7 +41,7 @@ pub struct ToadService {
     pub metadata_service: MetadataService,
 }
 
-pub fn init_services() -> ToadService {
+pub async fn init_services() -> ToadService {
     init_logging();
     info!("Starting server...");
     // contract providers
@@ -79,10 +79,10 @@ pub fn init_services() -> ToadService {
     );
 
     //daos
-    let pool = establish_connection(CONFIG.database.file.clone());
+    let pool = DatabaseConnection::init().await;
     let wallet_dao = WalletDao { pool: pool.clone() };
     let transaction_dao = TransactionDao { pool: pool.clone() };
-    let meatadata_dao = MetadataDao { pool: pool.clone() };
+    let metadata_dao = MetadataDao { pool: pool.clone() };
 
     // providers
     let verify_paymaster_provider = PaymasterProvider {
@@ -113,7 +113,7 @@ pub fn init_services() -> ToadService {
     };
     let balance_service = BalanceService {
         wallet_dao: wallet_dao.clone(),
-        metadata_dao: meatadata_dao.clone(),
+        metadata_dao: metadata_dao.clone(),
         erc20_provider: erc20.clone(),
     };
     let transfer_service = TransferService {
@@ -132,10 +132,10 @@ pub fn init_services() -> ToadService {
         paymaster_provider: verify_paymaster_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
         relayer_signer: relayer_signer.clone(),
-        metadata_dao: meatadata_dao.clone(),
+        metadata_dao: metadata_dao.clone(),
     };
     let metadata_service = MetadataService {
-        metadata_dao: meatadata_dao.clone(),
+        metadata_dao: metadata_dao.clone(),
     };
 
     ToadService {
