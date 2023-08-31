@@ -29,8 +29,14 @@ impl TransactionDao {
             Ok(rows) => {
                 let mut transactions = Vec::new();
                 for row in rows {
-                    let metadata: TransactionMetadata =
-                        serde_json::from_value(row.metadata).unwrap();
+                    let metadata: TransactionMetadata;
+                    match serde_json::from_value(row.metadata) {
+                        Ok(data) => metadata = data,
+                        Err(_) => {
+                            warn!("Metadata deserialization failed: {}", row.transaction_id);
+                            continue;
+                        }
+                    }
                     transactions.push(UserTransactionWithExponent {
                         user_transaction: UserTransaction {
                             id: row.id,

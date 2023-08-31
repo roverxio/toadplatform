@@ -42,11 +42,12 @@ impl MetadataDao {
             }
             Some(currency) => {
                 let query = query_as!(
-                SupportedCurrency,
-                "SELECT chain, currency, exponent FROM supported_currencies WHERE chain = $1 AND currency = $2",
-                chain,
-                currency
-            );
+                    SupportedCurrency,
+                    "SELECT chain, currency, exponent FROM supported_currencies WHERE chain = $1 \
+                    AND currency = $2",
+                    chain,
+                    currency
+                );
                 query.fetch_all(&self.pool).await
             }
         };
