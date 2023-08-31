@@ -13,13 +13,6 @@ prefix = "app"
 [log]
 level = "info"
 
-[default_chain]
-chain = "Sepolia"
-currency = "native"
-
-[database]
-file = "toad.db"
-
 [chains.sepolia]
 chain_id = 11155111
 url = "https://sepolia.infura.io/v3/"

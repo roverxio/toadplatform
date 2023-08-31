@@ -1,39 +1,87 @@
-use r2d2::Pool;
-use r2d2_sqlite::rusqlite::{params, Result, Row, ToSql};
-use r2d2_sqlite::SqliteConnectionManager;
+use log::error;
 use serde::{Deserialize, Serialize};
-
-use crate::db::dao::connect::connect;
+use serde_json::Value;
+use sqlx::{query, Pool, Postgres};
 
 #[derive(Clone)]
 pub struct TransactionDao {
-    pub pool: Pool<SqliteConnectionManager>,
+    pub pool: Pool<Postgres>,
 }
 
 impl TransactionDao {
     pub async fn list_transactions(
         &self,
-        page_size: i32,
+        page_size: i64,
         id: i32,
         user_wallet: String,
     ) -> Vec<UserTransactionWithExponent> {
-        let query = "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
-            t1.to_address, t1.amount, t1.currency, t1.type, t1.status, t1.metadata, t1.created_at, \
-            t1.updated_at, t2.exponent from user_transactions t1 left join supported_currencies t2 on \
-            t1.currency = t2.currency where user_address = ? and id < ? order by id desc limit ?".to_string();
-
-        let params = params![user_wallet, id.to_string(), page_size.to_string()];
-        Self::get_user_transactions(&self.pool, query, params).await
+        let query = query!(
+            "SELECT t1.*, t1.type as transaction_type, t2.exponent from user_transactions t1 left \
+            join supported_currencies t2 on t1.currency = t2.currency \
+            where user_address = $1 and id < $2 order by id desc limit $3",
+            user_wallet,
+            id,
+            page_size
+        );
+        let result = query.fetch_all(&self.pool).await;
+        return match result {
+            Ok(rows) => {
+                let mut transactions = Vec::new();
+                for row in rows {
+                    let metadata: TransactionMetadata;
+                    match serde_json::from_value(row.metadata) {
+                        Ok(data) => metadata = data,
+                        Err(err) => {
+                            error!(
+                                "Metadata deserialization failed: {}, err: {:?}",
+                                row.transaction_id, err
+                            );
+                            continue;
+                        }
+                    }
+                    transactions.push(UserTransactionWithExponent {
+                        user_transaction: UserTransaction {
+                            id: row.id,
+                            user_address: row.user_address,
+                            transaction_id: row.transaction_id,
+                            from_address: row.from_address,
+                            to_address: row.to_address,
+                            amount: row.amount,
+                            currency: row.currency,
+                            transaction_type: row.transaction_type,
+                            status: row.status,
+                            metadata,
+                            created_at: row.created_at.to_string(),
+                            updated_at: row.updated_at.to_string(),
+                        },
+                        exponent: row.exponent,
+                    })
+                }
+                transactions
+            }
+            Err(error) => {
+                error!("Failed to fetch transactions: {:?}", error);
+                vec![]
+            }
+        };
     }
 
     pub async fn create_user_transaction(&self, txn: UserTransaction) {
-        let conn = connect(self.pool.clone()).await;
-        let mut stmt = conn
-            .prepare(
-                "INSERT INTO user_transactions (user_address, transaction_id, from_address, to_address, amount, currency, type, status, metadata) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
-            )
-            .unwrap();
-        stmt.execute([
+        let metadata: Value;
+        match serde_json::to_value(&txn.metadata) {
+            Ok(data) => metadata = data,
+            Err(err) => {
+                error!(
+                    "Metadata conversion failed: {}, err: {:?}",
+                    txn.transaction_id, err
+                );
+                return;
+            }
+        }
+        let query = query!(
+            "INSERT INTO user_transactions (user_address, transaction_id, from_address,\
+                to_address, amount, currency, type, status, metadata) VALUES \
+                ($1, $2, $3, $4, $5, $6, $7, $8, $9)",
             txn.user_address.clone(),
             txn.transaction_id.clone(),
             txn.from_address.clone(),
@@ -42,9 +90,16 @@ impl TransactionDao {
             txn.currency.clone(),
             txn.transaction_type.clone(),
             txn.status.clone(),
-            serde_json::to_string(&txn.metadata).unwrap(),
-        ])
-        .unwrap();
+            metadata
+        );
+        let result = query.execute(&self.pool).await;
+        if result.is_err() {
+            error!(
+                "Failed to create user transaction: {}, err: {:?}",
+                txn.transaction_id,
+                result.err()
+            );
+        }
     }
 
     pub async fn get_transaction_by_id(
@@ -63,6 +118,15 @@ impl TransactionDao {
         } else {
             user_transaction_data[0].clone()
         }
+    }
+
+    pub async fn update_user_transaction(&self, txn_id: String, txn_hash: String, status: String) {
+        let conn = connect(self.pool.clone()).await;
+        let mut stmt = conn
+            .prepare("UPDATE user_transactions set status = ?, metadata = json_set(metadata, '$.transaction_hash', ?) where transaction_id = ?")
+            .unwrap();
+        stmt.execute([status, txn_hash, txn_id])
+            .expect("Unable to update the user_transactions table");
     }
 
     async fn get_user_transactions(
@@ -106,15 +170,6 @@ impl TransactionDao {
             },
             exponent: exponent?,
         })
-    }
-
-    pub async fn update_user_transaction(&self, txn_id: String, txn_hash: String, status: String) {
-        let conn = connect(self.pool.clone()).await;
-        let mut stmt = conn
-            .prepare("UPDATE user_transactions set status = ?, metadata = json_set(metadata, '$.transaction_hash', ?) where transaction_id = ?")
-            .unwrap();
-        stmt.execute([status, txn_hash, txn_id])
-            .expect("Unable to update the user_transactions table");
     }
 }
 

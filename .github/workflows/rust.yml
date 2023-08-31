@@ -1,0 +1,33 @@
+name: Rust
+
+on:
+  push:
+    branches:
+      - main
+      - release/*
+  pull_request:
+    branches:
+      - main
+      - release/*
+  schedule:
+    - cron: '30 4 * * *'
+    - cron: '50 12 * * *'
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+      - name: Setup Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.71.0
+          override: true
+      - name: Build
+        run: |
+          cd bundler
+          cargo build --verbose
