@@ -1,3 +1,4 @@
+use actix_web::rt::spawn;
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
@@ -21,6 +22,7 @@ use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
+use crate::provider::listeners::user_op_event_listener;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
 use crate::CONFIG;
@@ -104,12 +106,14 @@ impl TransferService {
             CONFIG.get_chain().verifying_paymaster_address,
             Some(singed_hash),
         );
+
+        let user_op_hash = user_op0.hash(
+            CONFIG.get_chain().entrypoint_address,
+            CONFIG.get_chain().chain_id,
+        );
         let signature = Bytes::from(
             self.scw_owner_wallet
-                .sign_message(user_op0.hash(
-                    CONFIG.get_chain().entrypoint_address,
-                    CONFIG.get_chain().chain_id,
-                ))
+                .sign_message(user_op_hash.clone())
                 .await
                 .unwrap()
                 .to_vec(),
@@ -137,6 +141,13 @@ impl TransferService {
                 .update_wallet_deployed(usr.to_string())
                 .await;
         }
+
+        spawn(user_op_event_listener(
+            self.transaction_dao.clone(),
+            self.entrypoint_provider.clone(),
+            user_op_hash,
+            user_txn.transaction_id.clone(),
+        ));
 
         Ok(TransferResponse {
             transaction: TransactionResponse {
