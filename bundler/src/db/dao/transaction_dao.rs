@@ -16,10 +16,9 @@ impl TransactionDao {
         user_wallet: String,
     ) -> Vec<UserTransactionWithExponent> {
         let query = query!(
-            "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
-            t1.to_address, t1.amount, t1.currency, t1.type as transaction_type, t1.status, t1.metadata, t1.created_at, \
-            t1.updated_at, t2.exponent from user_transactions t1 left join supported_currencies t2 on \
-            t1.currency = t2.currency where user_address = $1 and id < $2 order by id desc limit $3",
+            "SELECT t1.*, t1.type as transaction_type, t2.exponent from user_transactions t1 left \
+            join supported_currencies t2 on t1.currency = t2.currency \
+            where user_address = $1 and id < $2 order by id desc limit $3",
             user_wallet,
             id,
             page_size
