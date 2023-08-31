@@ -10,9 +10,9 @@ use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
-use crate::models::transaction::transaction::{Amount, Metadata, Transaction, UserInfo};
+use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
-use crate::provider::helpers::{contract_exists_at, get_explorer_url, get_hash};
+use crate::provider::helpers::{contract_exists_at, get_hash};
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -117,33 +117,7 @@ impl WalletService {
             .await;
 
         for transaction_and_exponent in result {
-            let transaction = transaction_and_exponent.user_transaction;
-            transactions.push(Transaction {
-                transaction_id: transaction.transaction_id,
-                amount: Amount {
-                    currency: transaction.currency,
-                    value: transaction.amount,
-                    exponent: transaction_and_exponent.exponent,
-                },
-                metadata: Metadata {
-                    chain: transaction.metadata.chain,
-                    gas: Amount::default(),
-                    transaction_hash: transaction.metadata.transaction_hash.clone(),
-                    timestamp: transaction.updated_at,
-                    explorer_url: get_explorer_url(&transaction.metadata.transaction_hash),
-                    status: transaction.status,
-                },
-                from: UserInfo {
-                    address: transaction.from_address,
-                    name: transaction.metadata.from_name,
-                },
-                id: transaction.id,
-                to: UserInfo {
-                    address: transaction.to_address,
-                    name: transaction.metadata.to_name,
-                },
-                transaction_type: transaction.transaction_type,
-            })
+            transactions.push(Transaction::from(transaction_and_exponent))
         }
 
         transactions
