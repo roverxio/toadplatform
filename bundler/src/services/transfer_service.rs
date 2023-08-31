@@ -2,6 +2,8 @@ use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
+use r2d2::Pool;
+use r2d2_sqlite::SqliteConnectionManager;
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -13,6 +15,7 @@ use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::currency::Currency;
+use crate::models::transaction::transaction::Transaction;
 use crate::models::transaction_type::TransactionType;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
@@ -212,5 +215,19 @@ impl TransferService {
                 .unwrap()),
             None => Err("Currency not found".to_string()),
         }
+    }
+
+    pub async fn get_status(
+        db_pool: &Pool<SqliteConnectionManager>,
+        txn_id: String,
+        user_id: String,
+    ) -> Result<Transaction, ApiError> {
+        let user_wallet_address =
+            WalletDao::get_user_wallet_address(db_pool, user_id.to_string()).await;
+
+        let transaction_and_exponent =
+            TransactionDao::get_transaction_by_id(db_pool, txn_id, user_wallet_address).await;
+
+        Ok(Transaction::from(transaction_and_exponent))
     }
 }
