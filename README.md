@@ -31,7 +31,11 @@ You can find the deployed contracts in the console logs. Copy the very first pri
 ### Running the bundler
 1. navigate to `.env.example` and set the environment variables mentioned there (using the export command) (RUN_ENV can be one of "Development", "Production", "Staging")
 2. if your RUN_ENV is "Development", set INFURA_KEY to an empty string. You will also need to create a copy of config/Staging.toml and rename it to config/Development.toml. Set the values in the config file as per your requirements.
-3. run `bash db/setup_db.sh`
+3. setup database
+   ```bash
+   cargo install sqlx-cli@0.7.1
+   cargo sqlx migrate run --database-url DATABASE_URL
+   ```
 4. run `cargo run`
 
 By default, the server uses "Development.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
