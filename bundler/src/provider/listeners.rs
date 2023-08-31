@@ -1,5 +1,6 @@
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
+use crate::models::transfer::status::Status::{FAILED, SUCCESS};
 use crate::{CONFIG, PROVIDER};
 use ethers::abi::RawLog;
 use ethers::providers::Middleware;
@@ -44,13 +45,9 @@ pub async fn user_op_event_listener(
         .unwrap();
     let success = success_param.value.into_bool().unwrap();
 
-    let status = if success {
-        "success".to_string()
-    } else {
-        "failed".to_string()
-    };
+    let status = if success { SUCCESS } else { FAILED };
 
     transaction_dao
-        .update_user_transactions(txn_id, txn_hash.to_string(), status)
+        .update_user_transactions(txn_id, txn_hash.to_string(), status.to_string())
         .await;
 }
