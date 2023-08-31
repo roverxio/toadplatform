@@ -1,7 +1,10 @@
 database:
-  storage:
-    db_file: ~/roverx-rpc/bundler/toad.db
-  postgres:
+  roverx:
+    db_name: my_db
+    username: admin
+    password: admin123
+    host: localhost
+  toad:
     db_name: my_db
     username: admin
     password: admin123
