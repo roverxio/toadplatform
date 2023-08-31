@@ -1,4 +1,4 @@
-use log::{error, warn};
+use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{query, Pool, Postgres};
@@ -33,7 +33,7 @@ impl TransactionDao {
                     match serde_json::from_value(row.metadata) {
                         Ok(data) => metadata = data,
                         Err(err) => {
-                            warn!(
+                            error!(
                                 "Metadata deserialization failed: {}, err: {:?}",
                                 row.transaction_id, err
                             );
@@ -61,7 +61,7 @@ impl TransactionDao {
                 transactions
             }
             Err(error) => {
-                warn!("Failed to fetch transactions: {:?}", error);
+                error!("Failed to fetch transactions: {:?}", error);
                 vec![]
             }
         };
@@ -95,7 +95,7 @@ impl TransactionDao {
         );
         let result = query.execute(&self.pool).await;
         if result.is_err() {
-            warn!(
+            error!(
                 "Failed to create user transaction: {}, err: {:?}",
                 txn.transaction_id,
                 result.err()

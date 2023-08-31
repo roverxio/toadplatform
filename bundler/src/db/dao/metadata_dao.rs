@@ -1,4 +1,4 @@
-use log::{error, warn};
+use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
 #[derive(Clone)]
@@ -22,7 +22,7 @@ impl MetadataDao {
             exponent);
         let result = query.execute(&self.pool).await;
         if result.is_err() {
-            warn!(
+            error!(
                 "Failed to create metadata: {}, err: {:?}",
                 chain,
                 result.err()

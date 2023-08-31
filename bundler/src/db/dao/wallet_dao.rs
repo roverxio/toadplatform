@@ -1,4 +1,4 @@
-use log::{error, warn};
+use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
 #[derive(Clone)]
@@ -15,7 +15,7 @@ impl WalletDao {
         );
         let result = query.execute(&self.pool).await;
         if result.is_err() {
-            warn!(
+            error!(
                 "Failed to update deployed status for user: {}, err: {:?}",
                 user_id,
                 result.err()
@@ -63,7 +63,7 @@ impl WalletDao {
         );
         let result = query.execute(&self.pool).await;
         if result.is_err() {
-            warn!(
+            error!(
                 "Failed to create user: {}, err: {:?}",
                 user_id,
                 result.err()
