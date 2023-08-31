@@ -1,3 +1,4 @@
+use actix_web::rt::spawn;
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
@@ -126,13 +127,6 @@ impl TransferService {
             return Err(ApiError::BadRequest(result.err().unwrap()));
         }
 
-        let _ = user_op_event_listener(
-            self.transaction_dao.clone(),
-            self.entrypoint_provider.clone(),
-            user_op_hash,
-            user_txn.transaction_id.clone(),
-        );
-
         let txn_hash = result.unwrap();
         info!("Transaction sent successfully. Hash: {:?}", txn_hash);
         user_txn.metadata.transaction_hash(txn_hash.clone());
@@ -144,6 +138,13 @@ impl TransferService {
                 .update_wallet_deployed(usr.to_string())
                 .await;
         }
+
+        spawn(user_op_event_listener(
+            self.transaction_dao.clone(),
+            self.entrypoint_provider.clone(),
+            user_op_hash,
+            user_txn.transaction_id.clone(),
+        ));
 
         Ok(TransferResponse {
             transaction: TransactionResponse {
