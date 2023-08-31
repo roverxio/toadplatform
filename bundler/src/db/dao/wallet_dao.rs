@@ -1,4 +1,4 @@
-use log::warn;
+use log::{error, warn};
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
 #[derive(Clone)]
@@ -15,7 +15,11 @@ impl WalletDao {
         );
         let result = query.execute(&self.pool).await;
         if result.is_err() {
-            warn!("Failed to update deployed status for user: {}", user_id);
+            warn!(
+                "Failed to update deployed status for user: {}, err: {:?}",
+                user_id,
+                result.err()
+            );
         }
     }
 
@@ -24,7 +28,10 @@ impl WalletDao {
         let result: Result<User, Error> = query.fetch_one(&self.pool).await;
         return match result {
             Ok(user) => user.wallet_address,
-            Err(_) => "".to_string(),
+            Err(err) => {
+                error!("Failed to get wallet address {}, err: {:?}", user_id, err);
+                "".to_string()
+            }
         };
     }
 
@@ -33,7 +40,10 @@ impl WalletDao {
         let result: Result<Option<User>, Error> = query.fetch_optional(&self.pool).await;
         return match result {
             Ok(user) => user,
-            Err(_) => None,
+            Err(err) => {
+                error!("Failed to get wallet address {}, err: {:?}", user_id, err);
+                None
+            }
         };
     }
 
@@ -53,7 +63,11 @@ impl WalletDao {
         );
         let result = query.execute(&self.pool).await;
         if result.is_err() {
-            warn!("Failed to create user: {}", user_id);
+            warn!(
+                "Failed to create user: {}, err: {:?}",
+                user_id,
+                result.err()
+            );
         }
     }
 }

@@ -1,4 +1,4 @@
-use log::warn;
+use log::{error, warn};
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
 #[derive(Clone)]
@@ -22,7 +22,11 @@ impl MetadataDao {
             exponent);
         let result = query.execute(&self.pool).await;
         if result.is_err() {
-            warn!("Failed to create metadata: {}", chain);
+            warn!(
+                "Failed to create metadata: {}, err: {:?}",
+                chain,
+                result.err()
+            );
         }
     }
 
@@ -53,7 +57,10 @@ impl MetadataDao {
         };
         return match result {
             Ok(currencies) => currencies,
-            Err(_) => vec![],
+            Err(err) => {
+                error!("Failed to get currencies, err: {:?}", err);
+                vec![]
+            }
         };
     }
 }

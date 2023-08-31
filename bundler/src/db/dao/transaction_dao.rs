@@ -32,8 +32,11 @@ impl TransactionDao {
                     let metadata: TransactionMetadata;
                     match serde_json::from_value(row.metadata) {
                         Ok(data) => metadata = data,
-                        Err(_) => {
-                            warn!("Metadata deserialization failed: {}", row.transaction_id);
+                        Err(err) => {
+                            warn!(
+                                "Metadata deserialization failed: {}, err: {:?}",
+                                row.transaction_id, err
+                            );
                             continue;
                         }
                     }
@@ -68,8 +71,11 @@ impl TransactionDao {
         let metadata: Value;
         match serde_json::to_value(&txn.metadata) {
             Ok(data) => metadata = data,
-            Err(_) => {
-                error!("Metadata conversion failed: {}", txn.transaction_id);
+            Err(err) => {
+                error!(
+                    "Metadata conversion failed: {}, err: {:?}",
+                    txn.transaction_id, err
+                );
                 return;
             }
         }
@@ -89,7 +95,11 @@ impl TransactionDao {
         );
         let result = query.execute(&self.pool).await;
         if result.is_err() {
-            warn!("Failed to create user transaction: {}", txn.transaction_id);
+            warn!(
+                "Failed to create user transaction: {}, err: {:?}",
+                txn.transaction_id,
+                result.err()
+            );
         }
     }
 }
