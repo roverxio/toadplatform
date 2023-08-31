@@ -108,12 +108,13 @@ impl TransactionDao {
         })
     }
 
-    pub async fn update_user_transactions(&self, txn_id: String, txn_hash: String, status: String) {
+    pub async fn update_user_transaction(&self, txn_id: String, txn_hash: String, status: String) {
         let conn = connect(self.pool.clone()).await;
         let mut stmt = conn
-            .prepare("UPDATE user_transactions set status=?, metadata = json_set(metadata, '$.transaction_hash', ?) where transaction_id=?")
+            .prepare("UPDATE user_transactions set status = ?, metadata = json_set(metadata, '$.transaction_hash', ?) where transaction_id = ?")
             .unwrap();
-        stmt.execute([status, txn_hash, txn_id]).unwrap();
+        stmt.execute([status, txn_hash, txn_id])
+            .expect("Unable to update the user_transactions table");
     }
 }
 

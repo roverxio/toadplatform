@@ -24,7 +24,7 @@ pub async fn user_op_event_listener(
 
     let log_data = loop {
         let logs = PROVIDER.get_logs(&filter).await.unwrap();
-        if logs.iter().len() > 0 {
+        if logs.len() > 0 {
             break logs[0].clone();
         }
     };
@@ -48,6 +48,6 @@ pub async fn user_op_event_listener(
     let status = if success { SUCCESS } else { FAILED };
 
     transaction_dao
-        .update_user_transactions(txn_id, txn_hash, status.to_string())
+        .update_user_transaction(txn_id, txn_hash, status.to_string())
         .await;
 }
