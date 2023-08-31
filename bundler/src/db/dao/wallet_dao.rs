@@ -20,7 +20,14 @@ impl WalletDao {
     }
 
     pub async fn get_wallet_address(&self, user_id: String) -> String {
-        let conn = connect(self.pool.clone()).await;
+        Self::get_user_wallet_address(&self.pool, user_id).await
+    }
+
+    pub async fn get_user_wallet_address(
+        pool: &Pool<SqliteConnectionManager>,
+        user_id: String,
+    ) -> String {
+        let conn = connect(pool.clone()).await;
 
         let mut stmt = conn
             .prepare("SELECT * from users where email = ? limit 1")
