@@ -113,7 +113,7 @@ impl TransactionDao {
         let mut stmt = conn
             .prepare("UPDATE user_transactions set status=?, metadata = json_set(metadata, '$.transaction_hash', ?) where transaction_id=?")
             .unwrap();
-        stmt.execute([status.clone(), txn_hash, txn_id]).unwrap();
+        stmt.execute([status, txn_hash, txn_id]).unwrap();
     }
 }
 
