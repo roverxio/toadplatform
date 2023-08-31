@@ -38,6 +38,8 @@ You can find the deployed contracts in the console logs. Copy the very first pri
    ```
 4. run `cargo run`
 
+<ins>NOTE</ins>: Any changes in the dao layer regarding db query, run `cargo sqlx prepare --database-url DATABASE_URL` and add the generated files for the workflow to succeed 
+
 By default, the server uses "Development.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
 1. Development
 2. Production
