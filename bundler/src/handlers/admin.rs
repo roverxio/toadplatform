@@ -56,6 +56,7 @@ pub async fn add_currency_metadata(
 }
 
 fn is_admin(user: String) -> bool {
-    let admins = env!("ADMIN").split(",").collect::<Vec<&str>>();
+    let admins_env = std::env::var("ADMIN").expect("ADMIN env variable not set");
+    let admins = admins_env.split(",").collect::<Vec<&str>>();
     admins.contains(&&*user)
 }
