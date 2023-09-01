@@ -118,7 +118,7 @@ impl TransactionDao {
         let result = query.fetch_one(pool).await;
         return match result {
             Ok(row) => {
-                let mut metadata: TransactionMetadata = Default::default();
+                let mut metadata = TransactionMetadata::default();
                 match serde_json::from_value(row.metadata) {
                     Ok(data) => metadata = data,
                     Err(err) => {
@@ -148,7 +148,7 @@ impl TransactionDao {
             }
             Err(error) => {
                 error!("Failed to fetch transactions: {:?}", error);
-                Default::default()
+                UserTransactionWithExponent::default()
             }
         };
     }
@@ -270,7 +270,7 @@ impl UserTransaction {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default)]
 pub struct UserTransactionWithExponent {
     pub user_transaction: UserTransaction,
     pub exponent: i32,
