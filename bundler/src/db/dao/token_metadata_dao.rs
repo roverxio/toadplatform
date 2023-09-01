@@ -17,13 +17,17 @@ impl TokenMetadataDao {
         name: String,
     ) {
         let query = query!(
-            "INSERT INTO token_metadata (chain, symbol, contract_address, exponent, token_type, name) VALUES ($1, $2, $3, $4, $5, $6)",
+            "INSERT INTO token_metadata \
+            (chain, symbol, contract_address, exponent, token_type, name) VALUES \
+            ($1, $2, $3, $4, $5, $6) on conflict (chain, symbol) do update set \
+            contract_address = $3, exponent = $4, token_type = $5, name = $6, updated_at = now()",
             chain,
             currency,
             address,
             exponent,
             token_type,
-            name);
+            name
+        );
         let result = query.execute(&self.pool).await;
         if result.is_err() {
             error!(
