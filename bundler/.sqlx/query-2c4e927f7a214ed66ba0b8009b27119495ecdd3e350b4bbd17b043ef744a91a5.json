@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, t1.to_address, t1.amount, t1.currency, t1.type as transaction_type, t1.status, t1.metadata, t1.created_at, t1.updated_at, t2.exponent from user_transactions t1 left join supported_currencies t2 on t1.currency = t2.currency where user_address = $1 and id < $2 order by id desc limit $3",
+  "query": "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, t1.to_address, t1.amount, t1.currency, t1.type as transaction_type, t1.status, t1.metadata, t1.created_at, t1.updated_at, t2.exponent from user_transactions t1 left join token_metadata t2 on t1.currency = t2.symbol where transaction_id = $1 and user_address = $2",
   "describe": {
     "columns": [
       {
@@ -72,8 +72,7 @@
     "parameters": {
       "Left": [
         "Text",
-        "Int4",
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -92,5 +91,5 @@
       false
     ]
   },
-  "hash": "152b07b4b57b21b8dd6071a54f59f6affaf417bc808516c19817dcc4b035c63c"
+  "hash": "2c4e927f7a214ed66ba0b8009b27119495ecdd3e350b4bbd17b043ef744a91a5"
 }

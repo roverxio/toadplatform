@@ -3,7 +3,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::types::JsonValue;
-use sqlx::{query, query_as, FromRow, Pool, Postgres};
+use sqlx::{query, query_as, Pool, Postgres};
 use std::default::Default;
 
 #[derive(Clone)]
@@ -23,7 +23,7 @@ impl TransactionDao {
             "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, t1.to_address, \
             t1.amount, t1.currency, t1.type as transaction_type, t1.status, t1.metadata, \
             t1.created_at, t1.updated_at, t2.exponent from user_transactions t1 \
-            left join supported_currencies t2 on t1.currency = t2.currency \
+            left join token_metadata t2 on t1.currency = t2.symbol \
             where user_address = $1 and id < $2 order by id desc limit $3",
             user_wallet,
             id,
@@ -85,8 +85,8 @@ impl TransactionDao {
             "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
             t1.to_address, t1.amount, t1.currency, t1.type as transaction_type, \
             t1.status, t1.metadata, t1.created_at, t1.updated_at, t2.exponent \
-            from user_transactions t1 left join supported_currencies t2 \
-            on t1.currency = t2.currency where transaction_id = $1 and user_address = $2",
+            from user_transactions t1 left join token_metadata t2 \
+            on t1.currency = t2.symbol where transaction_id = $1 and user_address = $2",
             txn_id,
             user_wallet_address,
         );
@@ -120,7 +120,7 @@ impl TransactionDao {
     }
 }
 
-#[derive(Clone, Default, FromRow)]
+#[derive(Clone, Default)]
 pub struct UserTransaction {
     pub id: i32,
     pub user_address: String,
@@ -129,7 +129,6 @@ pub struct UserTransaction {
     pub to_address: String,
     pub amount: String,
     pub currency: String,
-    #[sqlx(rename = "type")]
     pub transaction_type: String,
     pub status: String,
     pub metadata: TransactionMetadata,

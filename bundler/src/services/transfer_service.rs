@@ -10,6 +10,7 @@ use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
+use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::transaction_dao::{TransactionDao, TransactionMetadata, UserTransaction};
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
@@ -30,6 +31,7 @@ use crate::CONFIG;
 pub struct TransferService {
     pub wallet_dao: WalletDao,
     pub transaction_dao: TransactionDao,
+    pub token_metadata_dao: TokenMetadataDao,
     pub usdc_provider: USDCProvider,
     pub entrypoint_provider: EntryPointProvider,
     pub simple_account_provider: SimpleAccountProvider,
@@ -61,7 +63,7 @@ impl TransferService {
         let mut user_txn =
             self.get_user_transaction(&to, &value, &currency, wallet.wallet_address.clone());
         let mut user_op0 = UserOperation::new();
-        user_op0.calldata(self.get_call_data(to, value, currency).unwrap());
+        user_op0.calldata(self.get_call_data(to, value, currency).await.unwrap());
         if !wallet.deployed {
             user_op0.init_code(
                 self.simple_account_factory_provider.abi.address(),
@@ -207,9 +209,20 @@ impl TransferService {
             .to_vec()
     }
 
-    fn get_call_data(&self, to: String, value: String, currency: String) -> Result<Bytes, String> {
-        match Currency::from_str(currency) {
-            Some(Currency::Usdc) => Ok(self
+    async fn get_call_data(
+        &self,
+        to: String,
+        value: String,
+        currency: String,
+    ) -> Result<Bytes, String> {
+        match Currency::from_str(
+            self.token_metadata_dao
+                .get_metadata_for_chain(CONFIG.run_config.current_chain.clone(), Some(currency))
+                .await[0]
+                .token_type
+                .clone(),
+        ) {
+            Some(Currency::Erc20) => Ok(self
                 .simple_account_provider
                 .execute(
                     CONFIG.get_chain().usdc_address,
@@ -219,7 +232,7 @@ impl TransferService {
                         .unwrap(),
                 )
                 .unwrap()),
-            Some(Currency::SepoliaEth | Currency::GoerliEth | Currency::LocalEth) => Ok(self
+            Some(Currency::Native) => Ok(self
                 .simple_account_provider
                 .execute(to.parse().unwrap(), value, Bytes::from(vec![]))
                 .unwrap()),
