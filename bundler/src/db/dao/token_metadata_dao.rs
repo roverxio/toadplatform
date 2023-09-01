@@ -43,7 +43,7 @@ impl TokenMetadataDao {
             None => {
                 let query = query_as!(
                     TokenMetadata,
-                    "SELECT * FROM token_metadata WHERE chain = $1",
+                    "SELECT * FROM token_metadata WHERE chain = $1 and is_supported = true",
                     chain
                 );
                 query.fetch_all(&self.pool).await
@@ -51,7 +51,7 @@ impl TokenMetadataDao {
             Some(currency) => {
                 let query = query_as!(
                     TokenMetadata,
-                    "SELECT * FROM token_metadata WHERE chain = $1 AND symbol = $2",
+                    "SELECT * FROM token_metadata WHERE chain = $1 AND symbol = $2 and is_supported = true",
                     chain,
                     currency
                 );
@@ -78,4 +78,5 @@ pub struct TokenMetadata {
     pub name: String,
     pub created_at: Option<chrono::NaiveDateTime>,
     pub updated_at: Option<chrono::NaiveDateTime>,
+    pub is_supported: bool,
 }
