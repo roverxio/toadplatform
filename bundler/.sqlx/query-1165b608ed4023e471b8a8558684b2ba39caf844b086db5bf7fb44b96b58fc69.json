@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT t1.*, t1.type as transaction_type, t2.exponent from user_transactions t1 left join supported_currencies t2 on t1.currency = t2.currency where user_address = $1 and id < $2 order by id desc limit $3",
+  "query": "SELECT t1.*, t1.type as transaction_type, t2.exponent from user_transactions t1 left join token_metadata t2 on t1.currency = t2.symbol where user_address = $1 and id < $2 order by id desc limit $3",
   "describe": {
     "columns": [
       {
@@ -98,5 +98,5 @@
       false
     ]
   },
-  "hash": "0cfde5c81a93d8dde01897cdd8b08d1689d3f7c55dc1cbb15f7cb4a55d733362"
+  "hash": "1165b608ed4023e471b8a8558684b2ba39caf844b086db5bf7fb44b96b58fc69"
 }
