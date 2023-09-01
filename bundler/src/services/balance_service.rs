@@ -13,7 +13,7 @@ use crate::PROVIDER;
 #[derive(Clone)]
 pub struct BalanceService {
     pub wallet_dao: WalletDao,
-    pub metadata_dao: TokenMetadataDao,
+    pub token_metadata_dao: TokenMetadataDao,
     pub erc20_provider: ERC20<Provider<Http>>,
 }
 
@@ -32,9 +32,15 @@ impl BalanceService {
         }
         let user: Address = address.parse().unwrap();
 
-        match Currency::from_str(currency.clone()) {
+        match Currency::from_str(
+            self.token_metadata_dao
+                .get_metadata_for_chain(chain.clone(), Some(currency.to_string()))
+                .await[0]
+                .token_type
+                .clone(),
+        ) {
             None => return Err(ApiError::BadRequest("Currency not supported".to_string())),
-            Some(Currency::Usdc) => {
+            Some(Currency::Erc20) => {
                 balance = self
                     .erc20_provider
                     .balance_of(user.clone())
@@ -42,7 +48,7 @@ impl BalanceService {
                     .unwrap()
                     .to_string();
             }
-            Some(Currency::SepoliaEth) | Some(Currency::GoerliEth) | Some(Currency::LocalEth) => {
+            Some(Currency::Native) => {
                 balance = PROVIDER
                     .get_balance(user.clone(), None)
                     .await
@@ -56,7 +62,7 @@ impl BalanceService {
             address: address.clone(),
             currency: currency.to_string(),
             exponent: self
-                .metadata_dao
+                .token_metadata_dao
                 .get_metadata_for_chain(chain.clone(), Some(currency.clone()))
                 .await[0]
                 .exponent,

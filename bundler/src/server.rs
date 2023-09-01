@@ -82,7 +82,7 @@ pub async fn init_services() -> ToadService {
     let pool = DatabaseConnection::init().await;
     let wallet_dao = WalletDao { pool: pool.clone() };
     let transaction_dao = TransactionDao { pool: pool.clone() };
-    let metadata_dao = TokenMetadataDao { pool: pool.clone() };
+    let token_metadata_dao = TokenMetadataDao { pool: pool.clone() };
 
     // providers
     let verify_paymaster_provider = PaymasterProvider {
@@ -113,12 +113,13 @@ pub async fn init_services() -> ToadService {
     };
     let balance_service = BalanceService {
         wallet_dao: wallet_dao.clone(),
-        metadata_dao: metadata_dao.clone(),
+        token_metadata_dao: token_metadata_dao.clone(),
         erc20_provider: erc20.clone(),
     };
     let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
+        token_metadata_dao: token_metadata_dao.clone(),
         usdc_provider,
         entrypoint_provider: entrypoint_provider.clone(),
         simple_account_provider: simple_account_provider.clone(),
@@ -132,10 +133,10 @@ pub async fn init_services() -> ToadService {
         paymaster_provider: verify_paymaster_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
         relayer_signer: relayer_signer.clone(),
-        metadata_dao: metadata_dao.clone(),
+        metadata_dao: token_metadata_dao.clone(),
     };
     let metadata_service = MetadataService {
-        metadata_dao: metadata_dao.clone(),
+        metadata_dao: token_metadata_dao.clone(),
     };
 
     ToadService {
