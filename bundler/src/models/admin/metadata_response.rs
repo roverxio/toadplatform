@@ -4,10 +4,10 @@ use std::collections::HashMap;
 
 #[derive(Default, Deserialize, Serialize, Debug)]
 pub struct MetadataResponse {
-    pub currency: String,
-    pub chain: String,
-    pub exponents: HashMap<String, i32>,
-    metadata: HashMap<String, TokenMetadataResponse>,
+    currency: String,
+    chain: String,
+    exponents: HashMap<String, i32>,
+    tokens: HashMap<String, TokenMetadataResponse>,
 }
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -42,7 +42,7 @@ impl MetadataResponse {
         self.chain = chain;
         self.currency = currency;
         self.exponents = exponents;
-        self.metadata = metadata;
+        self.tokens = metadata;
 
         self
     }
