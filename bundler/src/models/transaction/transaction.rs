@@ -1,4 +1,4 @@
-use crate::db::dao::transaction_dao::UserTransactionWithExponent;
+use crate::db::dao::transaction_dao::UserTransaction;
 use crate::provider::helpers::get_explorer_url;
 use serde::{Deserialize, Serialize};
 
@@ -37,21 +37,20 @@ pub struct Metadata {
     pub status: String,
 }
 
-impl From<UserTransactionWithExponent> for Transaction {
-    fn from(transaction_and_exponent: UserTransactionWithExponent) -> Self {
-        let transaction = transaction_and_exponent.user_transaction;
+impl From<UserTransaction> for Transaction {
+    fn from(transaction: UserTransaction) -> Self {
         Self {
             transaction_id: transaction.transaction_id,
             amount: Amount {
                 currency: transaction.currency,
                 value: transaction.amount,
-                exponent: transaction_and_exponent.exponent,
+                exponent: transaction.exponent,
             },
             metadata: Metadata {
                 chain: transaction.metadata.chain,
                 gas: Amount::default(),
                 transaction_hash: transaction.metadata.transaction_hash.clone(),
-                timestamp: transaction.updated_at,
+                timestamp: transaction.updated_at.to_string(),
                 explorer_url: get_explorer_url(&transaction.metadata.transaction_hash),
                 status: transaction.status,
             },

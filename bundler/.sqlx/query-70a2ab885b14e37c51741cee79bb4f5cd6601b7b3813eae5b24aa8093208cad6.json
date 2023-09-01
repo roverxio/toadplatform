@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT t1.*, t1.type as transaction_type, t2.exponent from user_transactions t1 left join supported_currencies t2 on t1.currency = t2.currency where transaction_id = $1 and user_address = $2",
+  "query": "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, t1.to_address, t1.amount, t1.currency, t1.type as transaction_type, t1.status, t1.metadata, t1.created_at, t1.updated_at, t2.exponent from user_transactions t1 left join supported_currencies t2 on t1.currency = t2.currency where transaction_id = $1 and user_address = $2",
   "describe": {
     "columns": [
       {
@@ -40,7 +40,7 @@
       },
       {
         "ordinal": 7,
-        "name": "type",
+        "name": "transaction_type",
         "type_info": "Varchar"
       },
       {
@@ -65,11 +65,6 @@
       },
       {
         "ordinal": 12,
-        "name": "transaction_type",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 13,
         "name": "exponent",
         "type_info": "Int4"
       }
@@ -93,9 +88,8 @@
       false,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "3ed0a47bd5b6a7bfbe18d73ae3783c86c79043dc7bc282e62abb7d6b463b3fd5"
+  "hash": "70a2ab885b14e37c51741cee79bb4f5cd6601b7b3813eae5b24aa8093208cad6"
 }
