@@ -117,6 +117,8 @@ impl AdminService {
                 metadata.get_currency(),
                 metadata.get_contract_address(),
                 metadata.get_exponent(),
+                metadata.get_token_type(),
+                metadata.get_name(),
             )
             .await;
         let supported_currencies = self
