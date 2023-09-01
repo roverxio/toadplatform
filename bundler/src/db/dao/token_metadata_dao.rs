@@ -2,11 +2,11 @@ use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
 #[derive(Clone)]
-pub struct MetadataDao {
+pub struct TokenMetadataDao {
     pub pool: Pool<Postgres>,
 }
 
-impl MetadataDao {
+impl TokenMetadataDao {
     pub async fn add_metadata(
         &self,
         chain: String,
@@ -15,7 +15,7 @@ impl MetadataDao {
         exponent: i32,
     ) {
         let query = query!(
-            "INSERT INTO supported_currencies (chain, currency, contract_address, exponent) VALUES ($1, $2, $3, $4)",
+            "INSERT INTO token_metadata (chain, symbol, contract_address, exponent) VALUES ($1, $2, $3, $4)",
             chain,
             currency,
             address,
@@ -34,21 +34,20 @@ impl MetadataDao {
         &self,
         chain: String,
         currency: Option<String>,
-    ) -> Vec<SupportedCurrency> {
-        let result: Result<Vec<SupportedCurrency>, Error> = match currency {
+    ) -> Vec<TokenMetadata> {
+        let result: Result<Vec<TokenMetadata>, Error> = match currency {
             None => {
                 let query = query_as!(
-                    SupportedCurrency,
-                    "SELECT chain, currency, exponent FROM supported_currencies WHERE chain = $1",
+                    TokenMetadata,
+                    "SELECT * FROM token_metadata WHERE chain = $1",
                     chain
                 );
                 query.fetch_all(&self.pool).await
             }
             Some(currency) => {
                 let query = query_as!(
-                    SupportedCurrency,
-                    "SELECT chain, currency, exponent FROM supported_currencies WHERE chain = $1 \
-                    AND currency = $2",
+                    TokenMetadata,
+                    "SELECT * FROM token_metadata WHERE chain = $1 AND symbol = $2",
                     chain,
                     currency
                 );
@@ -66,8 +65,13 @@ impl MetadataDao {
 }
 
 #[derive(Default, Clone)]
-pub struct SupportedCurrency {
+pub struct TokenMetadata {
     pub chain: String,
-    pub currency: String,
+    pub symbol: String,
+    pub contract_address: String,
     pub exponent: i32,
+    pub token_type: String,
+    pub name: String,
+    pub created_at: Option<chrono::NaiveDateTime>,
+    pub updated_at: Option<chrono::NaiveDateTime>,
 }

@@ -1,11 +1,11 @@
-use crate::db::dao::metadata_dao::MetadataDao;
+use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::errors::ApiError;
 use crate::models::admin::metadata_response::MetadataResponse;
 use crate::CONFIG;
 
 #[derive(Clone)]
 pub struct MetadataService {
-    pub metadata_dao: MetadataDao,
+    pub metadata_dao: TokenMetadataDao,
 }
 
 impl MetadataService {

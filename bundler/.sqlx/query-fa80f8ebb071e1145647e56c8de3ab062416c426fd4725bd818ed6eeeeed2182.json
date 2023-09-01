@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "INSERT INTO supported_currencies (chain, currency, contract_address, exponent) VALUES ($1, $2, $3, $4)",
+  "query": "INSERT INTO token_metadata (chain, symbol, contract_address, exponent) VALUES ($1, $2, $3, $4)",
   "describe": {
     "columns": [],
     "parameters": {
@@ -13,5 +13,5 @@
     },
     "nullable": []
   },
-  "hash": "59fe3f13562ce060b188e4a55ffbbf28ae6c01826560de92979ea12492703c32"
+  "hash": "fa80f8ebb071e1145647e56c8de3ab062416c426fd4725bd818ed6eeeeed2182"
 }

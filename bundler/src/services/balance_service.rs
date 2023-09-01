@@ -3,7 +3,7 @@ use ethers::providers::{Http, Middleware, Provider};
 use log::info;
 
 use crate::contracts::usdc_provider::ERC20;
-use crate::db::dao::metadata_dao::MetadataDao;
+use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
 use crate::models::currency::Currency;
@@ -13,7 +13,7 @@ use crate::PROVIDER;
 #[derive(Clone)]
 pub struct BalanceService {
     pub wallet_dao: WalletDao,
-    pub metadata_dao: MetadataDao,
+    pub metadata_dao: TokenMetadataDao,
     pub erc20_provider: ERC20<Provider<Http>>,
 }
 
