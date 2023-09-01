@@ -115,42 +115,36 @@ impl TransactionDao {
             txn_id,
             user_wallet_address,
         );
-        let result = query.fetch_all(pool).await;
+        let result = query.fetch_one(pool).await;
         return match result {
-            Ok(rows) => {
-                let mut transactions = Vec::new();
-                for row in rows {
-                    let metadata: TransactionMetadata;
-                    match serde_json::from_value(row.metadata) {
-                        Ok(data) => metadata = data,
-                        Err(err) => {
-                            error!(
-                                "Metadata deserialization failed: {}, err: {:?}",
-                                row.transaction_id, err
-                            );
-                            continue;
-                        }
+            Ok(row) => {
+                let mut metadata: TransactionMetadata = Default::default();
+                match serde_json::from_value(row.metadata) {
+                    Ok(data) => metadata = data,
+                    Err(err) => {
+                        error!(
+                            "Metadata deserialization failed: {}, err: {:?}",
+                            row.transaction_id, err
+                        );
                     }
-                    transactions.push(UserTransactionWithExponent {
-                        user_transaction: UserTransaction {
-                            id: row.id,
-                            user_address: row.user_address,
-                            transaction_id: row.transaction_id,
-                            from_address: row.from_address,
-                            to_address: row.to_address,
-                            amount: row.amount,
-                            currency: row.currency,
-                            transaction_type: row.transaction_type,
-                            status: row.status,
-                            metadata,
-                            created_at: row.created_at.to_string(),
-                            updated_at: row.updated_at.to_string(),
-                        },
-                        exponent: row.exponent,
-                    })
                 }
-
-                transactions[0].clone()
+                UserTransactionWithExponent {
+                    user_transaction: UserTransaction {
+                        id: row.id,
+                        user_address: row.user_address,
+                        transaction_id: row.transaction_id,
+                        from_address: row.from_address,
+                        to_address: row.to_address,
+                        amount: row.amount,
+                        currency: row.currency,
+                        transaction_type: row.transaction_type,
+                        status: row.status,
+                        metadata,
+                        created_at: row.created_at.to_string(),
+                        updated_at: row.updated_at.to_string(),
+                    },
+                    exponent: row.exponent,
+                }
             }
             Err(error) => {
                 error!("Failed to fetch transactions: {:?}", error);
