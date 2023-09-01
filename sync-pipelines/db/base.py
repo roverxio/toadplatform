@@ -13,5 +13,5 @@ def init_connection(db):
     )
 
 
-roverx_db = init_connection(config['database']['roverx'])
-toad_db = init_connection(config['database']['toad'])
+roverx_db = init_connection(config["database"]["roverx"])
+toad_db = init_connection(config["database"]["toad"])
