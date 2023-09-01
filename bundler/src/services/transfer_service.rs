@@ -3,8 +3,7 @@ use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
+use sqlx::{Pool, Postgres};
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -229,7 +228,7 @@ impl TransferService {
     }
 
     pub async fn get_status(
-        db_pool: &Pool<SqliteConnectionManager>,
+        db_pool: &Pool<Postgres>,
         txn_id: String,
         user_id: String,
     ) -> Result<Transaction, ApiError> {

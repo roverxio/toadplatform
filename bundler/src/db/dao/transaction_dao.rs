@@ -2,6 +2,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::{query, Pool, Postgres};
+use std::default::Default;
 
 #[derive(Clone)]
 pub struct TransactionDao {
@@ -103,73 +104,76 @@ impl TransactionDao {
     }
 
     pub async fn get_transaction_by_id(
-        pool: &Pool<SqliteConnectionManager>,
+        pool: &Pool<Postgres>,
         txn_id: String,
         user_wallet_address: String,
     ) -> UserTransactionWithExponent {
-        let query = "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
-            t1.to_address, t1.amount, t1.currency, t1.type, t1.status, t1.metadata, t1.created_at, \
-            t1.updated_at, t2.exponent from user_transactions t1 left join supported_currencies t2 on \
-            t1.currency = t2.currency where t1.transaction_id = ? and t1.user_address = ?".to_string();
-        let params = params![txn_id, user_wallet_address];
-        let user_transaction_data = Self::get_user_transactions(pool, query, params).await;
-        if user_transaction_data.is_empty() {
-            Default::default()
-        } else {
-            user_transaction_data[0].clone()
-        }
+        let query = query!(
+            "SELECT t1.*, t1.type as transaction_type, t2.exponent from user_transactions t1 left \
+            join supported_currencies t2 on t1.currency = t2.currency \
+            where transaction_id = $1 and user_address = $2",
+            txn_id,
+            user_wallet_address,
+        );
+        let result = query.fetch_all(pool).await;
+        return match result {
+            Ok(rows) => {
+                let mut transactions = Vec::new();
+                for row in rows {
+                    let metadata: TransactionMetadata;
+                    match serde_json::from_value(row.metadata) {
+                        Ok(data) => metadata = data,
+                        Err(err) => {
+                            error!(
+                                "Metadata deserialization failed: {}, err: {:?}",
+                                row.transaction_id, err
+                            );
+                            continue;
+                        }
+                    }
+                    transactions.push(UserTransactionWithExponent {
+                        user_transaction: UserTransaction {
+                            id: row.id,
+                            user_address: row.user_address,
+                            transaction_id: row.transaction_id,
+                            from_address: row.from_address,
+                            to_address: row.to_address,
+                            amount: row.amount,
+                            currency: row.currency,
+                            transaction_type: row.transaction_type,
+                            status: row.status,
+                            metadata,
+                            created_at: row.created_at.to_string(),
+                            updated_at: row.updated_at.to_string(),
+                        },
+                        exponent: row.exponent,
+                    })
+                }
+
+                transactions[0].clone()
+            }
+            Err(error) => {
+                error!("Failed to fetch transactions: {:?}", error);
+                Default::default()
+            }
+        };
     }
 
     pub async fn update_user_transaction(&self, txn_id: String, txn_hash: String, status: String) {
-        let conn = connect(self.pool.clone()).await;
-        let mut stmt = conn
-            .prepare("UPDATE user_transactions set status = ?, metadata = json_set(metadata, '$.transaction_hash', ?) where transaction_id = ?")
-            .unwrap();
-        stmt.execute([status, txn_hash, txn_id])
-            .expect("Unable to update the user_transactions table");
-    }
-
-    async fn get_user_transactions(
-        pool: &Pool<SqliteConnectionManager>,
-        query: String,
-        params: &[&dyn ToSql],
-    ) -> Vec<UserTransactionWithExponent> {
-        let conn = connect(pool.clone()).await;
-
-        let mut stmt = conn.prepare(&query).unwrap();
-        let rows: Vec<UserTransactionWithExponent> = stmt
-            .query_map(params, Self::get_user_transaction_with_exponent)
-            .and_then(Iterator::collect)
-            .unwrap();
-        rows
-    }
-
-    fn get_user_transaction_with_exponent(row: &Row) -> Result<UserTransactionWithExponent> {
-        let metadata: TransactionMetadata =
-            serde_json::from_str(&row.get::<_, String>(9).unwrap()).unwrap();
-        let amount: String = row.get(5).unwrap();
-        let mut exponent = row.get(12);
-        if exponent.is_err() {
-            exponent = Ok(0);
+        let query = query!(
+            "UPDATE user_transactions set status = $1, metadata = jsonb_set(metadata, '{transaction_hash}', $2) where transaction_id = $3",
+            status,
+            Value::String(txn_hash),
+            txn_id,
+        );
+        let result = query.execute(&self.pool).await;
+        if result.is_err() {
+            error!(
+                "Failed to update user transaction: {}, err: {:?}",
+                txn_id,
+                result.err()
+            );
         }
-
-        Ok(UserTransactionWithExponent {
-            user_transaction: UserTransaction {
-                id: row.get(0)?,
-                user_address: row.get(1)?,
-                transaction_id: row.get(2)?,
-                from_address: row.get(3)?,
-                to_address: row.get(4)?,
-                amount,
-                currency: row.get(6)?,
-                transaction_type: row.get(7)?,
-                status: row.get(8)?,
-                metadata,
-                created_at: row.get(10)?,
-                updated_at: row.get(11)?,
-            },
-            exponent: exponent?,
-        })
     }
 }
 

@@ -27,12 +27,9 @@ impl WalletDao {
         Self::get_user_wallet_address(&self.pool, user_id).await
     }
 
-    pub async fn get_user_wallet_address(
-        pool: &Pool<SqliteConnectionManager>,
-        user_id: String,
-    ) -> String {
+    pub async fn get_user_wallet_address(pool: &Pool<Postgres>, user_id: String) -> String {
         let query = query_as!(User, "SELECT * from users where email = $1", user_id);
-        let result: Result<User, Error> = query.fetch_one(Self.pool).await;
+        let result: Result<User, Error> = query.fetch_one(pool).await;
         return match result {
             Ok(user) => user.wallet_address,
             Err(err) => {

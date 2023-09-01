@@ -9,8 +9,7 @@ use ethers::middleware::SignerMiddleware;
 use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
+use sqlx::{Pool, Postgres};
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -42,7 +41,7 @@ pub struct ToadService {
     pub transfer_service: TransferService,
     pub admin_service: AdminService,
     pub metadata_service: MetadataService,
-    pub db_pool: Pool<SqliteConnectionManager>,
+    pub db_pool: Pool<Postgres>,
 }
 
 pub async fn init_services() -> ToadService {

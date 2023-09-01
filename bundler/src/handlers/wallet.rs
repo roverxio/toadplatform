@@ -1,8 +1,7 @@
 use actix_web::error::ErrorUnauthorized;
 use actix_web::web::{Data, Json, Query};
 use actix_web::{Error, HttpRequest, HttpResponse};
-use r2d2::Pool;
-use r2d2_sqlite::SqliteConnectionManager;
+use sqlx::{Pool, Postgres};
 
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
@@ -77,7 +76,7 @@ pub async fn list_transactions(
 }
 
 pub async fn poll_transaction(
-    db_pool: Data<Pool<SqliteConnectionManager>>,
+    db_pool: Data<Pool<Postgres>>,
     query: Query<PollTransactionParams>,
     req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
