@@ -1,15 +1,9 @@
 from peewee import *
 
-from db.base import roverx_db, toad_db
+from db.base import psql_db
 
 
-class RoverXBaseModel(Model):
+class BaseModel(Model):
     class Meta:
-        database = roverx_db
-        legacy_table_names = False
-
-
-class ToadBaseModel(Model):
-    class Meta:
-        database = toad_db
+        database = psql_db
         legacy_table_names = False
