@@ -1,7 +1,9 @@
+use actix_web::rt::spawn;
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
+use sqlx::{Pool, Postgres};
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -14,11 +16,13 @@ use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::currency::Currency;
+use crate::models::transaction::transaction::Transaction;
 use crate::models::transaction_type::TransactionType;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
+use crate::provider::listeners::user_op_event_listener;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
 use crate::CONFIG;
@@ -103,12 +107,14 @@ impl TransferService {
             CONFIG.get_chain().verifying_paymaster_address,
             Some(singed_hash),
         );
+
+        let user_op_hash = user_op0.hash(
+            CONFIG.get_chain().entrypoint_address,
+            CONFIG.get_chain().chain_id,
+        );
         let signature = Bytes::from(
             self.scw_owner_wallet
-                .sign_message(user_op0.hash(
-                    CONFIG.get_chain().entrypoint_address,
-                    CONFIG.get_chain().chain_id,
-                ))
+                .sign_message(user_op_hash.clone())
                 .await
                 .unwrap()
                 .to_vec(),
@@ -136,6 +142,13 @@ impl TransferService {
                 .update_wallet_deployed(usr.to_string())
                 .await;
         }
+
+        spawn(user_op_event_listener(
+            self.transaction_dao.clone(),
+            self.entrypoint_provider.clone(),
+            user_op_hash,
+            user_txn.transaction_id.clone(),
+        ));
 
         Ok(TransferResponse {
             transaction: TransactionResponse {
@@ -225,5 +238,19 @@ impl TransferService {
                 .unwrap()),
             None => Err("Currency not found".to_string()),
         }
+    }
+
+    pub async fn get_status(
+        db_pool: &Pool<Postgres>,
+        txn_id: String,
+        user_id: String,
+    ) -> Result<Transaction, ApiError> {
+        let user_wallet_address =
+            WalletDao::get_user_wallet_address(db_pool, user_id.to_string()).await;
+
+        let transaction_and_exponent =
+            TransactionDao::get_transaction_by_id(db_pool, txn_id, user_wallet_address).await;
+
+        Ok(Transaction::from(transaction_and_exponent))
     }
 }

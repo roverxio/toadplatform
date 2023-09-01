@@ -1,3 +1,5 @@
+use crate::db::dao::transaction_dao::UserTransaction;
+use crate::provider::helpers::get_explorer_url;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -33,4 +35,35 @@ pub struct Metadata {
     pub timestamp: String,
     pub explorer_url: String,
     pub status: String,
+}
+
+impl From<UserTransaction> for Transaction {
+    fn from(transaction: UserTransaction) -> Self {
+        Self {
+            transaction_id: transaction.transaction_id,
+            amount: Amount {
+                currency: transaction.currency,
+                value: transaction.amount,
+                exponent: transaction.exponent,
+            },
+            metadata: Metadata {
+                chain: transaction.metadata.chain,
+                gas: Amount::default(),
+                transaction_hash: transaction.metadata.transaction_hash.clone(),
+                timestamp: transaction.updated_at.to_string(),
+                explorer_url: get_explorer_url(&transaction.metadata.transaction_hash),
+                status: transaction.status,
+            },
+            from: UserInfo {
+                address: transaction.from_address,
+                name: transaction.metadata.from_name,
+            },
+            id: transaction.id,
+            to: UserInfo {
+                address: transaction.to_address,
+                name: transaction.metadata.to_name,
+            },
+            transaction_type: transaction.transaction_type,
+        }
+    }
 }

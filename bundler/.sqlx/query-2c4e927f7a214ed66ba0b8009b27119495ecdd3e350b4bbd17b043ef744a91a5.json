@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT t1.*, t1.type as transaction_type, t2.exponent from user_transactions t1 left join token_metadata t2 on t1.currency = t2.symbol where user_address = $1 and id < $2 order by id desc limit $3",
+  "query": "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, t1.to_address, t1.amount, t1.currency, t1.type as transaction_type, t1.status, t1.metadata, t1.created_at, t1.updated_at, t2.exponent from user_transactions t1 left join token_metadata t2 on t1.currency = t2.symbol where transaction_id = $1 and user_address = $2",
   "describe": {
     "columns": [
       {
@@ -40,7 +40,7 @@
       },
       {
         "ordinal": 7,
-        "name": "type",
+        "name": "transaction_type",
         "type_info": "Varchar"
       },
       {
@@ -65,11 +65,6 @@
       },
       {
         "ordinal": 12,
-        "name": "transaction_type",
-        "type_info": "Varchar"
-      },
-      {
-        "ordinal": 13,
         "name": "exponent",
         "type_info": "Int4"
       }
@@ -77,8 +72,7 @@
     "parameters": {
       "Left": [
         "Text",
-        "Int4",
-        "Int8"
+        "Text"
       ]
     },
     "nullable": [
@@ -94,9 +88,8 @@
       false,
       false,
       false,
-      false,
       false
     ]
   },
-  "hash": "1165b608ed4023e471b8a8558684b2ba39caf844b086db5bf7fb44b96b58fc69"
+  "hash": "2c4e927f7a214ed66ba0b8009b27119495ecdd3e350b4bbd17b043ef744a91a5"
 }

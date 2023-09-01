@@ -1,7 +1,10 @@
+use chrono::NaiveDateTime;
 use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use sqlx::{query, Pool, Postgres};
+use sqlx::types::JsonValue;
+use sqlx::{query, query_as, Pool, Postgres};
+use std::default::Default;
 
 #[derive(Clone)]
 pub struct TransactionDao {
@@ -14,10 +17,13 @@ impl TransactionDao {
         page_size: i64,
         id: i32,
         user_wallet: String,
-    ) -> Vec<UserTransactionWithExponent> {
-        let query = query!(
-            "SELECT t1.*, t1.type as transaction_type, t2.exponent from user_transactions t1 left \
-            join token_metadata t2 on t1.currency = t2.symbol \
+    ) -> Vec<UserTransaction> {
+        let query = query_as!(
+            UserTransaction,
+            "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, t1.to_address, \
+            t1.amount, t1.currency, t1.type as transaction_type, t1.status, t1.metadata, \
+            t1.created_at, t1.updated_at, t2.exponent from user_transactions t1 \
+            left join token_metadata t2 on t1.currency = t2.symbol \
             where user_address = $1 and id < $2 order by id desc limit $3",
             user_wallet,
             id,
@@ -25,40 +31,7 @@ impl TransactionDao {
         );
         let result = query.fetch_all(&self.pool).await;
         return match result {
-            Ok(rows) => {
-                let mut transactions = Vec::new();
-                for row in rows {
-                    let metadata: TransactionMetadata;
-                    match serde_json::from_value(row.metadata) {
-                        Ok(data) => metadata = data,
-                        Err(err) => {
-                            error!(
-                                "Metadata deserialization failed: {}, err: {:?}",
-                                row.transaction_id, err
-                            );
-                            continue;
-                        }
-                    }
-                    transactions.push(UserTransactionWithExponent {
-                        user_transaction: UserTransaction {
-                            id: row.id,
-                            user_address: row.user_address,
-                            transaction_id: row.transaction_id,
-                            from_address: row.from_address,
-                            to_address: row.to_address,
-                            amount: row.amount,
-                            currency: row.currency,
-                            transaction_type: row.transaction_type,
-                            status: row.status,
-                            metadata,
-                            created_at: row.created_at.to_string(),
-                            updated_at: row.updated_at.to_string(),
-                        },
-                        exponent: row.exponent,
-                    })
-                }
-                transactions
-            }
+            Ok(rows) => rows,
             Err(error) => {
                 error!("Failed to fetch transactions: {:?}", error);
                 vec![]
@@ -101,6 +74,50 @@ impl TransactionDao {
             );
         }
     }
+
+    pub async fn get_transaction_by_id(
+        pool: &Pool<Postgres>,
+        txn_id: String,
+        user_wallet_address: String,
+    ) -> UserTransaction {
+        let query = query_as!(
+            UserTransaction,
+            "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
+            t1.to_address, t1.amount, t1.currency, t1.type as transaction_type, \
+            t1.status, t1.metadata, t1.created_at, t1.updated_at, t2.exponent \
+            from user_transactions t1 left join token_metadata t2 \
+            on t1.currency = t2.symbol where transaction_id = $1 and user_address = $2",
+            txn_id,
+            user_wallet_address,
+        );
+        let result = query.fetch_one(pool).await;
+        return match result {
+            Ok(row) => row,
+            Err(error) => {
+                error!("Failed to fetch transactions: {:?}", error);
+                UserTransaction::default()
+            }
+        };
+    }
+
+    pub async fn update_user_transaction(&self, txn_id: String, txn_hash: String, status: String) {
+        let query = query!(
+            "UPDATE user_transactions \
+            set status = $1, metadata = jsonb_set(metadata, '{transaction_hash}', $2) \
+            where transaction_id = $3",
+            status,
+            Value::String(txn_hash),
+            txn_id,
+        );
+        let result = query.execute(&self.pool).await;
+        if result.is_err() {
+            error!(
+                "Failed to update user transaction: {}, err: {:?}",
+                txn_id,
+                result.err()
+            );
+        }
+    }
 }
 
 #[derive(Clone, Default)]
@@ -115,8 +132,9 @@ pub struct UserTransaction {
     pub transaction_type: String,
     pub status: String,
     pub metadata: TransactionMetadata,
-    pub created_at: String,
-    pub updated_at: String,
+    pub created_at: NaiveDateTime,
+    pub updated_at: NaiveDateTime,
+    pub exponent: i32,
 }
 
 #[derive(Default, Serialize, Deserialize, Clone)]
@@ -148,6 +166,12 @@ impl TransactionMetadata {
     pub fn transaction_hash(&mut self, transaction_hash: String) -> &mut TransactionMetadata {
         self.transaction_hash = transaction_hash;
         self
+    }
+}
+
+impl From<JsonValue> for TransactionMetadata {
+    fn from(json: JsonValue) -> Self {
+        serde_json::from_value(json).unwrap()
     }
 }
 
@@ -200,9 +224,4 @@ impl UserTransaction {
         self.metadata = metadata;
         self
     }
-}
-
-pub struct UserTransactionWithExponent {
-    pub user_transaction: UserTransaction,
-    pub exponent: i32,
 }
