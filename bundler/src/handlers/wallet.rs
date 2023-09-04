@@ -1,9 +1,12 @@
+use actix_web::error::ErrorUnauthorized;
 use actix_web::web::{Data, Json, Query};
-use actix_web::HttpRequest;
+use actix_web::{Error, HttpRequest, HttpResponse};
+use sqlx::{Pool, Postgres};
 
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
+use crate::models::transaction::poll_transaction_params::PollTransactionParams;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
@@ -70,4 +73,25 @@ pub async fn list_transactions(
         )
         .await;
     respond_json(data)
+}
+
+pub async fn poll_transaction(
+    db_pool: Data<Pool<Postgres>>,
+    query: Query<PollTransactionParams>,
+    req: HttpRequest,
+) -> Result<HttpResponse, Error> {
+    let user_id = get_user(req);
+    if user_id.is_empty() {
+        return Err(ErrorUnauthorized(""));
+    }
+
+    let transaction =
+        TransferService::get_status(db_pool.get_ref(), query.transaction_id.clone(), user_id)
+            .await
+            .unwrap();
+
+    Ok(HttpResponse::Ok().json(BaseResponse {
+        data: transaction,
+        err: Default::default(),
+    }))
 }
