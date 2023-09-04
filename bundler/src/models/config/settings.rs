@@ -92,4 +92,8 @@ impl Settings {
     pub fn get_chain(&self) -> &Chain {
         &self.chains[&self.run_config.current_chain]
     }
+
+    pub fn get_admins(&self) -> &Vec<String> {
+        &self.admins
+    }
 }
