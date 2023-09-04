@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
@@ -80,7 +81,7 @@ pub struct TokenMetadata {
     pub exponent: i32,
     pub token_type: String,
     pub name: String,
-    pub created_at: Option<chrono::NaiveDateTime>,
-    pub updated_at: Option<chrono::NaiveDateTime>,
+    pub created_at: Option<DateTime<Utc>>,
+    pub updated_at: Option<DateTime<Utc>>,
     pub is_supported: bool,
 }

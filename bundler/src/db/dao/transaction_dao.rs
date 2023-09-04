@@ -1,4 +1,4 @@
-use chrono::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -132,8 +132,8 @@ pub struct UserTransaction {
     pub transaction_type: String,
     pub status: String,
     pub metadata: TransactionMetadata,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub exponent: i32,
 }
 
