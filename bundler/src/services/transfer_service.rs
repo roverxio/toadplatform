@@ -1,10 +1,11 @@
 use actix_web::rt::spawn;
-use bigdecimal::ToPrimitive;
+use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
 use sqlx::{Pool, Postgres};
+use std::str::FromStr;
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -180,7 +181,7 @@ impl TransferService {
             .transaction_id(generate_txn_id())
             .sender_address(wallet_address)
             .receiver_address(to.clone())
-            .amount(value.clone())
+            .amount(BigDecimal::from_str(value).unwrap())
             .currency(currency.clone())
             .transaction_type(TransactionType::Debit.to_string())
             .status(Status::PENDING.to_string())

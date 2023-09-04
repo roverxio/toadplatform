@@ -1,3 +1,4 @@
+use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
 use log::error;
 use serde::{Deserialize, Serialize};
@@ -127,7 +128,7 @@ pub struct UserTransaction {
     pub transaction_id: String,
     pub from_address: String,
     pub to_address: String,
-    pub amount: String,
+    pub amount: BigDecimal,
     pub currency: String,
     pub transaction_type: String,
     pub status: String,
@@ -200,7 +201,7 @@ impl UserTransaction {
         self
     }
 
-    pub fn amount(&mut self, amount: String) -> &mut UserTransaction {
+    pub fn amount(&mut self, amount: BigDecimal) -> &mut UserTransaction {
         self.amount = amount;
         self
     }
