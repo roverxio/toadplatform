@@ -22,7 +22,6 @@ use crate::CONFIG;
 
 #[derive(Clone)]
 pub struct AdminService {
-    pub admins: Vec<String>,
     pub paymaster_provider: PaymasterProvider,
     pub entrypoint_provider: EntryPointProvider,
     pub relayer_signer: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,

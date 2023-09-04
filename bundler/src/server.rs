@@ -105,13 +105,6 @@ pub async fn init_services() -> ToadService {
         abi: simple_account_factory.clone(),
     };
 
-    // admins
-    let admins_env = std::env::var("ADMIN").expect("ADMIN env variable not set");
-    let admins = admins_env
-        .split(",")
-        .map(|s| s.to_string())
-        .collect::<Vec<String>>();
-
     // Services
     let hello_world_service = HelloWorldService {};
     let wallet_service = WalletService {
@@ -139,7 +132,6 @@ pub async fn init_services() -> ToadService {
         bundler: bundler.clone(),
     };
     let admin_service = AdminService {
-        admins,
         paymaster_provider: verify_paymaster_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
         relayer_signer: relayer_signer.clone(),

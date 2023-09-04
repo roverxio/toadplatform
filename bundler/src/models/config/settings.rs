@@ -63,6 +63,7 @@ pub struct Settings {
     pub server: Server,
     pub chains: Map<String, Chain>,
     pub default_gas: DefaultGas,
+    pub admins: Vec<String>,
     pub env: ENV,
 }
 
@@ -72,11 +73,17 @@ const CONFIG_FILE_PREFIX: &str = "./config";
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         let env = std::env::var("RUN_ENV").unwrap_or_else(|_| "Development".into());
+        let admins_env = std::env::var("ADMIN").expect("ADMIN env variable not set");
+        let admins = admins_env
+            .split(",")
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
 
         let s = Config::builder()
             .add_source(File::with_name(CONFIG_FILE_PATH).required(false))
             .add_source(File::with_name(&format!("{}/{}", CONFIG_FILE_PREFIX, env)).required(false))
             .set_override("env", env)?
+            .set_override("admins", admins)?
             .build()?;
 
         s.try_deserialize()
