@@ -9,10 +9,8 @@ import "../src/tests/TestERC20.sol";
 
 contract DeployOnChain is Script {
     uint256 internal deployerPrivateKey;
-    address internal owner;
 
     address payable internal entryPoint;
-    uint256 internal verifyingSignerKey;
     address internal verifyingSigner;
 
     SimpleAccountFactory internal factory;
@@ -23,7 +21,7 @@ contract DeployOnChain is Script {
 
     function setUp() public {
         deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        owner = address(vm.addr(deployerPrivateKey));
+        address owner = address(vm.addr(deployerPrivateKey));
         console.log("=SignerAddress==", owner);
 
         entryPoint = payable(vm.envAddress("ENTRYPOINT_ADDRESS"));
