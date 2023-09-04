@@ -16,7 +16,7 @@
       {
         "ordinal": 2,
         "name": "salt",
-        "type_info": "Varchar"
+        "type_info": "Numeric"
       },
       {
         "ordinal": 3,
