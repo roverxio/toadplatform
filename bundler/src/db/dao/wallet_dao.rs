@@ -1,3 +1,4 @@
+use bigdecimal::BigDecimal;
 use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
@@ -55,7 +56,7 @@ impl WalletDao {
         &self,
         user_id: String,
         wallet_address: String,
-        salt: String,
+        salt: BigDecimal,
         deployed: bool,
     ) {
         let query = query!(
@@ -80,6 +81,6 @@ impl WalletDao {
 pub struct User {
     pub email: String,
     pub wallet_address: String,
-    pub salt: String,
+    pub salt: BigDecimal,
     pub deployed: bool,
 }

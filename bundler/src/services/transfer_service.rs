@@ -1,4 +1,5 @@
 use actix_web::rt::spawn;
+use bigdecimal::ToPrimitive;
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
@@ -70,7 +71,7 @@ impl TransferService {
                 self.simple_account_factory_provider
                     .create_account(
                         CONFIG.run_config.account_owner,
-                        U256::from_dec_str(&wallet.salt).unwrap(),
+                        U256::from(wallet.salt.to_u64().unwrap()),
                     )
                     .unwrap(),
             );

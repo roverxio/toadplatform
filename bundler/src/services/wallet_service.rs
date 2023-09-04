@@ -1,3 +1,5 @@
+use bigdecimal::{BigDecimal, Zero};
+use ethers::prelude::U256;
 use std::sync::Arc;
 use std::time::SystemTime;
 
@@ -34,14 +36,14 @@ impl WalletService {
                 .create_wallet(
                     usr.to_string(),
                     format!("{:?}", result.address),
-                    result.salt.to_string(),
+                    result.salt,
                     false,
                 )
                 .await;
         } else {
             result = Wallet {
                 address: address.parse().unwrap(),
-                salt: "".to_string(),
+                salt: BigDecimal::zero(),
             }
         }
 
@@ -56,10 +58,10 @@ impl WalletService {
         let mut salt;
         loop {
             let user = usr.to_string().clone() + suffix.as_str();
-            salt = get_hash(user).to_string().parse().unwrap();
+            salt = get_hash(user);
             result = self
                 .simple_account_factory_provider
-                .get_address(CONFIG.run_config.account_owner, salt)
+                .get_address(CONFIG.run_config.account_owner, U256::from(salt))
                 .await
                 .unwrap();
             if contract_exists_at(format!("{:?}", result)).await {
@@ -78,7 +80,7 @@ impl WalletService {
         }
         Wallet {
             address: result,
-            salt: salt.to_string(),
+            salt: BigDecimal::from(salt),
         }
     }
 
@@ -126,5 +128,5 @@ impl WalletService {
 
 struct Wallet {
     pub address: Address,
-    pub salt: String,
+    pub salt: BigDecimal,
 }
