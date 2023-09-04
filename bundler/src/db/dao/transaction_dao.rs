@@ -1,4 +1,5 @@
-use chrono::NaiveDateTime;
+use bigdecimal::BigDecimal;
+use chrono::{DateTime, Utc};
 use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -127,13 +128,13 @@ pub struct UserTransaction {
     pub transaction_id: String,
     pub from_address: String,
     pub to_address: String,
-    pub amount: String,
+    pub amount: BigDecimal,
     pub currency: String,
     pub transaction_type: String,
     pub status: String,
     pub metadata: TransactionMetadata,
-    pub created_at: NaiveDateTime,
-    pub updated_at: NaiveDateTime,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
     pub exponent: i32,
 }
 
@@ -200,7 +201,7 @@ impl UserTransaction {
         self
     }
 
-    pub fn amount(&mut self, amount: String) -> &mut UserTransaction {
+    pub fn amount(&mut self, amount: BigDecimal) -> &mut UserTransaction {
         self.amount = amount;
         self
     }

@@ -1,5 +1,6 @@
 use crate::db::dao::transaction_dao::UserTransaction;
 use crate::provider::helpers::get_explorer_url;
+use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize)]
@@ -17,7 +18,7 @@ pub struct Transaction {
 #[derive(Default, Serialize, Deserialize)]
 pub struct Amount {
     pub currency: String,
-    pub value: String,
+    pub value: BigDecimal,
     pub exponent: i32,
 }
 

@@ -7,7 +7,7 @@
       "Left": [
         "Varchar",
         "Varchar",
-        "Varchar",
+        "Numeric",
         "Bool"
       ]
     },
