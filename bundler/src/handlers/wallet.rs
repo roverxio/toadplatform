@@ -85,13 +85,10 @@ pub async fn poll_transaction(
         return Err(ErrorUnauthorized(""));
     }
 
-    let transaction = TransferService::get_status(
-        db_pool.get_ref(),
-        query.get_transaction_id().clone(),
-        user_id,
-    )
-    .await
-    .unwrap();
+    let transaction =
+        TransferService::get_status(db_pool.get_ref(), query.get_transaction_id(), user_id)
+            .await
+            .unwrap();
 
     Ok(HttpResponse::Ok().json(BaseResponse {
         data: transaction,
