@@ -34,8 +34,8 @@ pub async fn get_balance(
     let balance_request = body.get_balance_request();
     let data = service
         .get_wallet_balance(
-            &balance_request.chain,
-            &balance_request.currency.to_lowercase(),
+            &balance_request.get_chain(),
+            &balance_request.get_currency(),
             &get_user(req),
         )
         .await?;
@@ -50,9 +50,9 @@ pub async fn transfer(
     let body = body.into_inner();
     let data = service
         .transfer_funds(
-            body.receiver,
-            body.value,
-            body.metadata.currency,
+            body.get_receiver(),
+            body.get_value(),
+            body.metadata.get_currency(),
             &get_user(req),
         )
         .await?;
@@ -85,10 +85,13 @@ pub async fn poll_transaction(
         return Err(ErrorUnauthorized(""));
     }
 
-    let transaction =
-        TransferService::get_status(db_pool.get_ref(), query.transaction_id.clone(), user_id)
-            .await
-            .unwrap();
+    let transaction = TransferService::get_status(
+        db_pool.get_ref(),
+        query.get_transaction_id().clone(),
+        user_id,
+    )
+    .await
+    .unwrap();
 
     Ok(HttpResponse::Ok().json(BaseResponse {
         data: transaction,
