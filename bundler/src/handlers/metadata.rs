@@ -4,7 +4,7 @@ use crate::errors::ApiError;
 use crate::models::admin::metadata_response::MetadataResponse;
 use crate::models::response::base_response::BaseResponse;
 use crate::provider::helpers::respond_json;
-use crate::services::token_metada_service::TokenMetadataService;
+use crate::services::token_metadata_service::TokenMetadataService;
 
 pub async fn get_metadata(
     service: Data<TokenMetadataService>,
