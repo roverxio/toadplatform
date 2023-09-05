@@ -1,0 +1,11 @@
+[package]
+name = "sync-pipelines-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+bigdecimal = "0.4.1"
+lazy_static = "1.4.0"
+serde = "1.0.188"
+sqlx = "0.7.1"
+sqlx-type = "0.3.12"
