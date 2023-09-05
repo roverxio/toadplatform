@@ -1,17 +1,13 @@
 pub enum Currency {
-    Usdc,
-    SepoliaEth,
-    GoerliEth,
-    LocalEth,
+    Native,
+    Erc20,
 }
 
 impl Currency {
     pub fn from_str(s: String) -> Option<Currency> {
         match s.to_lowercase().as_str() {
-            "usdc" => Some(Currency::Usdc),
-            "sepoliaeth" => Some(Currency::SepoliaEth),
-            "goerlieth" => Some(Currency::GoerliEth),
-            "localeth" => Some(Currency::LocalEth),
+            "native" => Some(Currency::Native),
+            "erc20" => Some(Currency::Erc20),
             _ => None,
         }
     }

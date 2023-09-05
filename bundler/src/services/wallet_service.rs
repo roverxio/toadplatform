@@ -1,3 +1,5 @@
+use bigdecimal::{BigDecimal, Zero};
+use ethers::prelude::U256;
 use std::sync::Arc;
 use std::time::SystemTime;
 
@@ -10,9 +12,9 @@ use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
-use crate::models::transaction::transaction::{Amount, Metadata, Transaction, UserInfo};
+use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
-use crate::provider::helpers::{contract_exists_at, get_explorer_url, get_hash};
+use crate::provider::helpers::{contract_exists_at, get_hash};
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -34,14 +36,14 @@ impl WalletService {
                 .create_wallet(
                     usr.to_string(),
                     format!("{:?}", result.address),
-                    result.salt.to_string(),
+                    result.salt,
                     false,
                 )
                 .await;
         } else {
             result = Wallet {
                 address: address.parse().unwrap(),
-                salt: "".to_string(),
+                salt: BigDecimal::zero(),
             }
         }
 
@@ -56,10 +58,10 @@ impl WalletService {
         let mut salt;
         loop {
             let user = usr.to_string().clone() + suffix.as_str();
-            salt = get_hash(user).to_string().parse().unwrap();
+            salt = get_hash(user);
             result = self
                 .simple_account_factory_provider
-                .get_address(CONFIG.run_config.account_owner, salt)
+                .get_address(CONFIG.run_config.account_owner, U256::from(salt))
                 .await
                 .unwrap();
             if contract_exists_at(format!("{:?}", result)).await {
@@ -78,7 +80,7 @@ impl WalletService {
         }
         Wallet {
             address: result,
-            salt: salt.to_string(),
+            salt: BigDecimal::from(salt),
         }
     }
 
@@ -99,7 +101,7 @@ impl WalletService {
 
     pub async fn list_transactions(
         &self,
-        page_size: i32,
+        page_size: i64,
         id: Option<i32>,
         user_id: &String,
     ) -> Vec<Transaction> {
@@ -117,33 +119,7 @@ impl WalletService {
             .await;
 
         for transaction_and_exponent in result {
-            let transaction = transaction_and_exponent.user_transaction;
-            transactions.push(Transaction {
-                transaction_id: transaction.transaction_id,
-                amount: Amount {
-                    currency: transaction.currency,
-                    value: transaction.amount,
-                    exponent: transaction_and_exponent.exponent,
-                },
-                metadata: Metadata {
-                    chain: transaction.metadata.chain,
-                    gas: Amount::default(),
-                    transaction_hash: transaction.metadata.transaction_hash.clone(),
-                    timestamp: transaction.updated_at,
-                    explorer_url: get_explorer_url(&transaction.metadata.transaction_hash),
-                    status: transaction.status,
-                },
-                from: UserInfo {
-                    address: transaction.from_address,
-                    name: transaction.metadata.from_name,
-                },
-                id: transaction.id,
-                to: UserInfo {
-                    address: transaction.to_address,
-                    name: transaction.metadata.to_name,
-                },
-                transaction_type: transaction.transaction_type,
-            })
+            transactions.push(Transaction::from(transaction_and_exponent))
         }
 
         transactions
@@ -152,5 +128,5 @@ impl WalletService {
 
 struct Wallet {
     pub address: Address,
-    pub salt: String,
+    pub salt: BigDecimal,
 }

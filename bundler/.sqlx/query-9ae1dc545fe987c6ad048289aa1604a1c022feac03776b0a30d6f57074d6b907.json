@@ -1,0 +1,19 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO token_metadata (chain, symbol, contract_address, exponent, token_type, name) VALUES ($1, $2, $3, $4, $5, $6) on conflict (chain, symbol) do update set contract_address = $3, exponent = $4, token_type = $5, name = $6, updated_at = now()",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Varchar",
+        "Int4",
+        "Varchar",
+        "Varchar"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "9ae1dc545fe987c6ad048289aa1604a1c022feac03776b0a30d6f57074d6b907"
+}

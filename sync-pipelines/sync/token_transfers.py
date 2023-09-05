@@ -10,7 +10,7 @@ def sync_token_transfers(start_time):
     supported_tokens = config["erc20_contracts"]
     token_transfers = get_token_transfers(
         start_time,
-        [user[0] for user in get_user_wallets()],
+        [user.wallet_address for user in get_user_wallets()],
         list(supported_tokens.keys()),
     )
     for token_transfer in token_transfers:

@@ -8,7 +8,7 @@ from utils.utils import get_transaction_id
 def sync_transactions(start_time):
     user_transactions = []
     transactions = get_transactions(
-        start_time, [user[0] for user in get_user_wallets()]
+        start_time, [user.wallet_address for user in get_user_wallets()]
     )
     for transaction in transactions:
         user_transactions.append(

@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
-use crate::db::dao::metadata_dao::MetadataDao;
+use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::errors::ApiError;
 use crate::models::admin::add_metadata_request::AddMetadataRequest;
 use crate::models::admin::metadata_response::MetadataResponse;
@@ -25,7 +25,7 @@ pub struct AdminService {
     pub paymaster_provider: PaymasterProvider,
     pub entrypoint_provider: EntryPointProvider,
     pub relayer_signer: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
-    pub metadata_dao: MetadataDao,
+    pub metadata_dao: TokenMetadataDao,
 }
 
 impl AdminService {
@@ -117,6 +117,8 @@ impl AdminService {
                 metadata.get_currency(),
                 metadata.get_contract_address(),
                 metadata.get_exponent(),
+                metadata.get_token_type(),
+                metadata.get_name(),
             )
             .await;
         let supported_currencies = self

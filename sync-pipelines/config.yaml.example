@@ -1,11 +1,8 @@
 database:
-  storage:
-    db_file: ~/roverx-rpc/bundler/toad.db
-  postgres:
-    db_name: my_db
-    username: admin
-    password: admin123
-    host: localhost
+  db_name: my_db
+  username: admin
+  password: admin123
+  host: localhost
 
 process_pool: 20
 last_sync_time:
