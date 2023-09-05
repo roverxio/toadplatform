@@ -62,7 +62,7 @@ impl WalletDao {
         let query = query!(
             "INSERT INTO users (email, wallet_address, salt, deployed) VALUES ($1, $2, $3, $4)",
             user_id,
-            wallet_address,
+            wallet_address.to_lowercase(),
             salt,
             deployed
         );
