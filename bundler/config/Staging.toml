@@ -6,9 +6,9 @@ deployed_by_identifier = "toad.cash"
 transaction_id_prefix = "toad"
 
 [server]
-port = "9090"
+port = "9010"
 host = "localhost"
-prefix = "app"
+prefix = "stg"
 
 [log]
 level = "info"
