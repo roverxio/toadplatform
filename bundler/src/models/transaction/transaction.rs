@@ -33,7 +33,7 @@ pub struct Metadata {
     pub chain: String,
     pub gas: Amount,
     pub transaction_hash: String,
-    pub timestamp: String,
+    pub timestamp: i64,
     pub explorer_url: String,
     pub status: String,
 }
@@ -51,7 +51,7 @@ impl From<UserTransaction> for Transaction {
                 chain: transaction.metadata.chain,
                 gas: Amount::default(),
                 transaction_hash: transaction.metadata.transaction_hash.clone(),
-                timestamp: transaction.updated_at.to_string(),
+                timestamp: transaction.updated_at.timestamp(),
                 explorer_url: get_explorer_url(&transaction.metadata.transaction_hash),
                 status: transaction.status,
             },
