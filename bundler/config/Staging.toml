@@ -1,14 +1,14 @@
 [run_config]
-current_chain = "sepolia"
-account_owner = "0x99e6fE79F94a3744089a1b3982D425406Ad4c55c"
-paymaster_account_owner = "0x99e6fE79F94a3744089a1b3982D425406Ad4c55c"
+current_chain = "base_goerli"
+account_owner = "0x245d2f541e3af7541241e3A0EA551187b165016B"
+paymaster_account_owner = "0x245d2f541e3af7541241e3A0EA551187b165016B"
 deployed_by_identifier = "toad.cash"
 transaction_id_prefix = "toad"
 
 [server]
-port = "9090"
+port = "9010"
 host = "localhost"
-prefix = "app"
+prefix = "stg"
 
 [log]
 level = "info"
@@ -23,15 +23,15 @@ entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
 verifying_paymaster_address = "0xe76cF38641112f77A474c467546Fb4b812e4d0F8"
 currency = "SepoliaETH"
 
-[chains.goerli]
-chain_id = 5
-url = "https://goerli.infura.io/v3/"
-explorer_url = "https://goerli.etherscan.io/tx/"
-simple_account_factory_address = "0xB6C7963d2aB527b79842214160683f953bD8998b"
-usdc_address = "0x07865c6e87b9f70255377e024ace6630c1eaa37f"
-currency = "GoerliETH"
-entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
-verifying_paymaster_address = "0x1Fa8013ae6012C745fefe42068FBC988A04c7f81"
+[chains.base_goerli]
+chain_id = 84531
+url = "https://wild-fluent-hill.base-goerli.quiknode.pro/"
+explorer_url = "https://goerli.basescan.org/tx/"
+simple_account_factory_address = "0xE437C8A95545443e357Be3bdE7Cf9bc1B4922a29"
+usdc_address = "0xE03B984C599E3B6F3FF224ebf1296BAbAdcd9dF2"
+currency = "ETH"
+entrypoint_address = "0x5277533753B1AfE41FDEB7E7Baf46c242A38dEf7"
+verifying_paymaster_address = "0x12Ee5b8ddD68DCF899B7e4776E0114fee55cBcDa"
 
 [default_gas]
 call_gas_limit = 10000000

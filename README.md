@@ -1,4 +1,4 @@
-# roverx-rpc
+# toad
 
 This is an implementation for ERC-4337 and test cases in foundry to test the contracts involved.
 
@@ -52,7 +52,7 @@ The project does not come with a "Production.toml", but you can create one and u
 A foundry project for deployment and testing of the Account Abstraction contracts
 
 ### Set Up
-- git clone https://github.com/Club-Defy/roverx-rpc
+- git clone https://github.com/roverxio/toad
 - cd `deployment-testing`
 - execute `dependencies.sh`
 - Build `forge build`

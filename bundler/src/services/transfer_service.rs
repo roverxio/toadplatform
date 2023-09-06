@@ -135,7 +135,9 @@ impl TransferService {
 
         let txn_hash = result.unwrap();
         info!("Transaction sent successfully. Hash: {:?}", txn_hash);
-        user_txn.metadata.transaction_hash(txn_hash.clone());
+        user_txn
+            .metadata
+            .transaction_hash(txn_hash.clone().to_lowercase());
         self.transaction_dao
             .create_user_transaction(user_txn.clone())
             .await;
