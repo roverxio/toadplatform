@@ -8,6 +8,6 @@ pub struct Metadata {
 
 impl Metadata {
     pub fn get_currency(&self) -> String {
-        self.currency.clone().to_lowercase()
+        self.currency.trim().clone().to_lowercase()
     }
 }
