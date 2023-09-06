@@ -10,7 +10,7 @@ COPY bundler .
 RUN cargo build --release
 
 # Expose port 9010
-EXPOSE 9090
+EXPOSE 9010
 
 # Start your Actix-Web application
 CMD ["./target/release/bundler"]
