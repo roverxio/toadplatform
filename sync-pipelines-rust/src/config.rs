@@ -4,6 +4,7 @@ use std::path::PathBuf;
 pub struct LastSyncTime {
     _transactions: PathBuf,
     _token_transfers: PathBuf,
+    _start_time: StartTime,
 }
 
 pub struct StartTime {
@@ -18,7 +19,6 @@ pub struct ERC20Contracts {
 
 pub struct Config {
     _last_sync_time: LastSyncTime,
-    _start_time: StartTime,
     _erc20_contracts: Vec<ERC20Contracts>,
     _transaction_id_prefix: String,
     _native_currency: String,
@@ -27,7 +27,6 @@ pub struct Config {
 
 impl Config {
     pub fn new() -> Self {
-        // get config
         unimplemented!();
     }
 

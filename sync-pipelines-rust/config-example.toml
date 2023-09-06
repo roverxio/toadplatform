@@ -1,15 +1,13 @@
+process_pool = 20
+transaction_id_prefix = "toad_"
+native_currency = "sepoliaeth"
+chain = "sepolia"
+erc20_contracts = [{usdc = "0x0"}]
+
 [last_sync_time]
 transactions = "~/roverx-rpc/sync-pipelines/transaction_last_sync_blocktimestamp.txt"
 token_transfers = "~/roverx-rpc/sync-pipelines/erc20_last_sync_blocktimestamp.txt"
 
 [last_sync_time.start_time]
-transactions = "2023-01-01T00:00:00Z"
-token_transfers = "2023-01-01T00:00:00Z"
-
-[erc20_contracts]
-'0x0' = "usdc"
-
-[misc]
-transaction_id_prefix = "toad_"
-native_currency = "sepoliaeth"
-chain = "sepolia"
+transactions = 2023-01-01T00:00:00.000Z
+token_transfers = 2023-01-01T00:00:00.000Z
