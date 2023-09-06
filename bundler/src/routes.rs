@@ -8,7 +8,7 @@ use crate::handlers::wallet::{
     get_address, get_balance, list_transactions, poll_transaction, transfer,
 };
 use crate::middleware::admin_auth::AdminAuthMiddleware;
-use crate::middleware::auth::AuthMiddleware;
+use crate::middleware::auth::ToadAuthMiddleware;
 use crate::CONFIG;
 
 pub fn routes(cfg: &mut ServiceConfig) {
@@ -17,7 +17,7 @@ pub fn routes(cfg: &mut ServiceConfig) {
             web::scope("v1")
                 .service(
                     web::scope("user")
-                        .wrap(AuthMiddleware)
+                        .wrap(ToadAuthMiddleware)
                         .route("address", web::get().to(get_address))
                         .route("balance", web::get().to(get_balance))
                         .route("transact", web::post().to(transfer))

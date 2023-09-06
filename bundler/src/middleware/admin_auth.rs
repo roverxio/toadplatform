@@ -1,6 +1,3 @@
-use std::future::{ready, Ready};
-
-use crate::errors::ApiError;
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     Error,
@@ -8,6 +5,9 @@ use actix_web::{
 use futures::future::LocalBoxFuture;
 use log::error;
 use reqwest::header::HeaderName;
+use std::future::{ready, Ready};
+
+use crate::errors::ApiError;
 
 pub struct AdminAuthMiddleware;
 

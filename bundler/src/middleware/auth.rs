@@ -1,6 +1,3 @@
-use std::future::{ready, Ready};
-
-use crate::errors::ApiError;
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpMessage,
@@ -8,10 +5,13 @@ use actix_web::{
 use futures::future::LocalBoxFuture;
 use log::error;
 use reqwest::header::HeaderName;
+use std::future::{ready, Ready};
 
-pub struct AuthMiddleware;
+use crate::errors::ApiError;
 
-impl<S, B> Transform<S, ServiceRequest> for AuthMiddleware
+pub struct ToadAuthMiddleware;
+
+impl<S, B> Transform<S, ServiceRequest> for ToadAuthMiddleware
 where
     S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
     S::Future: 'static,
