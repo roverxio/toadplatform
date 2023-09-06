@@ -1,10 +1,3 @@
-[database]
-db_name = "my_db"
-username = "admin"
-password = "admin123"
-host = "localhost"
-process_pool = 20
-
 [last_sync_time]
 transactions = "~/roverx-rpc/sync-pipelines/transaction_last_sync_blocktimestamp.txt"
 token_transfers = "~/roverx-rpc/sync-pipelines/erc20_last_sync_blocktimestamp.txt"

@@ -1,34 +1,32 @@
-use sqlx::types::chrono::NaiveTime;
+use chrono::{DateTime, Utc};
 use std::path::PathBuf;
 
 pub struct LastSyncTime {
-    transactions: PathBuf,
-    token_transfers: PathBuf,
+    _transactions: PathBuf,
+    _token_transfers: PathBuf,
 }
 
 pub struct StartTime {
-    transactions: NaiveTime,
-    token_transfers: NaiveTime,
+    _transactions: DateTime<Utc>,
+    _token_transfers: DateTime<Utc>,
 }
 
 pub struct ERC20Contracts {
-    address: String,
-    symbol: String,
+    _address: String,
+    _symbol: String,
 }
 
 pub struct Config {
-    database_url: String,
-    process_pool: u32,
-    last_sync_time: LastSyncTime,
-    start_time: StartTime,
-    erc20_contracts: Vec<ERC20Contracts>,
-    transaction_id_prefix: String,
-    native_currency: String,
-    chain: String,
+    _last_sync_time: LastSyncTime,
+    _start_time: StartTime,
+    _erc20_contracts: Vec<ERC20Contracts>,
+    _transaction_id_prefix: String,
+    _native_currency: String,
+    _chain: String,
 }
 
 impl Config {
-    pub fn new() {
+    pub fn new() -> Self {
         // get config
         unimplemented!();
     }
