@@ -86,7 +86,7 @@ pub async fn poll_transaction(
     }
 
     let transaction =
-        TransferService::get_status(db_pool.get_ref(), query.get_transaction_id(), user_id)
+        TransferService::get_status(db_pool.get_ref(), query.transaction_id.clone(), user_id)
             .await
             .unwrap();
 
