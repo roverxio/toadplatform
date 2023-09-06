@@ -1,4 +1,4 @@
-# roverx-rpc
+# toad
 
 This is an implementation for ERC-4337 and test cases in foundry to test the contracts involved.
 
@@ -31,8 +31,14 @@ You can find the deployed contracts in the console logs. Copy the very first pri
 ### Running the bundler
 1. navigate to `.env.example` and set the environment variables mentioned there (using the export command) (RUN_ENV can be one of "Development", "Production", "Staging")
 2. if your RUN_ENV is "Development", set INFURA_KEY to an empty string. You will also need to create a copy of config/Staging.toml and rename it to config/Development.toml. Set the values in the config file as per your requirements.
-3. run `bash db/setup_db.sh`
+3. setup database
+   ```bash
+   cargo install sqlx-cli@0.7.1
+   cargo sqlx migrate run --database-url $DATABASE_URL
+   ```
 4. run `cargo run`
+
+<ins>NOTE</ins>: If there are any changes in the schema or the queries, run `cargo sqlx prepare --database-url $DATABASE_URL` and add the generated files or the github workflow will fail. Files will be generated under `bundler/.sqlx`  
 
 By default, the server uses "Development.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
 1. Development
@@ -46,7 +52,7 @@ The project does not come with a "Production.toml", but you can create one and u
 A foundry project for deployment and testing of the Account Abstraction contracts
 
 ### Set Up
-- git clone https://github.com/Club-Defy/roverx-rpc
+- git clone https://github.com/roverxio/toad
 - cd `deployment-testing`
 - execute `dependencies.sh`
 - Build `forge build`

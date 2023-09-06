@@ -1,0 +1,6 @@
+.idea
+venv
+last_seen_blocktimestamp.txt
+config_development.yaml
+transaction_last_sync_blocktimestamp.txt
+erc20_last_sync_blocktimestamp.txt

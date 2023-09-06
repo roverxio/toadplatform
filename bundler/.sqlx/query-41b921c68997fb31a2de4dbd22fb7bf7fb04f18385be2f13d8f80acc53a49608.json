@@ -1,0 +1,96 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, t1.to_address, t1.amount, t1.currency, t1.type as transaction_type, t1.status, t1.metadata, t1.created_at, t1.updated_at, t2.exponent from user_transactions t1 left join token_metadata t2 on t1.currency = t2.symbol and t1.metadata ->> 'chain' = t2.chain where user_address = $1 and id < $2 order by id desc limit $3",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 1,
+        "name": "user_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "transaction_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "from_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "to_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "amount",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 6,
+        "name": "currency",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 7,
+        "name": "transaction_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 8,
+        "name": "status",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 9,
+        "name": "metadata",
+        "type_info": "Jsonb"
+      },
+      {
+        "ordinal": 10,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 11,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 12,
+        "name": "exponent",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Text",
+        "Int4",
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "41b921c68997fb31a2de4dbd22fb7bf7fb04f18385be2f13d8f80acc53a49608"
+}

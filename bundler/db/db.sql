@@ -5,8 +5,29 @@ create table if not exists users (
     deployed boolean not null default false
 );
 
-create table if not exists transactions (
-    wallet_address varchar(42) not null,
-    transaction_hash varchar(66) not null,
-    created_at timestamp not null default current_timestamp
-)
+create table if not exists user_transactions (
+    id integer primary key autoincrement,
+    user_address varchar(42) not null,
+    transaction_id varchar not null,
+    from_address varchar(42) not null,
+    to_address varchar(42) not null,
+    amount varchar not null,
+    currency varchar not null,
+    type varchar(6) not null,
+    status varchar(10) not null,
+    metadata jsonb not null,
+    created_at timestamp not null default current_timestamp,
+    updated_at timestamp not null default current_timestamp
+);
+
+create table if not exists supported_currencies (
+    chain varchar not null,
+    currency varchar not null,
+    contract_address varchar not null,
+    exponent int not null,
+    created_at timestamp not null default current_timestamp,
+    updated_at timestamp not null default current_timestamp
+);
+
+create unique index if not exists supported_currencies_chain_currency_exponent_uindex
+    on supported_currencies (chain, currency);

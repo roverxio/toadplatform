@@ -10,6 +10,7 @@ pub struct RunConfig {
     pub account_owner: Address,
     pub paymaster_account_owner: Address,
     pub deployed_by_identifier: String,
+    pub transaction_id_prefix: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -22,17 +23,6 @@ pub struct Server {
     pub port: u16,
     pub host: String,
     pub prefix: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct Database {
-    pub file: String,
-}
-
-#[derive(Debug, Deserialize, Clone)]
-pub struct DefaultChain {
-    pub chain: String,
-    pub currency: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -70,11 +60,10 @@ pub struct DefaultGas {
 pub struct Settings {
     pub run_config: RunConfig,
     pub log: Log,
-    pub database: Database,
     pub server: Server,
-    pub default_chain: DefaultChain,
     pub chains: Map<String, Chain>,
     pub default_gas: DefaultGas,
+    pub admins: Vec<String>,
     pub env: ENV,
 }
 
@@ -84,13 +73,27 @@ const CONFIG_FILE_PREFIX: &str = "./config";
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         let env = std::env::var("RUN_ENV").unwrap_or_else(|_| "Development".into());
+        let admins_env = std::env::var("ADMIN").expect("ADMIN env variable not set");
+        let admins = admins_env
+            .split(",")
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>();
 
         let s = Config::builder()
             .add_source(File::with_name(CONFIG_FILE_PATH).required(false))
             .add_source(File::with_name(&format!("{}/{}", CONFIG_FILE_PREFIX, env)).required(false))
             .set_override("env", env)?
+            .set_override("admins", admins)?
             .build()?;
 
         s.try_deserialize()
+    }
+
+    pub fn get_chain(&self) -> &Chain {
+        &self.chains[&self.run_config.current_chain]
+    }
+
+    pub fn get_admins(&self) -> &Vec<String> {
+        &self.admins
     }
 }

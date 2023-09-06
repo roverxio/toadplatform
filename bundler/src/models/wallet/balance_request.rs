@@ -19,3 +19,13 @@ impl BalanceRequest {
         serde_json::from_slice(&bytes).expect("JSON deserialization failed!")
     }
 }
+
+impl Balance {
+    pub fn get_chain(&self) -> String {
+        self.chain.clone().to_lowercase()
+    }
+
+    pub fn get_currency(&self) -> String {
+        self.currency.clone().to_lowercase()
+    }
+}

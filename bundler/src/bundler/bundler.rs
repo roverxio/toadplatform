@@ -11,7 +11,7 @@ use crate::CONFIG;
 
 #[derive(Clone)]
 pub struct Bundler {
-    pub signing_client: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
+    pub signer: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
     pub entrypoint: EntryPointProvider,
 }
 
@@ -26,8 +26,8 @@ impl Bundler {
             return Err(String::from("failed to transfer"));
         }
         Web3Provider::execute(
-            self.signing_client.clone(),
-            CONFIG.chains[&CONFIG.run_config.current_chain].entrypoint_address,
+            self.signer.clone(),
+            CONFIG.get_chain().entrypoint_address,
             String::from("0"),
             call_data.unwrap(),
             self.entrypoint.abi(),

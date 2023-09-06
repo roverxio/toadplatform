@@ -1,8 +1,10 @@
+use crate::CONFIG;
 use actix_web::web::{Data, Json, Path, Query};
 use actix_web::HttpRequest;
 
-use crate::constants::Constants;
 use crate::errors::ApiError;
+use crate::models::admin::add_metadata_request::AddMetadataRequest;
+use crate::models::admin::metadata_response::MetadataResponse;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
@@ -17,7 +19,7 @@ pub async fn topup_paymaster_deposit(
     req: HttpRequest,
     paymaster: Path<String>,
 ) -> Result<Json<BaseResponse<TransferResponse>>, ApiError> {
-    if Constants::ADMIN != get_user(req) {
+    if is_not_admin(get_user(req)) {
         return Err(ApiError::BadRequest("Invalid credentials".to_string()));
     }
     let req = body.into_inner();
@@ -33,11 +35,27 @@ pub async fn admin_get_balance(
     req: HttpRequest,
     entity: Path<String>,
 ) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
-    if Constants::ADMIN != get_user(req) {
+    if is_not_admin(get_user(req)) {
         return Err(ApiError::BadRequest("Invalid credentials".to_string()));
     }
     let response = service
         .get_balance(entity.clone(), body.get_balance_request())
         .await?;
     respond_json(response)
+}
+
+pub async fn add_currency_metadata(
+    service: Data<AdminService>,
+    body: Json<AddMetadataRequest>,
+    req: HttpRequest,
+) -> Result<Json<BaseResponse<MetadataResponse>>, ApiError> {
+    if is_not_admin(get_user(req)) {
+        return Err(ApiError::BadRequest("Invalid credentials".to_string()));
+    }
+    let response = service.add_currency_metadata(body.into_inner()).await?;
+    respond_json(response)
+}
+
+fn is_not_admin(user: String) -> bool {
+    !CONFIG.get_admins().contains(&user)
 }

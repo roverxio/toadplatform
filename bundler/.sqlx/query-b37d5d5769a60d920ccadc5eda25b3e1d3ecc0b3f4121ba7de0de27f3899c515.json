@@ -1,0 +1,17 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "INSERT INTO users (email, wallet_address, salt, deployed) VALUES ($1, $2, $3, $4)",
+  "describe": {
+    "columns": [],
+    "parameters": {
+      "Left": [
+        "Varchar",
+        "Varchar",
+        "Numeric",
+        "Bool"
+      ]
+    },
+    "nullable": []
+  },
+  "hash": "b37d5d5769a60d920ccadc5eda25b3e1d3ecc0b3f4121ba7de0de27f3899c515"
+}
