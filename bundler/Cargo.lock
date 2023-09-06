@@ -649,6 +649,7 @@ checksum = "a3e2c3daef883ecc1b5d58c15adae93470a91d425f3532ba1695849656af3fc1"
 name = "bundler"
 version = "0.1.0"
 dependencies = [
+ "actix-service",
  "actix-web",
  "base64 0.21.2",
  "bigdecimal",
@@ -659,6 +660,7 @@ dependencies = [
  "env_logger",
  "ethers",
  "ethers-signers",
+ "futures",
  "lazy_static",
  "log",
  "rand",

@@ -1,5 +1,5 @@
 use actix_web::error::ErrorUnauthorized;
-use actix_web::web::{Data, Json, Query};
+use actix_web::web::{Data, Json, Query, ReqData};
 use actix_web::{Error, HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 
@@ -29,14 +29,14 @@ pub async fn get_address(
 pub async fn get_balance(
     service: Data<BalanceService>,
     body: Query<BalanceRequest>,
-    req: HttpRequest,
+    user: ReqData<String>,
 ) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
     let balance_request = body.get_balance_request();
     let data = service
         .get_wallet_balance(
             &balance_request.get_chain(),
             &balance_request.get_currency(),
-            &get_user(req),
+            &user.into_inner(),
         )
         .await?;
     respond_json(data)
