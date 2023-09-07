@@ -102,15 +102,34 @@ impl TransactionDao {
         };
     }
 
-    pub async fn update_user_transaction(&self, txn_id: String, txn_hash: String, status: String) {
-        let query = query!(
-            "UPDATE user_transactions \
-            set status = $1, metadata = jsonb_set(metadata, '{transaction_hash}', $2) \
-            where transaction_id = $3",
-            status,
-            Value::String(txn_hash),
-            txn_id,
-        );
+    pub async fn update_user_transaction(
+        &self,
+        txn_id: String,
+        txn_hash: Option<String>,
+        status: String,
+    ) {
+        let query;
+        match txn_hash {
+            None => {
+                query = query!(
+                    "UPDATE user_transactions \
+                    set status = $1 \
+                    where transaction_id = $2",
+                    status,
+                    txn_id,
+                );
+            }
+            Some(value) => {
+                query = query!(
+                    "UPDATE user_transactions \
+                    set status = $1, metadata = jsonb_set(metadata, '{transaction_hash}', $2) \
+                    where transaction_id = $3",
+                    status,
+                    Value::String(value),
+                    txn_id,
+                );
+            }
+        }
         let result = query.execute(&self.pool).await;
         if result.is_err() {
             error!(
