@@ -28,6 +28,28 @@ impl WalletDao {
         Self::get_user_wallet_address(&self.pool, user_id).await
     }
 
+    pub async fn get_wallet_by_firebase_id(
+        pool: &Pool<Postgres>,
+        firebase_id: String,
+    ) -> Option<User> {
+        let query = query_as!(
+            User,
+            "SELECT * from users where firebase_id = $1",
+            firebase_id
+        );
+        let result: Result<Option<User>, Error> = query.fetch_optional(pool).await;
+        return match result {
+            Ok(user) => user,
+            Err(err) => {
+                error!(
+                    "Failed to get wallet address {}, err: {:?}",
+                    firebase_id, err
+                );
+                None
+            }
+        };
+    }
+
     pub async fn get_user_wallet_address(pool: &Pool<Postgres>, user_id: String) -> String {
         let query = query_as!(User, "SELECT * from users where email = $1", user_id);
         let result: Result<User, Error> = query.fetch_one(pool).await;
