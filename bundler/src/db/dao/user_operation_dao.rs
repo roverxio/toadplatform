@@ -23,7 +23,7 @@ impl UserOperationDao {
             Ok(data) => metadata = data,
             Err(err) => {
                 error!(
-                    "Metadata conversion failed: {}, err: {:?}",
+                    "UserOperation conversion failed: {}, err: {:?}",
                     transaction_id, err
                 );
                 return;
@@ -39,7 +39,7 @@ impl UserOperationDao {
         let result = query.execute(&self.pool).await;
         if result.is_err() {
             error!(
-                "Failed to create user transaction: {}, err: {:?}",
+                "Failed to create user operation: {}, err: {:?}",
                 transaction_id,
                 result.err()
             );
