@@ -22,6 +22,21 @@
         "ordinal": 3,
         "name": "deployed",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "firebase_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "owner_address",
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
@@ -30,6 +45,9 @@
       ]
     },
     "nullable": [
+      false,
+      false,
+      false,
       false,
       false,
       false,
