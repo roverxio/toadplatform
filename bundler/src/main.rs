@@ -30,7 +30,7 @@ async fn main() -> std::io::Result<()> {
         service.clone(),
         Server {
             host: CONFIG.server.host.clone(),
-            port: CONFIG.server.port.clone().to_string(),
+            port: CONFIG.server.get_port().to_string(),
             log_level: CONFIG.log.level.clone(),
         },
     )

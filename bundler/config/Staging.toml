@@ -7,7 +7,7 @@ transaction_id_prefix = "toad"
 
 [server]
 port = "9010"
-host = "localhost"
+host = "0.0.0.0"
 prefix = "stg"
 
 [log]

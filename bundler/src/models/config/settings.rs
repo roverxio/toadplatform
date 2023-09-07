@@ -37,6 +37,17 @@ pub struct Chain {
     pub verifying_paymaster_address: Address,
 }
 
+impl Server {
+    pub fn get_port(&self) -> u16 {
+        let port = std::env::var("PORT");
+        if port.is_ok() {
+            port.unwrap().parse::<u16>().unwrap()
+        } else {
+            self.port
+        }
+    }
+}
+
 impl Chain {
     pub fn get_url(&self) -> String {
         format!(
