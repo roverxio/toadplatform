@@ -1,9 +1,10 @@
 use actix_web::web::{Data, Json};
-use actix_web::{HttpRequest, HttpResponse};
+use actix_web::{Error, HttpRequest, HttpResponse};
 use log::info;
 
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
+use crate::models::transfer::transfer_execute_request::TransferExecuteRequest;
 use crate::models::transfer::transfer_request::TransferRequest;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::provider::helpers::{get_user, respond_json};
@@ -31,10 +32,10 @@ pub async fn init_transfer(
     service: Data<TransferServiceV2>,
     body: Json<TransferRequest>,
     req: HttpRequest,
-) -> Result<HttpResponse, ApiError> {
+) -> Result<HttpResponse, Error> {
     info!("init_transfer");
     let data = service
-        .transfer_init(
+        .init(
             body.get_receiver(),
             body.get_value(),
             body.metadata.get_currency(),
@@ -47,7 +48,16 @@ pub async fn init_transfer(
     }))
 }
 
-pub async fn execute_transfer() -> Result<HttpResponse, ApiError> {
+pub async fn execute_transfer(
+    service: Data<TransferServiceV2>,
+    body: Json<TransferExecuteRequest>,
+    req: HttpRequest,
+) -> Result<HttpResponse, Error> {
     info!("execute_transfer");
-    Ok(HttpResponse::Ok().finish())
+    get_user(req);
+    let data = service.execute(body.transaction_id.clone(), body.signature.clone());
+    Ok(HttpResponse::Ok().json(BaseResponse {
+        data: data.unwrap(),
+        err: Default::default(),
+    }))
 }

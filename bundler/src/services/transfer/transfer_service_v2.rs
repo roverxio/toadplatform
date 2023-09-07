@@ -18,7 +18,9 @@ use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::currency::Currency;
 use crate::models::transaction_type::TransactionType;
 use crate::models::transfer::status::Status;
+use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_init_response::TransferInitResponse;
+use crate::models::transfer::transfer_response::TransferResponse;
 use crate::provider::helpers::generate_txn_id;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
@@ -39,7 +41,7 @@ pub struct TransferServiceV2 {
 }
 
 impl TransferServiceV2 {
-    pub async fn transfer_init(
+    pub async fn init(
         &self,
         to: String,
         value: String,
@@ -116,6 +118,21 @@ impl TransferServiceV2 {
             msh_hash: Bytes::from(user_op_hash),
             status: user_txn.status,
             transaction_id: user_txn.transaction_id,
+        })
+    }
+
+    pub fn execute(
+        &self,
+        transaction_id: String,
+        _signature: Bytes,
+    ) -> Result<TransferResponse, ApiError> {
+        Ok(TransferResponse {
+            transaction: TransactionResponse {
+                transaction_hash: "0xtransaction_hash".to_string(),
+                status: Status::PENDING.to_string(),
+                explorer: get_explorer_url("0xtransaction_hash"),
+            },
+            transaction_id,
         })
     }
 
@@ -198,4 +215,8 @@ impl TransferServiceV2 {
             None => Err("Currency not found".to_string()),
         }
     }
+}
+
+pub fn get_explorer_url(txn_hash: &str) -> String {
+    CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone()
 }
