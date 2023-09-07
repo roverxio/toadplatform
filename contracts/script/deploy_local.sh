@@ -10,7 +10,7 @@ done
 # the following set of lines enable us to deploy the script from anywhere in the project
 cd "$(dirname "$0")" || exit
 cd "$(dirname "$(pwd)")" || exit
-source .env
+source .env || exit
 CREATE2_ADDRESS="0x4e59b44847b379578588920cA78FbF26c0B4956C" # a fixed address at which anvil checks for the create 2 factory
 curl http://localhost:8545 -X POST -H 'Content-Type: application/json' --data "{\"jsonrpc\":\"2.0\", \"id\":1, \"method\": \"anvil_setCode\", \"params\": [\"$CREATE2_ADDRESS\", \"0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3\"]}" >/dev/null 2>&1;
 
