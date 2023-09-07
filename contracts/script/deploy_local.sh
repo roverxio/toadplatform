@@ -14,11 +14,11 @@ source .env || exit
 CREATE2_ADDRESS="0x4e59b44847b379578588920cA78FbF26c0B4956C" # a fixed address at which anvil checks for the create 2 factory
 curl http://localhost:8545 -X POST -H 'Content-Type: application/json' --data "{\"jsonrpc\":\"2.0\", \"id\":1, \"method\": \"anvil_setCode\", \"params\": [\"$CREATE2_ADDRESS\", \"0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffe03601600081602082378035828234f58015156039578182fd5b8082525050506014600cf3\"]}" >/dev/null 2>&1;
 
-var=$(forge script script/DeployLocal.s.sol:DeployLocal --rpc-url "${RPC_URL}" --broadcast 2>&1) # store the outputs/logs of forge scrip to the variable
+var=$(forge script script/DeployLocal.s.sol:DeployLocal --rpc-url "${RPC_URL}" --broadcast 2>&1) # store the outputs/logs of forge script to the variable
 
 # loop to check for errors
 while IFS= read -r line; do
-  if [[ "$line" == "Error:"* ]]; then
+  if [[ "$line" == *"Script failed"* ]]; then
       echo -e "\033[1;31mError\033[0;31m: Contracts already deployed.\n\033[1;37mHINT\033[0;37m: Kill anvil using and run the script again to redeploy the contracts\nTry:\t\t\033[0;0m pkill -f anvil"
       exit 1
   fi
