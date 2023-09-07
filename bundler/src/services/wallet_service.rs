@@ -35,7 +35,10 @@ impl WalletService {
             self.wallet_dao
                 .create_wallet(
                     usr.to_string(),
+                    "".to_string(),
                     format!("{:?}", result.address),
+                    "".to_string(),
+                    "".to_string(),
                     result.salt,
                     false,
                 )

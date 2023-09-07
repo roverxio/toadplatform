@@ -55,15 +55,22 @@ impl WalletDao {
     pub async fn create_wallet(
         &self,
         user_id: String,
+        name: String,
         wallet_address: String,
+        owner_address: String,
+        firebase_id: String,
         salt: BigDecimal,
         deployed: bool,
     ) {
         let query = query!(
-            "INSERT INTO users (email, wallet_address, salt, deployed) VALUES ($1, $2, $3, $4)",
+            "INSERT INTO users (email, name, wallet_address, owner_address, salt, firebase_id, \
+            deployed) VALUES ($1, $2, $3, $4, $5, $6, $7)",
             user_id,
+            name,
             wallet_address.to_lowercase(),
+            owner_address.to_lowercase(),
             salt,
+            firebase_id,
             deployed
         );
         let result = query.execute(&self.pool).await;
