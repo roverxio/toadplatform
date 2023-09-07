@@ -83,4 +83,7 @@ pub struct User {
     pub wallet_address: String,
     pub salt: BigDecimal,
     pub deployed: bool,
+    pub owner_address: String,
+    pub name: String,
+    pub firebase_id: String,
 }
