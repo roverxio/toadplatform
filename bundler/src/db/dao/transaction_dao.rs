@@ -112,9 +112,7 @@ impl TransactionDao {
         match txn_hash {
             None => {
                 query = query!(
-                    "UPDATE user_transactions \
-                    set status = $1 \
-                    where transaction_id = $2",
+                    "UPDATE user_transactions set status = $1 where transaction_id = $2",
                     status,
                     txn_id,
                 );
