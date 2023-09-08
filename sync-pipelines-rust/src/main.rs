@@ -18,7 +18,7 @@ lazy_static! {
 }
 
 fn main() {
-    let pool = Connection::init();
+    let _pool = Connection::init();
 
     let table = Table::from(args().nth(1).expect("no table given"));
 

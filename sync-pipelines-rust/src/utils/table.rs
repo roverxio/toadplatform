@@ -14,12 +14,9 @@ impl Table {
     }
 
     pub fn from(s: String) -> Self {
-        let token_transfers = "token_transfers".to_string();
-        let transactions = "transactions".to_string();
-
         match s {
-             token_transfers=> Table::TokenTransfers,
-             transactions=> Table::Transactions,
+            transfers if transfers == "token_transfers".to_string() => Table::TokenTransfers,
+            transactions if transactions == "transactions".to_string() => Table::Transactions,
             _ => {
                 // raise error
                 exit(1);
