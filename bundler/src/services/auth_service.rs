@@ -1,4 +1,5 @@
 use jwks_client::keyset::KeyStore;
+use rs_firebase_admin_sdk::auth::User;
 use rs_firebase_admin_sdk::{
     auth::{FirebaseAuthService, UserIdentifiers},
     App, GcpCredentials,
@@ -30,7 +31,7 @@ impl AuthService {
         }
     }
 
-    pub async fn is_valid_id(verifier_id: String) -> bool {
+    pub async fn is_valid_id(verifier_id: String) -> Option<User> {
         let live_app = App::live(GcpCredentials::new().await.unwrap())
             .await
             .unwrap();
@@ -44,6 +45,6 @@ impl AuthService {
             )
             .await
             .expect("Error while fetching user");
-        user.is_some()
+        user
     }
 }

@@ -106,7 +106,7 @@ impl WalletDao {
     }
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct User {
     pub email: String,
     pub wallet_address: String,
@@ -115,4 +115,19 @@ pub struct User {
     pub owner_address: String,
     pub name: String,
     pub firebase_id: String,
+}
+
+// mapper to convert from firebase user to db user
+impl From<rs_firebase_admin_sdk::auth::User> for User {
+    fn from(user: rs_firebase_admin_sdk::auth::User) -> Self {
+        User {
+            email: user.email.unwrap(),
+            wallet_address: Default::default(),
+            salt: Default::default(),
+            deployed: false,
+            owner_address: Default::default(),
+            name: user.display_name.unwrap(),
+            firebase_id: user.uid,
+        }
+    }
 }

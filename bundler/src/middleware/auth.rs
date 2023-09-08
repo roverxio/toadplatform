@@ -1,13 +1,14 @@
 use actix_web::web::Data;
 use actix_web::{
     dev::{forward_ready, Service, ServiceRequest, ServiceResponse, Transform},
-    Error,
+    Error, HttpMessage,
 };
 use futures::future::{Either, LocalBoxFuture};
-use log::error;
+use log::{debug, error};
 use sqlx::{Pool, Postgres};
 use std::future::{ready, Future, Ready};
 use std::pin::Pin;
+use std::sync::Arc;
 
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::errors::ApiError;
@@ -17,7 +18,7 @@ pub struct ToadAuthMiddleware;
 
 impl<S, B> Transform<S, ServiceRequest> for ToadAuthMiddleware
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
     B: 'static,
 {
@@ -28,17 +29,20 @@ where
     type Future = Ready<Result<Self::Transform, Self::InitError>>;
 
     fn new_transform(&self, service: S) -> Self::Future {
-        ready(Ok(AuthMiddlewareService { service }))
+        ready(Ok(AuthMiddlewareService {
+            service: Arc::new(service),
+        }))
     }
 }
 
+#[derive(Clone)]
 pub struct AuthMiddlewareService<S> {
-    service: S,
+    service: Arc<S>,
 }
 
 impl<S, B> Service<ServiceRequest> for AuthMiddlewareService<S>
 where
-    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error>,
+    S: Service<ServiceRequest, Response = ServiceResponse<B>, Error = Error> + 'static,
     S::Future: 'static,
     B: 'static,
 {
@@ -52,36 +56,62 @@ where
     forward_ready!(service);
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
-        let auth = req.headers().get("Authorization");
-        if auth.is_none() {
-            return Either::Left(Box::pin(async { Err(Error::from(ApiError::Unauthorized)) }));
-        }
-        let token = auth.unwrap().to_str().unwrap()[7..].trim();
-        let data = AuthService::decode_jwt(token);
-        if data.is_err() || data.as_ref().unwrap().verifier_id.is_none() {
-            error!("Middleware error: failed to decode token");
-            return Either::Left(Box::pin(async { Err(Error::from(ApiError::Unauthorized)) }));
-        }
-        let verifier_id = data.unwrap().verifier_id.unwrap();
-
-        let is_valid_future = AuthService::is_valid_id(verifier_id.clone());
-        let pool = req.app_data::<Data<Pool<Postgres>>>().cloned();
-
-        let service_future = self.service.call(req);
-
-        Either::Right(Box::pin(async move {
-            let is_valid = is_valid_future.await;
-            if !is_valid {
+        let fut = async move {
+            // Check for the "Authorization" header
+            let auth = req.headers().get("Authorization");
+            if auth.is_none() {
                 return Err(Error::from(ApiError::Unauthorized));
             }
-            let db_user =
+
+            // Extract and decode the JWT token
+            let token = auth.and_then(|value| value.to_str().ok()).and_then(|s| {
+                if s.starts_with("Bearer ") {
+                    Some(s[7..].trim())
+                } else {
+                    None
+                }
+            });
+            if token.is_none() {
+                error!("Middleware error: failed to extract token");
+                return Err(Error::from(ApiError::Unauthorized));
+            }
+            let data = AuthService::decode_jwt(token.unwrap());
+            if data.is_err() || data.as_ref().unwrap().verifier_id.is_none() {
+                error!("Middleware error: failed to decode token");
+                return Err(Error::from(ApiError::Unauthorized));
+            }
+
+            let verifier_id = data.unwrap().verifier_id.unwrap();
+
+            // Validate verifier_id
+            let user = AuthService::is_valid_id(verifier_id.clone()).await;
+            if user.is_none() {
+                return Err(Error::from(ApiError::Unauthorized));
+            }
+
+            // Fetch user from the database
+            let pool = req.app_data::<Data<Pool<Postgres>>>().cloned();
+            let mut db_user;
+            db_user =
                 WalletDao::get_wallet_by_firebase_id(pool.unwrap().as_ref(), verifier_id.clone())
                     .await;
             if db_user.is_none() {
-                return Err(Error::from(ApiError::Unauthorized));
+                debug!("Probably a new user. Not found on db, but exists on firebase");
+                db_user = Some(crate::db::dao::wallet_dao::User::from(user.unwrap()));
             }
-            // req.extensions_mut().insert(db_user.unwrap());
-            service_future.await
+
+            // Insert db_user into req's extensions
+            req.extensions_mut().insert(db_user.unwrap());
+
+            Ok(req)
+        };
+
+        let service = self.service.clone();
+        Either::Right(Box::pin(async move {
+            match fut.await {
+                Ok(validated_req) => service.call(validated_req).await,
+                Err(e) => Err(e),
+            }
         }))
     }
 }
