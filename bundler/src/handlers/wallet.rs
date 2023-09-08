@@ -1,6 +1,8 @@
+use crate::db::dao::wallet_dao::User;
 use actix_web::error::ErrorUnauthorized;
 use actix_web::web::{Data, Json, Query, ReqData};
 use actix_web::{Error, HttpRequest, HttpResponse};
+use log::info;
 use sqlx::{Pool, Postgres};
 
 use crate::errors::ApiError;
@@ -29,14 +31,14 @@ pub async fn get_address(
 pub async fn get_balance(
     service: Data<BalanceService>,
     body: Query<BalanceRequest>,
-    user: ReqData<String>,
+    user: ReqData<User>,
 ) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
     let balance_request = body.get_balance_request();
     let data = service
         .get_wallet_balance(
             &balance_request.get_chain(),
             &balance_request.get_currency(),
-            &user.into_inner(),
+            user.into_inner(),
         )
         .await?;
     respond_json(data)
