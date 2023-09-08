@@ -1,3 +1,4 @@
+use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, Zero};
 use ethers::prelude::U256;
 use std::sync::Arc;
@@ -15,6 +16,7 @@ use crate::errors::ApiError;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
+use crate::services::mint_service::{mint, MintService};
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -23,6 +25,7 @@ pub struct WalletService {
     pub transaction_dao: TransactionDao,
     pub simple_account_factory_provider: SimpleAccountFactory<Provider<Http>>,
     pub client: Arc<Provider<Http>>,
+    pub mint_service: MintService,
 }
 
 impl WalletService {
@@ -40,6 +43,12 @@ impl WalletService {
                     false,
                 )
                 .await;
+            // spawn a thread to mint for user
+            spawn(mint(
+                result.address.clone(),
+                self.mint_service.usdc_provider.clone(),
+                self.mint_service.signer.clone(),
+            ));
         } else {
             result = Wallet {
                 address: address.parse().unwrap(),
