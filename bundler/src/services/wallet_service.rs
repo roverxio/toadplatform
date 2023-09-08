@@ -29,7 +29,7 @@ impl WalletService {
     pub async fn get_wallet_address(&self, user: User) -> Result<AddressResponse, ApiError> {
         let result: Wallet;
         if user.wallet_address.is_empty() {
-            result = self.get_address(user.firebase_id.as_str()).await;
+            result = self.get_address(user.external_user_id.as_str()).await;
             info!("salt -> {}", result.salt);
             self.wallet_dao
                 .create_wallet(
@@ -37,7 +37,7 @@ impl WalletService {
                     user.name,
                     format!("{:?}", result.address),
                     user.owner_address,
-                    user.firebase_id,
+                    user.external_user_id,
                     result.salt,
                     result.deployed,
                 )
@@ -55,13 +55,13 @@ impl WalletService {
         })
     }
 
-    async fn get_address(&self, firebase_id: &str) -> Wallet {
+    async fn get_address(&self, external_user_id: &str) -> Wallet {
         let mut result;
         let mut suffix = "".to_string();
         let mut salt;
         let mut deployed = false;
         loop {
-            let user = firebase_id.to_string().clone() + suffix.as_str();
+            let user = external_user_id.to_string().clone() + suffix.as_str();
             salt = get_hash(user);
             result = self
                 .simple_account_factory_provider

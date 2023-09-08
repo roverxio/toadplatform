@@ -136,7 +136,7 @@ impl TransferService {
             .await;
         if !user.deployed {
             self.wallet_dao
-                .update_wallet_deployed(user.firebase_id)
+                .update_wallet_deployed(user.external_user_id)
                 .await;
         }
 

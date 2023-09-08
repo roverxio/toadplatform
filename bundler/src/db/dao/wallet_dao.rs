@@ -10,7 +10,7 @@ pub struct WalletDao {
 impl WalletDao {
     pub async fn update_wallet_deployed(&self, user_id: String) {
         let query = query!(
-            "UPDATE users SET deployed = $1 WHERE firebase_id = $2",
+            "UPDATE users SET deployed = $1 WHERE external_user_id = $2",
             true,
             user_id
         );
@@ -24,14 +24,14 @@ impl WalletDao {
         }
     }
 
-    pub async fn get_wallet_by_firebase_id(
+    pub async fn get_wallet_by_external_user_id(
         pool: &Pool<Postgres>,
-        firebase_id: String,
+        external_user_id: String,
     ) -> Option<User> {
         let query = query_as!(
             User,
-            "SELECT * from users where firebase_id = $1",
-            firebase_id
+            "SELECT * from users where external_user_id = $1",
+            external_user_id
         );
         let result: Result<Option<User>, Error> = query.fetch_optional(pool).await;
         return match result {
@@ -39,7 +39,7 @@ impl WalletDao {
             Err(err) => {
                 error!(
                     "Failed to get wallet address {}, err: {:?}",
-                    firebase_id, err
+                    external_user_id, err
                 );
                 None
             }
@@ -52,19 +52,19 @@ impl WalletDao {
         name: String,
         wallet_address: String,
         owner_address: String,
-        firebase_id: String,
+        external_user_id: String,
         salt: BigDecimal,
         deployed: bool,
     ) {
         let query = query!(
-            "INSERT INTO users (email, name, wallet_address, owner_address, salt, firebase_id, \
+            "INSERT INTO users (email, name, wallet_address, owner_address, salt, external_user_id, \
             deployed) VALUES ($1, $2, $3, $4, $5, $6, $7)",
             user_id,
             name,
             wallet_address.to_lowercase(),
             owner_address.to_lowercase(),
             salt,
-            firebase_id,
+            external_user_id,
             deployed
         );
         let result = query.execute(&self.pool).await;
@@ -86,7 +86,7 @@ pub struct User {
     pub deployed: bool,
     pub owner_address: String,
     pub name: String,
-    pub firebase_id: String,
+    pub external_user_id: String,
 }
 
 // mapper to convert from firebase user to db user
@@ -99,7 +99,7 @@ impl From<rs_firebase_admin_sdk::auth::User> for User {
             deployed: false,
             owner_address: Default::default(),
             name: user.display_name.unwrap(),
-            firebase_id: user.uid,
+            external_user_id: user.uid,
         }
     }
 }
