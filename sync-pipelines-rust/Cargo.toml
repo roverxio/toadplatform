@@ -1,0 +1,11 @@
+[package]
+name = "sync-pipelines-rust"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+lazy_static = "1.4.0"
+serde = "1.0.188"
+sqlx = { version = "0.7.1", features = ["runtime-async-std", "postgres", "chrono", "bigdecimal"] }
+chrono = "0.4.26"
+bigdecimal = { version = "0.3.0", features = ["serde"]}
