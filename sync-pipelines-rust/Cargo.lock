@@ -1530,6 +1530,7 @@ dependencies = [
  "bigdecimal",
  "chrono",
  "lazy_static",
+ "log",
  "serde",
  "sqlx",
 ]
