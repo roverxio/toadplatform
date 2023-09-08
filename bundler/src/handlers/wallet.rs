@@ -1,8 +1,6 @@
 use crate::db::dao::wallet_dao::User;
-use actix_web::error::ErrorUnauthorized;
 use actix_web::web::{Data, Json, Query, ReqData};
-use actix_web::{Error, HttpRequest, HttpResponse};
-use log::info;
+use actix_web::{Error, HttpResponse};
 use sqlx::{Pool, Postgres};
 
 use crate::errors::ApiError;
@@ -15,16 +13,16 @@ use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
 use crate::models::wallet::balance_response::BalanceResponse;
-use crate::provider::helpers::{get_user, respond_json};
+use crate::provider::helpers::respond_json;
 use crate::services::balance_service::BalanceService;
 use crate::services::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
 
 pub async fn get_address(
     service: Data<WalletService>,
-    req: HttpRequest,
+    user: ReqData<User>,
 ) -> Result<Json<BaseResponse<AddressResponse>>, ApiError> {
-    let wallet_address = service.get_wallet_address(&get_user(req)).await?;
+    let wallet_address = service.get_wallet_address(user.into_inner()).await?;
     respond_json(wallet_address)
 }
 
@@ -47,7 +45,7 @@ pub async fn get_balance(
 pub async fn transfer(
     service: Data<TransferService>,
     body: Json<TransferRequest>,
-    req: HttpRequest,
+    user: ReqData<User>,
 ) -> Result<Json<BaseResponse<TransferResponse>>, ApiError> {
     let body = body.into_inner();
     let data = service
@@ -55,7 +53,7 @@ pub async fn transfer(
             body.get_receiver(),
             body.get_value(),
             body.metadata.get_currency(),
-            &get_user(req),
+            user.into_inner(),
         )
         .await?;
     respond_json(data)
@@ -64,14 +62,14 @@ pub async fn transfer(
 pub async fn list_transactions(
     service: Data<WalletService>,
     query: Query<ListTransactionsParams>,
-    req: HttpRequest,
+    user: ReqData<User>,
 ) -> Result<Json<BaseResponse<Vec<Transaction>>>, ApiError> {
     let query_params = query.into_inner();
     let data = service
         .list_transactions(
             query_params.page_size.unwrap_or(10),
             query_params.id,
-            &get_user(req),
+            user.into_inner(),
         )
         .await;
     respond_json(data)
@@ -80,17 +78,15 @@ pub async fn list_transactions(
 pub async fn poll_transaction(
     db_pool: Data<Pool<Postgres>>,
     query: Query<PollTransactionParams>,
-    req: HttpRequest,
+    user: ReqData<User>,
 ) -> Result<HttpResponse, Error> {
-    let user_id = get_user(req);
-    if user_id.is_empty() {
-        return Err(ErrorUnauthorized(""));
-    }
-
-    let transaction =
-        TransferService::get_status(db_pool.get_ref(), query.transaction_id.clone(), user_id)
-            .await
-            .unwrap();
+    let transaction = TransferService::get_status(
+        db_pool.get_ref(),
+        query.transaction_id.clone(),
+        user.into_inner(),
+    )
+    .await
+    .unwrap();
 
     Ok(HttpResponse::Ok().json(BaseResponse {
         data: transaction,
