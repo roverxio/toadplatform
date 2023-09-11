@@ -19,6 +19,7 @@ use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::connection::DatabaseConnection;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::transaction_dao::TransactionDao;
+use crate::db::dao::user_operation_dao::UserOperationDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
 use crate::provider::paymaster_provider::PaymasterProvider;
@@ -27,8 +28,10 @@ use crate::routes::routes;
 use crate::services::admin_service::AdminService;
 use crate::services::balance_service::BalanceService;
 use crate::services::hello_world_service::HelloWorldService;
+use crate::services::mint_service::MintService;
 use crate::services::token_metadata_service::TokenMetadataService;
-use crate::services::transfer_service::TransferService;
+use crate::services::transfer::transfer_service::TransferService;
+use crate::services::transfer::transfer_service_v2::TransferServiceV2;
 use crate::services::wallet_service::WalletService;
 use crate::{CONFIG, PROVIDER};
 
@@ -40,6 +43,7 @@ pub struct ToadService {
     pub transfer_service: TransferService,
     pub admin_service: AdminService,
     pub token_metadata_service: TokenMetadataService,
+    pub transfer_service_v2: TransferServiceV2,
     pub db_pool: Pool<Postgres>,
 }
 
@@ -50,7 +54,7 @@ pub async fn init_services() -> ToadService {
     let client = Arc::new(PROVIDER.clone());
     let simple_account_factory =
         SimpleAccountFactoryProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
-    let erc20 = USDCProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
+    let erc20 = USDCProvider::init_abi(CONFIG.get_chain().usdc_address, client.clone());
     let entrypoint = EntryPointProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
     let simple_account = SimpleAccountProvider::init_abi(client.clone(), Address::zero());
     let verifying_paymaster_provider =
@@ -85,6 +89,7 @@ pub async fn init_services() -> ToadService {
     let wallet_dao = WalletDao { pool: pool.clone() };
     let transaction_dao = TransactionDao { pool: pool.clone() };
     let token_metadata_dao = TokenMetadataDao { pool: pool.clone() };
+    let user_operations_dao = UserOperationDao { pool: pool.clone() };
 
     // providers
     let verify_paymaster_provider = PaymasterProvider {
@@ -107,11 +112,16 @@ pub async fn init_services() -> ToadService {
 
     // Services
     let hello_world_service = HelloWorldService {};
+    let mint_service = MintService {
+        usdc_provider: usdc_provider.clone(),
+        signer: relayer_signer.clone(),
+    };
     let wallet_service = WalletService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
         simple_account_factory_provider: simple_account_factory.clone(),
         client: client.clone(),
+        mint_service: mint_service.clone(),
     };
     let balance_service = BalanceService {
         wallet_dao: wallet_dao.clone(),
@@ -122,7 +132,7 @@ pub async fn init_services() -> ToadService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
         token_metadata_dao: token_metadata_dao.clone(),
-        usdc_provider,
+        usdc_provider: usdc_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
         simple_account_provider: simple_account_provider.clone(),
         simple_account_factory_provider: simple_account_factory_provider.clone(),
@@ -140,6 +150,19 @@ pub async fn init_services() -> ToadService {
     let token_metadata_service = TokenMetadataService {
         token_metadata_dao: token_metadata_dao.clone(),
     };
+    let transfer_service_v2 = TransferServiceV2 {
+        wallet_dao: wallet_dao.clone(),
+        transaction_dao: transaction_dao.clone(),
+        token_metadata_dao: token_metadata_dao.clone(),
+        user_operations_dao: user_operations_dao.clone(),
+        usdc_provider,
+        entrypoint_provider: entrypoint_provider.clone(),
+        simple_account_provider: simple_account_provider.clone(),
+        simple_account_factory_provider: simple_account_factory_provider.clone(),
+        verifying_paymaster_provider: verify_paymaster_provider.clone(),
+        verifying_paymaster_wallet: verifying_paymaster_wallet.clone(),
+        bundler: bundler.clone(),
+    };
 
     ToadService {
         hello_world_service,
@@ -148,6 +171,7 @@ pub async fn init_services() -> ToadService {
         transfer_service,
         admin_service,
         token_metadata_service,
+        transfer_service_v2,
         db_pool: pool,
     }
 }
@@ -171,6 +195,7 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .app_data(Data::new(service.transfer_service.clone()))
             .app_data(Data::new(service.admin_service.clone()))
             .app_data(Data::new(service.token_metadata_service.clone()))
+            .app_data(Data::new(service.transfer_service_v2.clone()))
             .app_data(Data::new(service.db_pool.clone()))
     })
     .bind(server.url())?

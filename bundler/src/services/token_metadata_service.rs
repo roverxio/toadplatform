@@ -18,6 +18,7 @@ impl TokenMetadataService {
         Ok(MetadataResponse::new().to(
             supported_currencies,
             CONFIG.run_config.current_chain.clone(),
+            CONFIG.get_chain().chain_id,
             CONFIG.get_chain().currency.clone(),
         ))
     }

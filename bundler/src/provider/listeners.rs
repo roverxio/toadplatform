@@ -48,6 +48,6 @@ pub async fn user_op_event_listener(
     let status = if success { SUCCESS } else { FAILED };
 
     transaction_dao
-        .update_user_transaction(txn_id, txn_hash, status.to_string())
+        .update_user_transaction(txn_id, Some(txn_hash), status.to_string())
         .await;
 }
