@@ -1,4 +1,4 @@
-use log::warn;
+use log::error;
 use std::process::exit;
 
 #[derive(Clone)]
@@ -20,7 +20,7 @@ impl Table {
             transfers if transfers == "token_transfers".to_string() => Table::TokenTransfers,
             transactions if transactions == "transactions".to_string() => Table::Transactions,
             _ => {
-                warn!("Invalid table argument");
+                error!("Invalid table argument");
                 exit(1);
             }
         }
