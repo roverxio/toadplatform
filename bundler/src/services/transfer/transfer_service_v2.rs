@@ -51,35 +51,28 @@ impl TransferServiceV2 {
         to: String,
         value: String,
         currency: String,
-        usr: &str,
+        user: User,
     ) -> Result<TransferInitResponse, ApiError> {
-        let user_wallet = self.wallet_dao.get_wallet(usr.to_string()).await;
-        let wallet: User;
-        match user_wallet {
-            None => {
-                return Err(ApiError::NotFound("Wallet not found".to_string()));
-            }
-            Some(_) => {
-                wallet = user_wallet.unwrap();
-            }
+        if user.wallet_address.is_empty() {
+            return Err(ApiError::NotFound("Wallet not found".to_string()));
         }
         let user_txn =
-            self.get_user_transaction(&to, &value, &currency, wallet.wallet_address.clone());
+            self.get_user_transaction(&to, &value, &currency, user.wallet_address.clone());
         let mut user_op0 = UserOperation::new();
         user_op0.calldata(self.get_call_data(to, value, currency).await.unwrap());
-        if !wallet.deployed {
+        if !user.deployed {
             user_op0.init_code(
                 self.simple_account_factory_provider.abi.address(),
                 self.simple_account_factory_provider
                     .create_account(
                         CONFIG.run_config.account_owner,
-                        U256::from(wallet.salt.to_u64().unwrap()),
+                        U256::from(user.salt.to_u64().unwrap()),
                     )
                     .unwrap(),
             );
         }
 
-        let wallet_address: Address = wallet.wallet_address.parse().unwrap();
+        let wallet_address: Address = user.wallet_address.parse().unwrap();
         let valid_until: u64 = 3735928559;
         let valid_after: u64 = 4660;
         let data = encode(&vec![valid_until.into_token(), valid_after.into_token()]);
@@ -137,17 +130,10 @@ impl TransferServiceV2 {
         &self,
         transaction_id: String,
         signature: Bytes,
-        usr: &str,
+        user: User,
     ) -> Result<TransferResponse, ApiError> {
-        let user_wallet = self.wallet_dao.get_wallet(usr.to_string()).await;
-        let wallet: User;
-        match user_wallet {
-            None => {
-                return Err(ApiError::NotFound("Wallet not found".to_string()));
-            }
-            Some(_) => {
-                wallet = user_wallet.unwrap();
-            }
+        if user.wallet_address.is_empty() {
+            return Err(ApiError::NotFound("Wallet not found".to_string()));
         }
         let user_op = self
             .user_operations_dao
@@ -187,9 +173,9 @@ impl TransferServiceV2 {
         self.transaction_dao
             .update_user_transaction(transaction_id.clone(), None, Status::PENDING.to_string())
             .await;
-        if !wallet.deployed {
+        if user.deployed {
             self.wallet_dao
-                .update_wallet_deployed(usr.to_string())
+                .update_wallet_deployed(user.external_user_id)
                 .await;
         }
 

@@ -9,6 +9,7 @@ pub enum ApiError {
     BadRequest(String),
     NotFound(String),
     InternalServer(String),
+    Unauthorized,
 }
 
 #[derive(Debug, Default, Deserialize, Serialize)]
@@ -35,6 +36,8 @@ impl ResponseError for ApiError {
             ApiError::InternalServer(message) => {
                 HttpResponse::InternalServerError().json(ErrorResponse::from(String::from(message)))
             }
+            ApiError::Unauthorized => HttpResponse::Unauthorized()
+                .json(ErrorResponse::from(String::from("Unauthorized request"))),
         }
     }
 }
