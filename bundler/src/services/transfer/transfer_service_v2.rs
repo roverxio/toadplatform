@@ -1,9 +1,11 @@
+use actix_web::rt::spawn;
 use std::str::FromStr;
 
 use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
+use log::info;
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -23,6 +25,7 @@ use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_init_response::TransferInitResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::provider::helpers::generate_txn_id;
+use crate::provider::listeners::user_op_event_listener;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
 use crate::CONFIG;
@@ -130,16 +133,84 @@ impl TransferServiceV2 {
         })
     }
 
-    pub fn execute(
+    pub async fn execute(
         &self,
         transaction_id: String,
-        _signature: Bytes,
+        signature: Bytes,
+        usr: &str,
     ) -> Result<TransferResponse, ApiError> {
+        let user_wallet = self.wallet_dao.get_wallet(usr.to_string()).await;
+        let wallet: User;
+        match user_wallet {
+            None => {
+                return Err(ApiError::NotFound("Wallet not found".to_string()));
+            }
+            Some(_) => {
+                wallet = user_wallet.unwrap();
+            }
+        }
+        let user_op = self
+            .user_operations_dao
+            .get_user_operation(transaction_id.clone())
+            .await;
+
+        if user_op.transaction_id == "".to_string()
+            || user_op.status != Status::INITIATED.to_string()
+        {
+            return Err(ApiError::NotFound("Transaction not found".to_string()));
+        }
+        if !self
+            .user_operations_dao
+            .update_user_operation_status(transaction_id.clone(), Status::PENDING.to_string())
+            .await
+        {
+            return Err(ApiError::BadRequest(
+                "Failed to update user operation status".to_string(),
+            ));
+        }
+
+        let mut user_operation = user_op.user_operation;
+        user_operation.signature(signature);
+
+        let result = self
+            .bundler
+            .submit(user_operation.clone(), CONFIG.run_config.account_owner)
+            .await;
+        if result.is_err() {
+            self.transaction_dao
+                .update_user_transaction(transaction_id, None, Status::FAILED.to_string())
+                .await;
+            return Err(ApiError::BadRequest(result.err().unwrap()));
+        }
+        let txn_hash = result.unwrap();
+        info!("Transaction sent successfully. Hash: {:?}", txn_hash);
+        self.transaction_dao
+            .update_user_transaction(transaction_id.clone(), None, Status::PENDING.to_string())
+            .await;
+        if !wallet.deployed {
+            self.wallet_dao
+                .update_wallet_deployed(usr.to_string())
+                .await;
+        }
+
+        spawn(user_op_event_listener(
+            self.transaction_dao.clone(),
+            self.entrypoint_provider.clone(),
+            user_operation.hash(
+                CONFIG.get_chain().entrypoint_address,
+                CONFIG.get_chain().chain_id,
+            ),
+            transaction_id.clone(),
+        ));
+        self.user_operations_dao
+            .update_user_operation_status(transaction_id.clone(), Status::SUCCESS.to_string())
+            .await;
+
         Ok(TransferResponse {
             transaction: TransactionResponse {
-                transaction_hash: "0xtransaction_hash".to_string(),
+                transaction_hash: txn_hash.clone(),
                 status: Status::PENDING.to_string(),
-                explorer: get_explorer_url("0xtransaction_hash"),
+                explorer: get_explorer_url(&txn_hash),
             },
             transaction_id,
         })

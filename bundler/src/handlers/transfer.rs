@@ -53,8 +53,13 @@ pub async fn execute_transfer(
     req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
     info!("execute_transfer");
-    get_user(req);
-    let data = service.execute(body.transaction_id.clone(), body.signature.clone());
+    let data = service
+        .execute(
+            body.transaction_id.clone(),
+            body.signature.clone(),
+            &get_user(req),
+        )
+        .await;
     Ok(HttpResponse::Ok().json(BaseResponse {
         data: data.unwrap(),
         err: Default::default(),
