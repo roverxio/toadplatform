@@ -7,8 +7,7 @@ use ethers::utils::keccak256;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
 
-#[derive(Clone, Debug, EthAbiType, Eip712, Serialize, Deserialize)]
-#[serde(rename_all = "camelCase")]
+#[derive(Clone, Default, Debug, EthAbiType, Eip712, Serialize, Deserialize)]
 pub struct UserOperation {
     pub sender: Address,
     pub nonce: u64,
