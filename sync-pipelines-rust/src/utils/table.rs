@@ -1,5 +1,7 @@
+use log::warn;
 use std::process::exit;
 
+#[derive(Clone)]
 pub enum Table {
     TokenTransfers,
     Transactions,
@@ -18,7 +20,7 @@ impl Table {
             transfers if transfers == "token_transfers".to_string() => Table::TokenTransfers,
             transactions if transactions == "transactions".to_string() => Table::Transactions,
             _ => {
-                // raise error
+                warn!("Invalid table argument");
                 exit(1);
             }
         }
