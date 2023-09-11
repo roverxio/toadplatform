@@ -7,5 +7,5 @@ token_transfers = "../erc20_last_sync_blocktimestamp.txt"
 transactions = "../transaction_last_sync_blocktimestamp.txt"
 
 [last_sync_time.start_time]
-token_transfers = "2023-01-0 00:00:00 +0000"
+token_transfers = "2023-01-01 00:00:00 +0000"
 transactions = 0
