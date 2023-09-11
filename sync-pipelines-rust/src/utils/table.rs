@@ -17,8 +17,8 @@ impl Table {
 
     pub fn from(s: String) -> Self {
         match s {
-            transfers if transfers == "token_transfers".to_string() => Table::TokenTransfers,
-            transactions if transactions == "transactions".to_string() => Table::Transactions,
+            transfers if transfers == "token_transfers" => Table::TokenTransfers,
+            transactions if transactions == "transactions" => Table::Transactions,
             _ => {
                 error!("Invalid table argument");
                 exit(1);
