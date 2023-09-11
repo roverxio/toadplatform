@@ -1,11 +1,11 @@
-use std::process::exit;
 use log::warn;
-use sqlx::{PgPool, Postgres};
+use sqlx::{PgPool, Pool, Postgres};
+use std::process::exit;
 
 pub struct Connection {}
 
 impl Connection {
-    pub async fn init() -> sqlx::Pool<Postgres> {
+    pub async fn init() -> Pool<Postgres> {
         let database_url: String;
         match std::env::var("DATABASE_URL") {
             Ok(url) => database_url = url,
