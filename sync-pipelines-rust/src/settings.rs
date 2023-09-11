@@ -1,23 +1,26 @@
-use std::fs::File;
-use chrono::{DateTime, Utc};
+use config::{Config, ConfigError, File};
+use serde::Deserialize;
 use std::path::PathBuf;
-use config::{Config, ConfigError};
 
+#[derive(Deserialize)]
 pub struct LastSyncTime {
     start_time: StartTime,
-    sync_files: SyncFiles,
+    files: SyncFiles,
 }
 
+#[derive(Deserialize)]
 pub struct SyncFiles {
     token_transfers: PathBuf,
     transactions: PathBuf,
 }
 
+#[derive(Deserialize)]
 pub struct StartTime {
-    token_transfers: DateTime<Utc>,
-    transactions: DateTime<Utc>,
+    token_transfers: String,
+    transactions: String,
 }
 
+#[derive(Deserialize)]
 pub struct Settings {
     chain: String,
     last_sync_time: LastSyncTime,
@@ -25,7 +28,7 @@ pub struct Settings {
     transaction_id_prefix: String,
 }
 
-const CONFIG_FILE_PATH: &str = "../Config.toml";
+const CONFIG_FILE_PATH: &str = "./Config.toml";
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
@@ -37,19 +40,19 @@ impl Settings {
     }
 
     pub fn get_last_sync_file_token_transfers(&self) -> &PathBuf {
-        &self.last_sync_time.sync_files.token_transfers
+        &self.last_sync_time.files.token_transfers
     }
 
     pub fn get_last_sync_file_transactions(&self) -> &PathBuf {
-        &self.last_sync_time.sync_files.transactions
+        &self.last_sync_time.files.transactions
     }
 
-    pub fn get_last_sync_time_token_transfers(&self) -> DateTime<Utc> {
-        self.last_sync_time.start_time.token_transfers
+    pub fn get_last_sync_time_token_transfers(&self) -> &String {
+        &self.last_sync_time.start_time.token_transfers
     }
 
-    pub fn get_last_sync_time_transactions(&self) -> DateTime<Utc> {
-        self.last_sync_time.start_time.token_transfers
+    pub fn get_last_sync_time_transactions(&self) -> &String {
+        &self.last_sync_time.start_time.transactions
     }
 
     pub fn get_chain(&self) -> &String {

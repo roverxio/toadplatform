@@ -1,20 +1,20 @@
-use std::env::args;
 use lazy_static::lazy_static;
+use std::env::args;
 
-use crate::config::Config;
 use crate::db::connection::Connection;
 use crate::db::token_transfers::TokenTransfers;
 use crate::db::transactions::Transactions;
 use crate::db::user_transactions::UserTransaction;
+use crate::settings::Settings;
 use crate::utils::table::Table;
 use crate::utils::utils::Utils;
 
-pub mod config;
 pub mod db;
+pub mod settings;
 pub mod utils;
 
 lazy_static! {
-    static ref CONFIG: Config = Config::new();
+    static ref CONFIG: Settings = Settings::new().expect("Unable to import config");
 }
 
 fn main() {
@@ -22,7 +22,7 @@ fn main() {
 
     let table = Table::from(args().nth(1).expect("no table given"));
 
-    let _last_sync_time = Utils::get_last_synced_time(table.to_string());
+    let _last_sync_time = Utils::get_last_synced_time(table.clone());
 
     let user_transactions = match table {
         Table::TokenTransfers => {
