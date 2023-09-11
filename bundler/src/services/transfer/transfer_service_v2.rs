@@ -12,6 +12,7 @@ use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::transaction_dao::{TransactionDao, TransactionMetadata, UserTransaction};
+use crate::db::dao::user_operation_dao::UserOperationDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
@@ -31,6 +32,7 @@ pub struct TransferServiceV2 {
     pub wallet_dao: WalletDao,
     pub transaction_dao: TransactionDao,
     pub token_metadata_dao: TokenMetadataDao,
+    pub user_operations_dao: UserOperationDao,
     pub usdc_provider: USDCProvider,
     pub entrypoint_provider: EntryPointProvider,
     pub simple_account_provider: SimpleAccountProvider,
@@ -112,6 +114,13 @@ impl TransferServiceV2 {
         );
         self.transaction_dao
             .create_user_transaction(user_txn.clone())
+            .await;
+        self.user_operations_dao
+            .create_user_operation(
+                user_txn.transaction_id.clone(),
+                user_op0.clone(),
+                Status::INITIATED.to_string(),
+            )
             .await;
 
         Ok(TransferInitResponse {

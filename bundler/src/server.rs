@@ -19,6 +19,7 @@ use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::connection::DatabaseConnection;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::transaction_dao::TransactionDao;
+use crate::db::dao::user_operation_dao::UserOperationDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
 use crate::provider::paymaster_provider::PaymasterProvider;
@@ -87,6 +88,7 @@ pub async fn init_services() -> ToadService {
     let wallet_dao = WalletDao { pool: pool.clone() };
     let transaction_dao = TransactionDao { pool: pool.clone() };
     let token_metadata_dao = TokenMetadataDao { pool: pool.clone() };
+    let user_operations_dao = UserOperationDao { pool: pool.clone() };
 
     // providers
     let verify_paymaster_provider = PaymasterProvider {
@@ -146,6 +148,7 @@ pub async fn init_services() -> ToadService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
         token_metadata_dao: token_metadata_dao.clone(),
+        user_operations_dao: user_operations_dao.clone(),
         usdc_provider,
         entrypoint_provider: entrypoint_provider.clone(),
         simple_account_provider: simple_account_provider.clone(),

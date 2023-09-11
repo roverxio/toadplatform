@@ -33,7 +33,6 @@ pub async fn init_transfer(
     body: Json<TransferRequest>,
     req: HttpRequest,
 ) -> Result<HttpResponse, Error> {
-    info!("init_transfer");
     let data = service
         .init(
             body.get_receiver(),
