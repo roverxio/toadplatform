@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "UPDATE users SET deployed = $1 WHERE email = $2",
+  "query": "UPDATE users SET deployed = $1 WHERE external_user_id = $2",
   "describe": {
     "columns": [],
     "parameters": {
@@ -11,5 +11,5 @@
     },
     "nullable": []
   },
-  "hash": "30241791a5b19999ee8bfe26ca207ea5ea7c0841f9804180ab27438a4ef9e2aa"
+  "hash": "35f69bab3420aa5a833f34f2b75438fac238dafc3a088e851f941f0257643f2a"
 }
