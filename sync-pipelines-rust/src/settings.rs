@@ -1,9 +1,10 @@
+use bigdecimal::num_bigint::BigInt;
 use config::{Config, ConfigError, File};
 use serde::Deserialize;
 use std::path::PathBuf;
 
 #[derive(Deserialize)]
-pub struct LastSyncTime {
+pub struct LastSyncBlock {
     start_time: StartTime,
     files: SyncFiles,
 }
@@ -15,15 +16,15 @@ pub struct SyncFiles {
 }
 
 #[derive(Deserialize)]
-pub struct StartTime {
-    token_transfers: String,
+pub struct StartBlock {
+    token_transfers: BigInt,
     transactions: String,
 }
 
 #[derive(Deserialize)]
 pub struct Settings {
     chain: String,
-    last_sync_time: LastSyncTime,
+    last_sync_time: LastSyncBlock,
     native_currency: String,
     transaction_id_prefix: String,
 }
@@ -47,7 +48,7 @@ impl Settings {
         &self.last_sync_time.files.transactions
     }
 
-    pub fn get_last_sync_time_token_transfers(&self) -> &String {
+    pub fn get_last_sync_block_token_transfers(&self) -> &BigInt {
         &self.last_sync_time.start_time.token_transfers
     }
 
