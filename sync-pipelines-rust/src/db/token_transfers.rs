@@ -1,4 +1,3 @@
-use bigdecimal::num_bigint::BigInt;
 use bigdecimal::BigDecimal;
 use sqlx::{Pool, Postgres};
 
