@@ -1,0 +1,50 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT token_address, from_address, to_address, value, transaction_hash, block_number FROM token_transfers JOIN users ON to_address = wallet_address JOIN token_metadata ON token_address = contract_address",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "token_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "from_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "to_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 4,
+        "name": "transaction_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "block_number",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "817c3b21554a5777d24986cb5832197398b8c1b4076e3f48feb345963a93279f"
+}

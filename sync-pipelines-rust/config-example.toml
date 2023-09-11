@@ -1,6 +1,6 @@
 chain = "sepolia"
 native_currency = "sepoliaeth"
-transaction_id_prefix = "toad_"
+transaction_id_prefix = "toad"
 
 [last_sync_time.files]
 token_transfers = "../erc20_last_sync_blocktimestamp.txt"
@@ -8,4 +8,4 @@ transactions = "../transaction_last_sync_blocktimestamp.txt"
 
 [last_sync_time.start_time]
 token_transfers = 0
-transactions = "2023-01-01 00:00:00 +0000"
+transactions = 0
