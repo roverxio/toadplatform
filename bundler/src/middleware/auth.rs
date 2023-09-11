@@ -92,9 +92,11 @@ where
             // Fetch user from the database
             let pool = req.app_data::<Data<Pool<Postgres>>>().cloned();
             let mut db_user;
-            db_user =
-                WalletDao::get_wallet_by_firebase_id(pool.unwrap().as_ref(), verifier_id.clone())
-                    .await;
+            db_user = WalletDao::get_wallet_by_external_user_id(
+                pool.unwrap().as_ref(),
+                verifier_id.clone(),
+            )
+            .await;
             if db_user.is_none() {
                 debug!("Probably a new user. Not found on db, but exists on firebase");
                 db_user = Some(crate::db::dao::wallet_dao::User::from(user.unwrap()));
