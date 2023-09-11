@@ -53,7 +53,8 @@ impl Chain {
         format!(
             "{}{}",
             self.url.clone(),
-            std::env::var("INFURA_KEY").expect("INFURA_KEY must be set")
+            std::env::var("PROVIDER_API_KEY")
+                .expect("PROVIDER_API_KEY must be set to connect with a node provider")
         )
     }
 }
