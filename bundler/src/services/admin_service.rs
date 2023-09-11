@@ -1,8 +1,9 @@
+use std::sync::Arc;
+
 use ethers::middleware::SignerMiddleware;
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use ethers_signers::LocalWallet;
-use std::sync::Arc;
 
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -129,6 +130,7 @@ impl AdminService {
         let exponent_metadata = MetadataResponse::new().to(
             supported_currencies.clone(),
             supported_currencies[0].chain.clone(),
+            CONFIG.chains[&supported_currencies[0].chain.clone()].chain_id,
             CONFIG.chains[&supported_currencies[0].chain.clone()]
                 .currency
                 .clone(),
