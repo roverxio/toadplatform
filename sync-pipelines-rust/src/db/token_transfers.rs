@@ -1,5 +1,6 @@
+use bigdecimal::num_bigint::BigInt;
 use bigdecimal::BigDecimal;
-use chrono::{DateTime, Utc};
+use sqlx::{Pool, Postgres};
 
 pub struct TokenTransfers {
     pub token_address: String,
@@ -7,11 +8,11 @@ pub struct TokenTransfers {
     pub to_address: String,
     pub value: BigDecimal,
     pub transaction_hash: String,
-    pub block_timestamp: DateTime<Utc>,
+    pub block_number: u64,
 }
 
 impl TokenTransfers {
-    pub fn get(_start_time: DateTime<Utc>) -> Vec<TokenTransfers> {
-        unimplemented!();
+    pub fn get(_pool: Pool<Postgres>) -> Vec<TokenTransfers> {
+        unimplemented!()
     }
 }

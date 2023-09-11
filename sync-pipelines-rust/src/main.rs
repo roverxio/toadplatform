@@ -7,7 +7,6 @@ use crate::db::transactions::Transactions;
 use crate::db::user_transactions::UserTransaction;
 use crate::settings::Settings;
 use crate::utils::table::Table;
-use crate::utils::utils::Utils;
 
 pub mod db;
 pub mod settings;
@@ -17,20 +16,28 @@ lazy_static! {
     static ref CONFIG: Settings = Settings::new().expect("Unable to import config");
 }
 
-fn main() {
-    let _pool = Connection::init();
+#[tokio::main]
+async fn main() {
+    let pool = Connection::init().await;
 
-    let table = Table::from(args().nth(1).expect("no table given"));
+    let table_name = Table::from(args().nth(1).expect("no table given"));
 
-    let _last_sync_time = Utils::get_last_synced_time(table.clone());
+    println!(
+        " {}\n {}\n {}\n {}\n {}\n {}\n, {}\n",
+        CONFIG.get_native_currency(),
+        CONFIG.get_chain(),
+        CONFIG.get_transaction_id_prefix(),
+        CONFIG.get_last_sync_time_transactions(),
+        CONFIG.get_last_sync_block_token_transfers(),
+        CONFIG.get_last_sync_file_transactions().to_string_lossy(),
+        CONFIG
+            .get_last_sync_file_token_transfers()
+            .to_string_lossy()
+    );
 
-    let user_transactions = match table {
-        Table::TokenTransfers => {
-            UserTransaction::from_token_transfers(TokenTransfers::get(_last_sync_time))
-        }
-        Table::Transactions => {
-            UserTransaction::from_transactions(Transactions::get(_last_sync_time))
-        }
+    let user_transactions = match table_name {
+        Table::TokenTransfers => UserTransaction::from_token_transfers(TokenTransfers::get(pool)),
+        Table::Transactions => UserTransaction::from_transactions(Transactions::get(pool)),
     };
 
     UserTransaction::insert(user_transactions);

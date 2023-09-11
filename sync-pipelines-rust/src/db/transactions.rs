@@ -1,5 +1,6 @@
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
+use sqlx::{Pool, Postgres};
 
 pub struct Transactions {
     pub from_address: String,
@@ -10,7 +11,7 @@ pub struct Transactions {
 }
 
 impl Transactions {
-    pub fn get(_start_time: DateTime<Utc>) -> Vec<Transactions> {
-        unimplemented!();
+    pub fn get(_pool: Pool<Postgres>) -> Vec<Transactions> {
+        unimplemented!()
     }
 }
