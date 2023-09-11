@@ -16,8 +16,8 @@ pub struct SyncFiles {
 
 #[derive(Deserialize)]
 pub struct StartBlock {
-    token_transfers: u64,
-    transactions: String,
+    token_transfers: i64,
+    transactions: i64,
 }
 
 #[derive(Deserialize)]
@@ -47,12 +47,12 @@ impl Settings {
         &self.last_sync_time.files.transactions
     }
 
-    pub fn get_last_sync_block_token_transfers(&self) -> u64 {
+    pub fn get_last_sync_block_token_transfers(&self) -> i64 {
         self.last_sync_time.start_time.token_transfers.clone()
     }
 
-    pub fn get_last_sync_time_transactions(&self) -> &str {
-        &self.last_sync_time.start_time.transactions
+    pub fn get_last_sync_time_transactions(&self) -> i64 {
+        self.last_sync_time.start_time.transactions.clone()
     }
 
     pub fn get_chain(&self) -> &str {

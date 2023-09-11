@@ -1,0 +1,46 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT from_address, to_address, value, hash as transaction_hash, block_timestamp FROM transactions JOIN users ON to_address = wallet_address WHERE block_timestamp > $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "from_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "to_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "transaction_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "block_timestamp",
+        "type_info": "Int8"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8"
+      ]
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false
+    ]
+  },
+  "hash": "857fe8c0baddb9d38c327e10fd70b0bd7197426f5a059761690840baeac0b9b6"
+}

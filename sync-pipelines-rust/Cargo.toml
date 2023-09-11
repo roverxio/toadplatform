@@ -12,3 +12,4 @@ bigdecimal = { version = "0.3.0", features = ["serde"]}
 log = "0.4.14"
 config = "0.13.3"
 tokio = { version = "1.32.0", features = ["full"] }
+rand = "0.8.5"

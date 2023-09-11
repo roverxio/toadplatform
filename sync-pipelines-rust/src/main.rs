@@ -23,8 +23,10 @@ async fn main() {
     let table_name = Table::from(args().nth(1).expect("no table given"));
 
     let user_transactions = match table_name {
-        Table::TokenTransfers => UserTransaction::from_token_transfers(TokenTransfers::get(pool)),
-        Table::Transactions => UserTransaction::from_transactions(Transactions::get(pool)),
+        Table::TokenTransfers => {
+            UserTransaction::from_token_transfers(TokenTransfers::get(pool).await)
+        }
+        Table::Transactions => UserTransaction::from_transactions(Transactions::get(pool).await),
     };
 
     UserTransaction::insert(user_transactions);
