@@ -22,7 +22,7 @@ lazy_static! {
 async fn main() {
     let pool = Connection::init().await;
 
-    let table_name = Table::from(args().nth(1).expect("no table given"));
+    let table_name = Table::from(args().nth(1).expect("No table argument provided"));
 
     match table_name {
         Table::TokenTransfers => {
