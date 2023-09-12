@@ -60,11 +60,13 @@ impl TransferServiceV2 {
         let mut user_op0 = UserOperation::new();
         user_op0.calldata(self.get_call_data(to, value, currency).await.unwrap());
         if !user.deployed {
-            let owner: Address = user.owner_address.parse().unwrap();
             user_op0.init_code(
                 self.simple_account_factory_provider.abi.address(),
                 self.simple_account_factory_provider
-                    .create_account(owner, U256::from(user.salt.to_u64().unwrap()))
+                    .create_account(
+                        user.owner_address.parse().unwrap(),
+                        U256::from(user.salt.to_u64().unwrap()),
+                    )
                     .unwrap(),
             );
         }
