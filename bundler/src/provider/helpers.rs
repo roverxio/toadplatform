@@ -33,6 +33,15 @@ pub fn get_user(req: HttpRequest) -> String {
         .to_string()
 }
 
+pub fn get_user_wallet(req: HttpRequest) -> String {
+    req.headers()
+        .get(HeaderName::from_static("user_address"))
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_string()
+}
+
 pub fn get_hash(s: String) -> u64 {
     let mut hasher = DefaultHasher::new();
     s.hash(&mut hasher);

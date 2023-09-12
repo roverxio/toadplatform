@@ -1,6 +1,6 @@
 use crate::db::dao::wallet_dao::User;
 use actix_web::web::{Data, Json, Query, ReqData};
-use actix_web::{Error, HttpResponse};
+use actix_web::{Error, HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 
 use crate::errors::ApiError;
@@ -11,7 +11,7 @@ use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
 use crate::models::wallet::balance_response::BalanceResponse;
-use crate::provider::helpers::respond_json;
+use crate::provider::helpers::{get_user_wallet, respond_json};
 use crate::services::balance_service::BalanceService;
 use crate::services::transfer::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
@@ -19,8 +19,11 @@ use crate::services::wallet_service::WalletService;
 pub async fn get_address(
     service: Data<WalletService>,
     user: ReqData<User>,
+    req: HttpRequest,
 ) -> Result<Json<BaseResponse<AddressResponse>>, ApiError> {
-    let wallet_address = service.get_wallet_address(user.into_inner()).await?;
+    let wallet_address = service
+        .get_wallet_address(user.into_inner(), get_user_wallet(req))
+        .await?;
     respond_json(wallet_address)
 }
 
