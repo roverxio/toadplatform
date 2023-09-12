@@ -17,12 +17,9 @@ impl Utils {
     }
 
     pub fn get_last_synced_block_number() -> i64 {
-        let result = fs::read_to_string(CONFIG.get_last_sync_file_transactions());
+        let result = fs::read_to_string(CONFIG.get_last_sync_file_token_transfers());
         match result {
-            Ok(number) => {
-                println!("{}", number);
-                number.parse::<i64>().unwrap()
-            }
+            Ok(number) => number.parse::<i64>().unwrap(),
             Err(_) => CONFIG.get_last_sync_block_token_transfers(),
         }
     }
