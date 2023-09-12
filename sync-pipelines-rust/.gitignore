@@ -1,2 +1,4 @@
 target/
 Config.toml
+erc20_last_sync_blocktimestamp.txt
+transaction_last_sync_blocktimestamp.txt
