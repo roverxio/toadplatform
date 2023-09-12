@@ -1,8 +1,9 @@
-use crate::utils::utils::Utils;
 use bigdecimal::BigDecimal;
 use log::error;
 use sqlx::{query_as, Pool, Postgres};
+use std::process::exit;
 
+#[derive(Clone)]
 pub struct TokenTransfers {
     pub from_address: String,
     pub to_address: String,
@@ -13,8 +14,16 @@ pub struct TokenTransfers {
 }
 
 impl TokenTransfers {
-    pub async fn get(pool: Pool<Postgres>) -> Vec<TokenTransfers> {
-        let block_number = Utils::get_last_synced_block_number();
+    pub fn get_max_block_number(transfers: Vec<TokenTransfers>) -> i64 {
+        transfers
+            .into_iter()
+            .max_by_key(|t| t.block_number)
+            .unwrap()
+            .clone()
+            .block_number
+    }
+
+    pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Vec<TokenTransfers> {
         let query = query_as!(
             TokenTransfers,
             "SELECT from_address, to_address, value, transaction_hash, block_number, symbol \
@@ -29,7 +38,7 @@ impl TokenTransfers {
             Ok(rows) => rows,
             Err(error) => {
                 error!("Failed to fetch token_transfers: {:?}", error);
-                vec![]
+                exit(1);
             }
         };
     }
