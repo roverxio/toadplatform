@@ -60,9 +60,17 @@ pkill -f anvil
 
 
 ### Running the Relay/Bundler
-1. Navigate to `bundler/.env.example` and set the environment variables mentioned there (using the export command)
-2. If your RUN_ENV is "Development", set INFURA_KEY to an empty string. You will also need to create a copy of config/Staging.toml and rename it to config/Development.toml. Set the values in the config file as per your requirements.
-3. Set up a postgres database and update the environment variable as per .env.example accordingly
+1. Set up a postgres database
+2. Navigate to `bundler/.env.example` and set the environment variables mentioned there (using the export command)
+   1. By default, the server uses "Staging.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
+      1. Development
+      2. Production
+      3. Staging
+   2. If your RUN_ENV is "Development", set INFURA_KEY to an empty string. 
+3. Create a copy of `config/Staging.toml` and rename it as `config/Development.toml`. Set the values in the config file as per your requirements.
+   ```
+   cp config/Staging.toml config/Development.toml
+   ```
 4. Run
     ```
    cargo run
@@ -72,12 +80,7 @@ pkill -f anvil
    ```
    cargo sqlx prepare --database-url $DATABASE_URL
    ```
-   and add the generated files or the github workflow will fail. Files will be generated under `bundler/.sqlx`  
-
-By default, the server uses "Staging.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
-1. Development
-2. Production
-3. Staging
+   and add the generated files or the github workflow will fail. Files will be generated under `bundler/.sqlx`
 
 The project does not come with a "Production.toml", but you can create one and use it. The config file should be in the same format as "Development.toml".
 
