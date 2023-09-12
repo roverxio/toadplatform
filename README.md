@@ -51,7 +51,7 @@ If you are running this project on localhost, you need to have a local node runn
     bash script/deploy_local.sh
    ```
 
-On successful deployment, you can find the deployed contract addresses, signer/owner address and a key. Use this info to populate the `bundler/.env` file, as directed in the following section
+On successful deployment, you can find the deployed contract addresses, `signer/owner` address and a `key`. Use this info to populate the `bundler/.env` and `bundler/config/*.toml` files, as directed in the following section
 
 <ins>NOTE</ins>: In case an instance of `anvil` is running and the contracts already deployed, stop the instance using
 ```
@@ -66,7 +66,8 @@ pkill -f anvil
       1. Development
       2. Production
       3. Staging
-   2. If your RUN_ENV is "Development", set INFURA_KEY to an empty string. 
+   2. If your RUN_ENV is "Development", set INFURA_KEY to an empty string
+   3. Use `key` obtained in the previous section to populate `WALLET_PRIVATE_KEY` and `VERIFYING_PAYMASTER_PRIVATE_KEY`
 3. Create a copy of `config/Staging.toml` and rename it as `config/Development.toml`. Set the values in the config file as per your requirements.
    ```
    cp config/Staging.toml config/Development.toml
