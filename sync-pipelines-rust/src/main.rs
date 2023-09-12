@@ -1,5 +1,6 @@
 use lazy_static::lazy_static;
 use std::env::args;
+use std::process::exit;
 
 use crate::db::connection::Connection;
 use crate::db::token_transfers::TokenTransfers;
@@ -7,6 +8,7 @@ use crate::db::transactions::Transactions;
 use crate::db::user_transactions::UserTransaction;
 use crate::settings::Settings;
 use crate::utils::table::Table;
+use crate::utils::utils::Utils;
 
 pub mod db;
 pub mod settings;
@@ -22,12 +24,27 @@ async fn main() {
 
     let table_name = Table::from(args().nth(1).expect("no table given"));
 
-    let user_transactions = match table_name {
+    match table_name {
         Table::TokenTransfers => {
-            UserTransaction::from_token_transfers(TokenTransfers::get(pool).await)
+            let block_number = Utils::get_last_synced_block_number();
+            let token_transfers = TokenTransfers::get(pool.clone(), block_number).await;
+            if token_transfers.clone().len() == 0 {
+                exit(0);
+            }
+            let number = TokenTransfers::get_max_block_number(token_transfers.clone());
+            UserTransaction::insert(pool, UserTransaction::from_token_transfers(token_transfers))
+                .await;
+            Utils::update_last_synced_block(number);
         }
-        Table::Transactions => UserTransaction::from_transactions(Transactions::get(pool).await),
+        Table::Transactions => {
+            let block_timestamp = Utils::get_last_synced_block_timestamp();
+            let transactions = Transactions::get(pool.clone(), block_timestamp).await;
+            if transactions.clone().len() == 0 {
+                exit(0);
+            }
+            let number = Transactions::get_max_block_timestamp(transactions.clone());
+            UserTransaction::insert(pool, UserTransaction::from_transactions(transactions)).await;
+            Utils::update_last_synced_time(number);
+        }
     };
-
-    UserTransaction::insert(user_transactions);
 }
