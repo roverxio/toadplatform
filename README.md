@@ -1,7 +1,7 @@
 # Toad Wallet System (based on ERC-4337)
 
 ## Background
-ERC-4337 is the Ethereum community's first attempt to simply the wallet experience for users coming more familiar "web2 way of life". E-mail login and authorisation is a de-facto - if not, almost a standard across mobile/web applications.  Web3 "sign-in" and authorisation is based on private keys that has properties that make it impenetrable (until now), but are also known to be unwieldy, hard to manage making them cumbersome.    
+ERC-4337 is the Ethereum community's first attempt to simplifyy the wallet experience for users coming more familiar "web2 way of life". E-mail login and authorisation is a de-facto - if not, almost a standard across mobile/web applications.  Web3 "sign-in" and authorisation is based on private keys that has properties that make it impenetrable (until now), but are also known to be unwieldy, hard to manage making them cumbersome.    
 
 # Components
 ## Toad Relay
@@ -26,7 +26,7 @@ eth-infinitism's reference implementation of the Entry Point spec for local test
 
 
 ## Running the node locally
-If you are running this project on localhost, you need to have a local node running with the contracts deployed. We use Foundry' Anvil to run a local node for development and testing:
+If you are running this project on localhost, you need to have a local node running with the contracts deployed. We use Foundry's Anvil to run a local node for development and testing:
 1. Follow the instructions in the [foundry installation guide](https://book.getfoundry.sh/getting-started/installation) to set up foundry tool kit
 2. Navigate to the `contracts/` folder
 3. Run `bash foundry_setup.sh` to install all the contract dependencies
