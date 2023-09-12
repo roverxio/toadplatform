@@ -19,7 +19,6 @@ impl TokenTransfers {
             .into_iter()
             .max_by_key(|t| t.block_number)
             .unwrap()
-            .clone()
             .block_number
     }
 

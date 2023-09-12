@@ -18,7 +18,6 @@ impl Transactions {
             .into_iter()
             .max_by_key(|t| t.block_timestamp)
             .unwrap()
-            .clone()
             .block_timestamp
     }
 }
