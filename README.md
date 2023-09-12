@@ -1,7 +1,9 @@
 # Toad Wallet System (based on ERC-4337)
 
 ## Background
-ERC-4337 is the Ethereum community's first attempt to simplifyy the wallet experience for users coming more familiar "web2 way of life". E-mail login and authorisation is a de-facto - if not, almost a standard across mobile/web applications.  Web3 "sign-in" and authorisation is based on private keys that has properties that make it impenetrable (until now), but are also known to be unwieldy, hard to manage making them cumbersome.    
+ERC-4337 is the Ethereum community's first attempt to simplify the wallet experience for users coming from a more familiar "web2 way of life". E-mail login and authorisation is a de-facto - if not, almost a standard across mobile/web applications.  Web3 "sign-in" and authorisation is based on private keys that has properties that make it impenetrable (until now), but are also known to be unwieldy, hard to manage making them cumbersome. 
+
+This code has been majorly influenced by [eth-infinitism](https://github.com/eth-infinitism)'s example implementation of ERC-4337.
 
 # Components
 ## Toad Relay
@@ -13,23 +15,26 @@ It uses Actix web framework to expose REST APIs.
 MSRP: `rustc 1.71.0 (8ede3aae2 2023-07-12)`
 ## Contracts
 ### Smart Contract Wallet
-Smart Contract Wallet (SCW) contract is deployed for every user that's onboarded on the Toad system. The current implementation of SCWs is basic and close to the eth-infinitism's reference implementation of the same.
+Smart Contract Wallet (SCW) contract is deployed for every user that's onboarded on the Toad system
 ### Smart Contract Factory 
-Smart Contract Factory deploys SCWs for users. Current implementation is close to eth-infinitism's reference implementation.
+Smart Contract Factory deploys SCWs for users
 ### EntryPoint
 eth-infinitism's reference implementation of the Entry Point spec for local testing.
 ### Paymaster
    #### Token Paymaster
-   Reference implementation of Token Paymaster based on eth-infintism
+   Reference implementation of Token Paymaster
    #### Verifying Paymaster 
-   Reference implementation of Verifying  Paymaster based on eth-infintism
+   Reference implementation of Verifying Paymaster
 
 
 ## Running the node locally
 If you are running this project on localhost, you need to have a local node running with the contracts deployed. We use Foundry's Anvil to run a local node for development and testing:
 1. Follow the instructions in the [foundry installation guide](https://book.getfoundry.sh/getting-started/installation) to set up foundry tool kit
 2. Navigate to the `contracts/` folder
-3. Run `bash foundry_setup.sh` to install all the contract dependencies
+3. To install all the contract dependencies, run
+   ```
+    bash foundry_setup.sh
+   ```
 4. Populate the `contracts/.env` with the following values
     ```
     RPC_URL=http://localhost:8545
@@ -41,30 +46,40 @@ If you are running this project on localhost, you need to have a local node runn
    VERIFYING_PAYMASTER_SALT=4
     ```
    The salt values can be changed if required. This will affect the addresses at which the contracts are deployed.
-5. run `bash script/deploy_local.sh`. This should start a local anvil node and deploy the contracts
+5. To start a local anvil node and deploy the contracts, run
+    ```
+    bash script/deploy_local.sh
+   ```
 
-You can find the deployed contracts in the console logs. Copy the very first private-key from the logs and use it to populate the values of `WALLET_PRIVATE_KEY` and `VERIFYING_PAYMASTER_PRIVATE_KEY` in env variables. This key is the deployer for all the contracts.
+On successful deployment, you can find the deployed contract addresses, signer/owner address and a key. Use this info to populate the `bundler/.env` file, as directed in the following section
 
-<ins>NOTE</ins>: In case an instance of `anvil` is already running, run `pkill -f anvil` to stop the instance before `run deploy_local.sh`
+<ins>NOTE</ins>: In case an instance of `anvil` is running and the contracts already deployed, stop the instance using
+```
+pkill -f anvil
+```
+
 
 ### Running the Relay/Bundler
-1. navigate to `.env.example` and set the environment variables mentioned there (using the export command) (RUN_ENV can be one of "Development", "Production", "Staging")
-2. if your RUN_ENV is "Development", set INFURA_KEY to an empty string. You will also need to create a copy of config/Staging.toml and rename it to config/Development.toml. Set the values in the config file as per your requirements.
-3. setup a postgres database and update environment variable as per .env.example accordingly
-4. run `cargo run`
+1. Navigate to `bundler/.env.example` and set the environment variables mentioned there (using the export command)
+2. If your RUN_ENV is "Development", set INFURA_KEY to an empty string. You will also need to create a copy of config/Staging.toml and rename it to config/Development.toml. Set the values in the config file as per your requirements.
+3. Set up a postgres database and update the environment variable as per .env.example accordingly
+4. Run
+    ```
+   cargo run
+   ```
 
-<ins>NOTE</ins>: If there are any changes in the schema or the queries, run `cargo sqlx prepare --database-url $DATABASE_URL` and add the generated files or the github workflow will fail. Files will be generated under `bundler/.sqlx`  
+<ins>NOTE</ins>: If there are any changes in the schema or the queries, run 
+   ```
+   cargo sqlx prepare --database-url $DATABASE_URL
+   ```
+   and add the generated files or the github workflow will fail. Files will be generated under `bundler/.sqlx`  
 
-By default, the server uses "Development.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
+By default, the server uses "Staging.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
 1. Development
 2. Production
 3. Staging
 
 The project does not come with a "Production.toml", but you can create one and use it. The config file should be in the same format as "Development.toml".
-
-### Signing the userop
-The server also uses a node service for signing called "signing-server". It needs to be running to be able to use this repo. You can find it under "roverx-rpc/signing-server". It is a simple node server that exposes a REST API for signing. You can find the instructions to run it in the README.md of the signing-server repo.
-
 
 ## Account Abstraction Deployment & Testing
 
