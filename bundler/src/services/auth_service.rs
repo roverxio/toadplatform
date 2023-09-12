@@ -1,8 +1,10 @@
+use crate::models::config::env::ENV;
+use crate::CONFIG;
 use jwks_client::keyset::KeyStore;
 use rs_firebase_admin_sdk::auth::User;
 use rs_firebase_admin_sdk::{
     auth::{FirebaseAuthService, UserIdentifiers},
-    App, GcpCredentials,
+    App, CustomServiceAccount, GcpCredentials,
 };
 use serde::Deserialize;
 
@@ -32,10 +34,26 @@ impl AuthService {
     }
 
     pub async fn is_valid_id(verifier_id: String) -> Option<User> {
-        let live_app = App::live(GcpCredentials::new().await.unwrap())
-            .await
-            .unwrap();
-
+        let live_app;
+        match CONFIG.env {
+            ENV::Development => {
+                live_app = App::live(GcpCredentials::new().await.unwrap())
+                    .await
+                    .unwrap();
+            }
+            _ => {
+                live_app = App::live(GcpCredentials::from(
+                    CustomServiceAccount::from_json(
+                        std::env::var("GOOGLE_APPLICATION_CREDENTIALS")
+                            .expect("GOOGLE_APPLICATION_CREDENTIALS env var not set")
+                            .as_str(),
+                    )
+                    .unwrap(),
+                ))
+                .await
+                .unwrap();
+            }
+        }
         let auth_admin = live_app.auth();
 
         let user = auth_admin
