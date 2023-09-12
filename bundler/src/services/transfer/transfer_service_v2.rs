@@ -117,7 +117,7 @@ impl TransferServiceV2 {
             .await;
 
         Ok(TransferInitResponse {
-            msg_hash: Bytes::from(user_op_hash),
+            msg_hash: user_op_hash,
             status: user_txn.status,
             transaction_id: user_txn.transaction_id,
         })
@@ -169,7 +169,7 @@ impl TransferServiceV2 {
         self.transaction_dao
             .update_user_transaction(transaction_id.clone(), None, Status::PENDING.to_string())
             .await;
-        if user.deployed {
+        if !user.deployed {
             self.wallet_dao
                 .update_wallet_deployed(user.external_user_id)
                 .await;
