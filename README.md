@@ -1,4 +1,4 @@
-# Toad Wallet System (based on ERC-4337)
+# Toad Platform (based on ERC-4337)
 
 ## Background
 ERC-4337 is the Ethereum community's first attempt to simplify the wallet experience for users coming from a more familiar "web2 way of life". E-mail login and authorisation is a de-facto - if not, almost a standard across mobile/web applications.  Web3 "sign-in" and authorisation is based on private keys that has properties that make it impenetrable (until now), but are also known to be unwieldy, hard to manage making them cumbersome. 
@@ -26,7 +26,7 @@ eth-infinitism's reference implementation of the Entry Point spec for local test
    #### Verifying Paymaster 
    Reference implementation of Verifying Paymaster
 
-
+<ins>NOTE</ins>: instructions have been tested on 13.5. support for more platforms will be added.
 ## Running the node locally
 If you are running this project on localhost, you need to have a local node running with the contracts deployed. We use Foundry's Anvil to run a local node for development and testing:
 1. Follow the instructions in the [foundry installation guide](https://book.getfoundry.sh/getting-started/installation) to set up foundry tool kit
@@ -37,8 +37,8 @@ If you are running this project on localhost, you need to have a local node runn
    ```
 4. Populate the `contracts/.env` with the following values
     ```
-    RPC_URL=http://localhost:8545
-   PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+    RPC_URL=http://localhost:8545<your_anvil_instance>
+   PRIVATE_KEY=<pick_this_up_from_anvil>
    CHAIN_ID=31337
    ENTRYPOINT_SALT=1
    SIMPLE_ACCOUNT_FACTORY_SALT=2
