@@ -4,18 +4,18 @@ use std::path::{Path, PathBuf};
 
 #[derive(Deserialize)]
 pub struct LastSyncBlock {
-    start_time: StartBlock,
-    files: SyncFiles,
+    block: Block,
+    files: Files,
 }
 
 #[derive(Deserialize)]
-pub struct SyncFiles {
+pub struct Files {
     token_transfers: PathBuf,
     transactions: PathBuf,
 }
 
 #[derive(Deserialize)]
-pub struct StartBlock {
+pub struct Block {
     token_transfers: i64,
     transactions: i64,
 }
@@ -23,7 +23,7 @@ pub struct StartBlock {
 #[derive(Deserialize)]
 pub struct Settings {
     chain: String,
-    last_sync_time: LastSyncBlock,
+    last_sync_block: LastSyncBlock,
     native_currency: String,
     transaction_id_prefix: String,
 }
@@ -40,19 +40,19 @@ impl Settings {
     }
 
     pub fn get_last_sync_file_token_transfers(&self) -> &Path {
-        &self.last_sync_time.files.token_transfers
+        &self.last_sync_block.files.token_transfers
     }
 
     pub fn get_last_sync_file_transactions(&self) -> &Path {
-        &self.last_sync_time.files.transactions
+        &self.last_sync_block.files.transactions
     }
 
     pub fn get_last_sync_block_token_transfers(&self) -> i64 {
-        self.last_sync_time.start_time.token_transfers.clone()
+        self.last_sync_block.block.token_transfers.clone()
     }
 
-    pub fn get_last_sync_time_transactions(&self) -> i64 {
-        self.last_sync_time.start_time.transactions.clone()
+    pub fn get_last_sync_block_transactions(&self) -> i64 {
+        self.last_sync_block.block.transactions.clone()
     }
 
     pub fn get_chain(&self) -> &str {

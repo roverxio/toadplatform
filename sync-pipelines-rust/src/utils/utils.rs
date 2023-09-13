@@ -12,7 +12,7 @@ impl Utils {
         let result = fs::read_to_string(CONFIG.get_last_sync_file_transactions());
         match result {
             Ok(time) => time.parse::<i64>().unwrap(),
-            Err(_) => CONFIG.get_last_sync_time_transactions(),
+            Err(_) => CONFIG.get_last_sync_block_transactions(),
         }
     }
 
