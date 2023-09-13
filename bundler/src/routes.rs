@@ -6,7 +6,6 @@ use crate::handlers::hello_world::hello_world;
 use crate::handlers::metadata::get_metadata;
 use crate::handlers::transfer::{execute_transfer, init_transfer, transfer};
 use crate::handlers::wallet::{get_address, get_balance, list_transactions, poll_transaction};
-use crate::middleware::admin_auth::AdminAuthMiddleware;
 use crate::middleware::auth::ToadAuthMiddleware;
 use crate::CONFIG;
 
@@ -31,7 +30,6 @@ pub fn routes(cfg: &mut ServiceConfig) {
                 )
                 .service(
                     web::scope("admin")
-                        .wrap(AdminAuthMiddleware)
                         .route(
                             "deposit/{paymaster}",
                             web::post().to(topup_paymaster_deposit),
