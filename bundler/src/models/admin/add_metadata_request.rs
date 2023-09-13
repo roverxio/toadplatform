@@ -12,11 +12,11 @@ pub struct AddMetadataRequest {
 
 impl AddMetadataRequest {
     pub fn get_chain(&self) -> String {
-        self.chain.trim().to_lowercase()
+        self.chain.trim().to_string()
     }
 
     pub fn get_currency(&self) -> String {
-        self.currency.trim().to_lowercase()
+        self.currency.trim().to_string()
     }
 
     pub fn get_contract_address(&self) -> String {
@@ -32,6 +32,6 @@ impl AddMetadataRequest {
     }
 
     pub fn get_name(&self) -> String {
-        self.name.trim().to_lowercase()
+        self.name.trim().to_string()
     }
 }

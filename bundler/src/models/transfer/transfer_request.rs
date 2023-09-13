@@ -10,7 +10,7 @@ pub struct TransferRequest {
 
 impl TransferRequest {
     pub fn get_receiver(&self) -> String {
-        self.receiver.trim().clone().to_lowercase()
+        self.receiver.trim().to_string()
     }
 
     pub fn get_value(&self) -> String {

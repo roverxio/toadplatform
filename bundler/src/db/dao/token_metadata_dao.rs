@@ -48,7 +48,7 @@ impl TokenMetadataDao {
             None => {
                 let query = query_as!(
                     TokenMetadata,
-                    "SELECT * FROM token_metadata WHERE chain = $1 and is_supported = true",
+                    "SELECT * FROM token_metadata WHERE lower(chain) = lower($1) and is_supported = true",
                     chain
                 );
                 query.fetch_all(&self.pool).await
@@ -56,7 +56,7 @@ impl TokenMetadataDao {
             Some(currency) => {
                 let query = query_as!(
                     TokenMetadata,
-                    "SELECT * FROM token_metadata WHERE chain = $1 AND symbol = $2 and is_supported = true",
+                    "SELECT * FROM token_metadata WHERE lower(chain) = lower($1) AND lower(symbol) = lower($2) and is_supported = true",
                     chain,
                     currency
                 );
