@@ -64,7 +64,7 @@ pkill -f anvil
 ### Running the Relay/Bundler
 1. Set up a postgres database
 2. Navigate to `bundler/.env.example` and set the environment variables mentioned there (using the export command)
-   1. By default, the server uses "Staging.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
+   1. By default, the server uses "Development.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
       1. Development
       2. Production
       3. Staging
@@ -74,7 +74,11 @@ pkill -f anvil
    ```
    cp config/Staging.toml config/Development.toml
    ```
-4. Run
+4. To initialise the DB tables, run
+   ```
+   cargo sqlx migrate run --database-url $DATABASE_URL
+   ```
+5. Run
     ```
    cargo run
    ```
@@ -92,12 +96,9 @@ The project does not come with a "Production.toml", but you can create one and u
 A Foundry project for deployment and testing of the ERC-4337 contracts
 
 ### Set Up
-- git clone https://github.com/Club-Defy/roverx-rpc
+- git clone https://github.com/roverxio/toadplatform
 - cd `contracts`
 - execute `foundry_setup.sh`
-- git clone https://github.com/roverxio/toad
-- cd `deployment-testing`
-- execute `dependencies.sh`
 - Build `forge build`
 - Testing `forge test`
 - To deploy the contracts execute: `deploy_local.sh`
