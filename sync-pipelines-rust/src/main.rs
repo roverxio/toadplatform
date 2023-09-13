@@ -26,7 +26,7 @@ async fn main() {
 
     match table_name {
         Table::TokenTransfers => {
-            let block_number = Utils::get_last_synced_block_number();
+            let block_number = Utils::get_last_synced_block_token_transfers();
             let token_transfers = TokenTransfers::get(pool.clone(), block_number).await;
             if token_transfers.clone().len() == 0 {
                 exit(0);
@@ -34,17 +34,17 @@ async fn main() {
             let number = TokenTransfers::get_max_block_number(token_transfers.clone());
             UserTransaction::insert(pool, UserTransaction::from_token_transfers(token_transfers))
                 .await;
-            Utils::update_last_synced_block(number);
+            Utils::update_last_synced_block_token_transfers(number);
         }
         Table::Transactions => {
-            let block_timestamp = Utils::get_last_synced_block_timestamp();
-            let transactions = Transactions::get(pool.clone(), block_timestamp).await;
+            let block_number = Utils::get_last_synced_block_transactions();
+            let transactions = Transactions::get(pool.clone(), block_number).await;
             if transactions.clone().len() == 0 {
                 exit(0);
             }
             let number = Transactions::get_max_block_timestamp(transactions.clone());
             UserTransaction::insert(pool, UserTransaction::from_transactions(transactions)).await;
-            Utils::update_last_synced_time(number);
+            Utils::update_last_synced_block_transactions(number);
         }
     };
 }
