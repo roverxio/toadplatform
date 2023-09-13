@@ -22,10 +22,10 @@ impl BalanceRequest {
 
 impl Balance {
     pub fn get_chain(&self) -> String {
-        self.chain.clone().to_lowercase()
+        self.chain.clone().trim().to_string()
     }
 
     pub fn get_currency(&self) -> String {
-        self.currency.clone().to_lowercase()
+        self.currency.clone().trim().to_string()
     }
 }
