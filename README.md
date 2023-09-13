@@ -96,12 +96,9 @@ The project does not come with a "Production.toml", but you can create one and u
 A Foundry project for deployment and testing of the ERC-4337 contracts
 
 ### Set Up
-- git clone https://github.com/Club-Defy/roverx-rpc
+- git clone https://github.com/roverxio/toadplatform
 - cd `contracts`
 - execute `foundry_setup.sh`
-- git clone https://github.com/roverxio/toad
-- cd `deployment-testing`
-- execute `dependencies.sh`
 - Build `forge build`
 - Testing `forge test`
 - To deploy the contracts execute: `deploy_local.sh`
