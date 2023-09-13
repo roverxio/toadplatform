@@ -29,17 +29,23 @@ pub struct WalletService {
 }
 
 impl WalletService {
-    pub async fn get_wallet_address(&self, user: User) -> Result<AddressResponse, ApiError> {
+    pub async fn get_wallet_address(
+        &self,
+        user: User,
+        user_wallet: String,
+    ) -> Result<AddressResponse, ApiError> {
         let result: Wallet;
         if user.wallet_address.is_empty() {
-            result = self.get_address(user.external_user_id.as_str()).await;
+            result = self
+                .get_address(user.external_user_id.as_str(), user_wallet.parse().unwrap())
+                .await;
             info!("salt -> {}", result.salt);
             self.wallet_dao
                 .create_wallet(
                     user.email,
                     user.name,
                     format!("{:?}", result.address),
-                    user.owner_address,
+                    user_wallet,
                     user.external_user_id,
                     result.salt,
                     result.deployed,
@@ -64,7 +70,7 @@ impl WalletService {
         })
     }
 
-    async fn get_address(&self, external_user_id: &str) -> Wallet {
+    async fn get_address(&self, external_user_id: &str, user_wallet: Address) -> Wallet {
         let mut result;
         let mut suffix = "".to_string();
         let mut salt;
@@ -74,7 +80,7 @@ impl WalletService {
             salt = get_hash(user);
             result = self
                 .simple_account_factory_provider
-                .get_address(CONFIG.run_config.account_owner, U256::from(salt))
+                .get_address(user_wallet, U256::from(salt))
                 .await
                 .unwrap();
             if contract_exists_at(format!("{:?}", result)).await {

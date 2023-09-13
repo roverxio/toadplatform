@@ -5,7 +5,6 @@ use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
-use log::info;
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -65,7 +64,7 @@ impl TransferServiceV2 {
                 self.simple_account_factory_provider.abi.address(),
                 self.simple_account_factory_provider
                     .create_account(
-                        CONFIG.run_config.account_owner,
+                        user.owner_address.parse().unwrap(),
                         U256::from(user.salt.to_u64().unwrap()),
                     )
                     .unwrap(),
@@ -120,7 +119,7 @@ impl TransferServiceV2 {
             .await;
 
         Ok(TransferInitResponse {
-            msh_hash: Bytes::from(user_op_hash),
+            msg_hash: user_op_hash,
             status: user_txn.status,
             transaction_id: user_txn.transaction_id,
         })
@@ -169,11 +168,10 @@ impl TransferServiceV2 {
             return Err(ApiError::BadRequest(result.err().unwrap()));
         }
         let txn_hash = result.unwrap();
-        info!("Transaction sent successfully. Hash: {:?}", txn_hash);
         self.transaction_dao
             .update_user_transaction(transaction_id.clone(), None, Status::PENDING.to_string())
             .await;
-        if user.deployed {
+        if !user.deployed {
             self.wallet_dao
                 .update_wallet_deployed(user.external_user_id)
                 .await;

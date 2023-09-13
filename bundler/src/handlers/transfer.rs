@@ -55,7 +55,7 @@ pub async fn execute_transfer(
     let data = service
         .execute(
             body.transaction_id.clone(),
-            body.signature.clone(),
+            body.get_signature(),
             req.into_inner(),
         )
         .await;
