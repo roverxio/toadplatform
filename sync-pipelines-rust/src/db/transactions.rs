@@ -13,7 +13,7 @@ pub struct Transactions {
 }
 
 impl Transactions {
-    pub fn get_max_block_timestamp(transactions: Vec<Transactions>) -> i64 {
+    pub fn get_max_block_number(transactions: Vec<Transactions>) -> i64 {
         transactions
             .into_iter()
             .max_by_key(|t| t.block_number)

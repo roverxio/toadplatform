@@ -42,7 +42,7 @@ async fn main() {
             if transactions.clone().len() == 0 {
                 exit(0);
             }
-            let number = Transactions::get_max_block_timestamp(transactions.clone());
+            let number = Transactions::get_max_block_number(transactions.clone());
             UserTransaction::insert(pool, UserTransaction::from_transactions(transactions)).await;
             Utils::update_last_synced_block_transactions(number);
         }
