@@ -74,7 +74,11 @@ pkill -f anvil
    ```
    cp config/Staging.toml config/Development.toml
    ```
-4. Run
+4. To initialise the DB tables, run
+   ```
+   cargo sqlx migrate run --database-url $DATABASE_URL
+   ```
+5. Run
     ```
    cargo run
    ```
