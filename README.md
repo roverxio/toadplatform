@@ -12,7 +12,7 @@ Refer to the Bundler section for now.
 ## Bundler
 Bundler is a component being built as per the [ERC4337](https://eips.ethereum.org/EIPS/eip-4337#rpc-methods-eth-namespace) (Account Abstraction via Entry Point Contract specification). Bundler is a Rust based implementation that exposes REST APIs and also acts as a Relayer.
 It uses Actix web framework to expose REST APIs.
-MSRP: `rustc 1.71.0 (8ede3aae2 2023-07-12)`
+MSRV: `rustc 1.71.0 (8ede3aae2 2023-07-12)`
 ## Contracts
 ### Smart Contract Wallet
 Smart Contract Wallet (SCW) contract is deployed for every user that's onboarded on the Toad system
@@ -114,4 +114,4 @@ All the dependent libraries are under `contracts/lib` directory, we have bash sc
 All the test case are referred from [account-abstractions](https://github.com/eth-infinitism/account-abstraction) code from eth-infinitism. Test cases from eth-infinitism's code base have been ported using forge (the tool of our choice). Some test cases that required RPC calls are yet to be ported. 
 
 ![alt text](https://baseavaar2.s3.amazonaws.com/base_app_home.png)
-Available on [android](https://play.google.com/store/apps/details?id=cash.toad.toad_cash_mobile&hl=en&gl=US) and [ios](https://testflight.apple.com/join/e7b3v2Ap).
+Available on [Android](https://play.google.com/store/apps/details?id=cash.toad.toad_cash_mobile&hl=en&gl=US) and [iOS](https://testflight.apple.com/join/e7b3v2Ap).
