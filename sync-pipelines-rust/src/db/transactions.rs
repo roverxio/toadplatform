@@ -21,9 +21,7 @@ impl Transactions {
             .block_number
             .unwrap_or(0)
     }
-}
 
-impl Transactions {
     pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Vec<Transactions> {
         let query = query_as!(
             Transactions,
