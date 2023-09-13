@@ -39,4 +39,3 @@ verification_gas_limit = 299609
 pre_verification_gas = 1299129
 max_fee_per_gas = 114100000
 max_priority_fee_per_gas = 114100000
-
