@@ -64,7 +64,7 @@ pkill -f anvil
 ### Running the Relay/Bundler
 1. Set up a postgres database
 2. Navigate to `bundler/.env.example` and set the environment variables mentioned there (using the export command)
-   1. By default, the server uses "Staging.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
+   1. By default, the server uses "Development.toml" as the config file. If you want to use a different config file, set the `RUN_ENV` environment variable to the path of the config file. `RUN_ENV` can be one of:
       1. Development
       2. Production
       3. Staging
