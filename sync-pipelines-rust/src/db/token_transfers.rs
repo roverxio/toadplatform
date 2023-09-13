@@ -5,12 +5,12 @@ use std::process::exit;
 
 #[derive(Clone)]
 pub struct TokenTransfers {
-    pub from_address: String,
-    pub to_address: String,
-    pub value: BigDecimal,
+    pub from_address: Option<String>,
+    pub to_address: Option<String>,
+    pub value: Option<BigDecimal>,
     pub transaction_hash: String,
-    pub block_number: i64,
-    pub symbol: String,
+    pub block_number: Option<i64>,
+    pub symbol: Option<String>,
 }
 
 impl TokenTransfers {
@@ -20,6 +20,7 @@ impl TokenTransfers {
             .max_by_key(|t| t.block_number)
             .unwrap()
             .block_number
+            .unwrap_or(0)
     }
 
     pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Vec<TokenTransfers> {

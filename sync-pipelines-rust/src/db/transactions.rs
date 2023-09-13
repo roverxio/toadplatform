@@ -5,32 +5,33 @@ use std::process::exit;
 
 #[derive(Clone)]
 pub struct Transactions {
-    pub from_address: String,
-    pub to_address: String,
-    pub value: BigDecimal,
+    pub from_address: Option<String>,
+    pub to_address: Option<String>,
+    pub value: Option<BigDecimal>,
     pub transaction_hash: String,
-    pub block_timestamp: i64,
+    pub block_number: Option<i64>,
 }
 
 impl Transactions {
     pub fn get_max_block_timestamp(transactions: Vec<Transactions>) -> i64 {
         transactions
             .into_iter()
-            .max_by_key(|t| t.block_timestamp)
+            .max_by_key(|t| t.block_number)
             .unwrap()
-            .block_timestamp
+            .block_number
+            .unwrap_or(0)
     }
 }
 
 impl Transactions {
-    pub async fn get(pool: Pool<Postgres>, block_timestamp: i64) -> Vec<Transactions> {
+    pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Vec<Transactions> {
         let query = query_as!(
             Transactions,
-            "SELECT from_address, to_address, value, hash as transaction_hash, block_timestamp \
+            "SELECT from_address, to_address, value, hash as transaction_hash, block_number \
             FROM transactions \
             JOIN users ON to_address = wallet_address \
-            WHERE block_timestamp > $1",
-            block_timestamp
+            WHERE block_number > $1",
+            block_number
         );
         let result = query.fetch_all(&pool).await;
         return match result {

@@ -74,12 +74,12 @@ pub struct UserTransactionWithJson {
 impl From<TokenTransfers> for UserTransaction {
     fn from(transfer: TokenTransfers) -> UserTransaction {
         UserTransaction {
-            user_address: transfer.to_address.clone(),
+            user_address: transfer.to_address.clone().unwrap_or("".to_string()),
             transaction_id: Utils::generate_txn_id(),
-            from_address: transfer.from_address,
-            to_address: transfer.to_address,
-            amount: transfer.value,
-            currency: transfer.symbol,
+            from_address: transfer.from_address.unwrap_or("".to_string()),
+            to_address: transfer.to_address.unwrap_or("".to_string()),
+            amount: transfer.value.unwrap_or(BigDecimal::from(0)),
+            currency: transfer.symbol.unwrap_or("".to_string()),
             transaction_type: "credit".to_string(),
             status: "success".to_string(),
             metadata: TransactionMetadata::get_transaction_metadata(transfer.transaction_hash),
@@ -91,11 +91,11 @@ impl From<TokenTransfers> for UserTransaction {
 impl From<Transactions> for UserTransaction {
     fn from(transfer: Transactions) -> UserTransaction {
         UserTransaction {
-            user_address: transfer.to_address.clone(),
+            user_address: transfer.to_address.clone().unwrap_or("".to_string()),
             transaction_id: Utils::generate_txn_id(),
-            from_address: transfer.from_address,
-            to_address: transfer.to_address,
-            amount: transfer.value,
+            from_address: transfer.from_address.unwrap_or("".to_string()),
+            to_address: transfer.to_address.unwrap_or("".to_string()),
+            amount: transfer.value.unwrap_or(BigDecimal::from(0)),
             currency: CONFIG.get_native_currency().to_string(),
             transaction_type: "credit".to_string(),
             status: "success".to_string(),
