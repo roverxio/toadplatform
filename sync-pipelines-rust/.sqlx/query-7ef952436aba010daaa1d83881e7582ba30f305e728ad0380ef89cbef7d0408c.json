@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT from_address, to_address, value, hash as transaction_hash, block_timestamp FROM transactions JOIN users ON to_address = wallet_address WHERE block_timestamp > $1",
+  "query": "SELECT from_address, to_address, value, hash as transaction_hash, block_number FROM transactions JOIN users ON to_address = wallet_address WHERE block_number > $1",
   "describe": {
     "columns": [
       {
@@ -25,7 +25,7 @@
       },
       {
         "ordinal": 4,
-        "name": "block_timestamp",
+        "name": "block_number",
         "type_info": "Int8"
       }
     ],
@@ -35,12 +35,12 @@
       ]
     },
     "nullable": [
+      true,
+      true,
+      true,
       false,
-      false,
-      false,
-      false,
-      false
+      true
     ]
   },
-  "hash": "857fe8c0baddb9d38c327e10fd70b0bd7197426f5a059761690840baeac0b9b6"
+  "hash": "7ef952436aba010daaa1d83881e7582ba30f305e728ad0380ef89cbef7d0408c"
 }
