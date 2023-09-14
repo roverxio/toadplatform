@@ -82,7 +82,9 @@ impl From<TokenTransfers> for UserTransaction {
             currency: transfer.symbol.unwrap_or("".to_string()),
             transaction_type: "credit".to_string(),
             status: "success".to_string(),
-            metadata: TransactionMetadata::get_transaction_metadata(transfer.transaction_hash),
+            metadata: TransactionMetadata::get_transaction_metadata(
+                transfer.transaction_hash.unwrap_or("".to_string()),
+            ),
             exponent: 0,
         }
     }
@@ -99,7 +101,9 @@ impl From<Transactions> for UserTransaction {
             currency: CONFIG.get_native_currency().to_string(),
             transaction_type: "credit".to_string(),
             status: "success".to_string(),
-            metadata: TransactionMetadata::get_transaction_metadata(transfer.transaction_hash),
+            metadata: TransactionMetadata::get_transaction_metadata(
+                transfer.transaction_hash.unwrap_or("".to_string()),
+            ),
             exponent: 0,
         }
     }

@@ -1,17 +1,17 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT from_address, to_address, value, hash as transaction_hash, block_number FROM transactions JOIN users ON to_address = wallet_address WHERE block_number > $1",
+  "query": "SELECT lower(from_address) from_address, lower(to_address) to_address, value, lower(hash) transaction_hash, block_number FROM transactions JOIN users ON to_address = wallet_address WHERE block_number > $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "from_address",
-        "type_info": "Varchar"
+        "type_info": "Text"
       },
       {
         "ordinal": 1,
         "name": "to_address",
-        "type_info": "Varchar"
+        "type_info": "Text"
       },
       {
         "ordinal": 2,
@@ -21,7 +21,7 @@
       {
         "ordinal": 3,
         "name": "transaction_hash",
-        "type_info": "Varchar"
+        "type_info": "Text"
       },
       {
         "ordinal": 4,
@@ -35,12 +35,12 @@
       ]
     },
     "nullable": [
+      null,
+      null,
       true,
-      true,
-      true,
-      false,
+      null,
       true
     ]
   },
-  "hash": "7ef952436aba010daaa1d83881e7582ba30f305e728ad0380ef89cbef7d0408c"
+  "hash": "62ba49acb848eb65c85204d58f4a2d4638d2abb72d8e70b7cad190a977497d8c"
 }

@@ -8,7 +8,7 @@ pub struct TokenTransfers {
     pub from_address: Option<String>,
     pub to_address: Option<String>,
     pub value: Option<BigDecimal>,
-    pub transaction_hash: String,
+    pub transaction_hash: Option<String>,
     pub block_number: Option<i64>,
     pub symbol: Option<String>,
 }
@@ -26,7 +26,8 @@ impl TokenTransfers {
     pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Vec<TokenTransfers> {
         let query = query_as!(
             TokenTransfers,
-            "SELECT from_address, to_address, value, transaction_hash, block_number, symbol \
+            "SELECT lower(from_address) from_address, lower(to_address) to_address, value, \
+            lower(transaction_hash) transaction_hash, block_number, symbol \
             FROM token_transfers \
             JOIN users ON to_address = wallet_address \
             JOIN token_metadata ON token_address = contract_address \

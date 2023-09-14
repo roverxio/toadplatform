@@ -8,7 +8,7 @@ pub struct Transactions {
     pub from_address: Option<String>,
     pub to_address: Option<String>,
     pub value: Option<BigDecimal>,
-    pub transaction_hash: String,
+    pub transaction_hash: Option<String>,
     pub block_number: Option<i64>,
 }
 
@@ -25,7 +25,8 @@ impl Transactions {
     pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Vec<Transactions> {
         let query = query_as!(
             Transactions,
-            "SELECT from_address, to_address, value, hash as transaction_hash, block_number \
+            "SELECT lower(from_address) from_address, lower(to_address) to_address, value, \
+            lower(hash) transaction_hash, block_number \
             FROM transactions \
             JOIN users ON to_address = wallet_address \
             WHERE block_number > $1",
