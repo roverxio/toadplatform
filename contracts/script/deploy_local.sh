@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-anvil --mnemonic 'test test test test test test test test test test test junk' >/dev/null 2>&1 &
+var=$(anvil --mnemonic 'test test test test test test test test test test test junk' >/dev/null 2>&1 &)
 
 # loop to check if anvil has started
 until curl -s http://localhost:8545 >/dev/null;
