@@ -72,7 +72,7 @@ impl From<TokenTransfers> for UserTransaction {
             metadata: TransactionMetadata::get_transaction_metadata(
                 transfer.transaction_hash.unwrap_or("".to_string()),
             ),
-            exponent: 0,
+            exponent: transfer.exponent.unwrap_or(0),
         }
     }
 }
@@ -91,7 +91,7 @@ impl From<Transactions> for UserTransaction {
             metadata: TransactionMetadata::get_transaction_metadata(
                 transfer.transaction_hash.unwrap_or("".to_string()),
             ),
-            exponent: 0,
+            exponent: transfer.exponent.unwrap_or(0),
         }
     }
 }
@@ -100,7 +100,7 @@ impl UserTransaction {
     pub async fn insert(pool: Pool<Postgres>, transactions: Vec<UserTransaction>) {
         let mut query_builder = QueryBuilder::new(
             "INSERT INTO user_transactions (user_address, transaction_id, from_address, \
-            to_address, amount, currency, type, status, metadata) ",
+            to_address, amount, currency, type, status, metadata, exponent) ",
         );
         query_builder.push_values(transactions, |mut b, txn| {
             b.push_bind(txn.user_address)
@@ -120,7 +120,8 @@ impl UserTransaction {
                         );
                         exit(1);
                     }
-                });
+                })
+                .push_bind(txn.exponent);
         });
 
         let query = query_builder.build();

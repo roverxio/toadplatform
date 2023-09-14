@@ -1,3 +1,4 @@
+use crate::CONFIG;
 use bigdecimal::BigDecimal;
 use log::error;
 use sqlx::{query_as, Pool, Postgres};
@@ -10,6 +11,7 @@ pub struct Transactions {
     pub value: Option<BigDecimal>,
     pub transaction_hash: Option<String>,
     pub block_number: Option<i64>,
+    pub exponent: Option<i32>,
 }
 
 impl Transactions {
@@ -26,11 +28,14 @@ impl Transactions {
         let query = query_as!(
             Transactions,
             "SELECT lower(from_address) from_address, lower(to_address) to_address, value, \
-            lower(hash) transaction_hash, block_number \
+            lower(hash) transaction_hash, block_number, exponent \
             FROM transactions txn \
             JOIN users usr ON lower(txn.to_address) = usr.wallet_address \
+            JOIN (SELECT exponent FROM token_metadata WHERE chain = $2 and contract_address = $3) met ON true \
             WHERE block_number > $1",
-            block_number
+            block_number,
+            CONFIG.get_chain(),
+            "0x0000000000000000000000000000000000000000"
         );
         let result = query.fetch_all(&pool).await;
         return match result {

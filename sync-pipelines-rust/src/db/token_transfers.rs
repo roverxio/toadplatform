@@ -11,6 +11,7 @@ pub struct TokenTransfers {
     pub transaction_hash: Option<String>,
     pub block_number: Option<i64>,
     pub symbol: Option<String>,
+    pub exponent: Option<i32>,
 }
 
 impl TokenTransfers {
@@ -27,7 +28,7 @@ impl TokenTransfers {
         let query = query_as!(
             TokenTransfers,
             "SELECT lower(from_address) from_address, lower(to_address) to_address, value, \
-            lower(transaction_hash) transaction_hash, block_number, symbol \
+            lower(transaction_hash) transaction_hash, block_number, symbol, exponent \
             FROM token_transfers t \
             JOIN users u ON lower(t.to_address) = u.wallet_address \
             JOIN token_metadata m ON lower(t.token_address) = m.contract_address \
