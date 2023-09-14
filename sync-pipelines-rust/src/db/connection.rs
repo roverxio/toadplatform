@@ -6,15 +6,19 @@ pub struct Connection {}
 
 impl Connection {
     pub async fn init() -> Pool<Postgres> {
-        let database_url: String;
         match std::env::var("DATABASE_URL") {
-            Ok(url) => {
-                database_url = url;
+            Ok(database_url) => {
                 let connection = PgPool::connect(&database_url).await;
-                connection.unwrap()
+                match connection {
+                    Ok(conn) => conn,
+                    Err(_) => {
+                        error!("Unable to open connection to the database");
+                        exit(1)
+                    }
+                }
             }
             Err(_) => {
-                error!("env DATABASE_URL not set");
+                error!("env DATABASE_URL variable not set");
                 exit(1)
             }
         }
