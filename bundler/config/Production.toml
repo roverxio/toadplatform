@@ -24,8 +24,8 @@ entrypoint_address = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 verifying_paymaster_address = "0x4B27F464b50bB4f41222d7f01B5320D3aFC54986"
 
 [default_gas]
-call_gas_limit = 10000000
-verification_gas_limit = 10000000
-pre_verification_gas = 1000000000000000
-max_fee_per_gas = 5
-max_priority_fee_per_gas = 1000000000
+call_gas_limit = 90153
+verification_gas_limit = 299609
+pre_verification_gas = 1299129
+max_fee_per_gas = 114100000
+max_priority_fee_per_gas = 114100000
