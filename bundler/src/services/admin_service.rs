@@ -43,10 +43,8 @@ impl AdminService {
         if paymaster != Constants::VERIFYING_PAYMASTER {
             return Err(ApiError::BadRequest("Invalid Paymaster".to_string()));
         }
-        let value = parse_ether(eth_value);
-        if value.is_err() {
-            return Err(ApiError::BadRequest("Invalid value".to_string()));
-        }
+        let value = parse_ether(eth_value)
+            .map_err(|_| ApiError::BadRequest("Invalid value".to_string()))?;
 
         let data = self
             .entrypoint_provider
@@ -58,7 +56,7 @@ impl AdminService {
         let response = Web3Provider::execute(
             self.relayer_signer.clone(),
             CONFIG.get_chain().entrypoint_address,
-            value.unwrap().to_string(),
+            value.to_string(),
             data.unwrap(),
             self.entrypoint_provider.abi(),
         )
