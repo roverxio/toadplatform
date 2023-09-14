@@ -7,7 +7,7 @@ transaction_id_prefix = "toad"
 
 [server]
 port = "9010"
-host = "localhost"
+host = "0.0.0.0"
 prefix = "stg"
 
 [log]
@@ -28,14 +28,14 @@ chain_id = 84531
 url = "https://wild-fluent-hill.base-goerli.quiknode.pro/"
 explorer_url = "https://goerli.basescan.org/tx/"
 simple_account_factory_address = "0xE437C8A95545443e357Be3bdE7Cf9bc1B4922a29"
-usdc_address = "0xE03B984C599E3B6F3FF224ebf1296BAbAdcd9dF2"
+usdc_address = "0x7e9b4b2B597DA00C5e7b2E95Dc34c408a7173B17"
 currency = "ETH"
 entrypoint_address = "0x5277533753B1AfE41FDEB7E7Baf46c242A38dEf7"
 verifying_paymaster_address = "0x12Ee5b8ddD68DCF899B7e4776E0114fee55cBcDa"
 
 [default_gas]
-call_gas_limit = 10000000
-verification_gas_limit = 10000000
-pre_verification_gas = 1000000000000000
-max_fee_per_gas = 5
-max_priority_fee_per_gas = 1000000000
+call_gas_limit = 90153
+verification_gas_limit = 299609
+pre_verification_gas = 1299129
+max_fee_per_gas = 114100000
+max_priority_fee_per_gas = 114100000

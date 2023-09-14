@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * from users where email = $1",
+  "query": "SELECT * from users where external_user_id = $1",
   "describe": {
     "columns": [
       {
@@ -22,6 +22,21 @@
         "ordinal": 3,
         "name": "deployed",
         "type_info": "Bool"
+      },
+      {
+        "ordinal": 4,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "external_user_id",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "owner_address",
+        "type_info": "Varchar"
       }
     ],
     "parameters": {
@@ -33,8 +48,11 @@
       false,
       false,
       false,
+      false,
+      false,
+      false,
       false
     ]
   },
-  "hash": "15c6e98be376f235183d7dfc03474333a827c6b6c6388180d37b0d65c9e14e53"
+  "hash": "5e1d6e93128d7537255002580e7ad53ce85691f332f30ccce4da57866098b0c6"
 }

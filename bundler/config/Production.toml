@@ -1,0 +1,31 @@
+[run_config]
+current_chain = "base"
+account_owner = "0x5fb7454bd1925A91137d1f00cdfFcAAd16b2a87e"
+paymaster_account_owner = "0xF664C6e19a212Af0c9a31F49b76bD3E257531084"
+deployed_by_identifier = "toad.cash"
+transaction_id_prefix = "toad"
+
+[server]
+port = "9010"
+host = "0.0.0.0"
+prefix = "app"
+
+[log]
+level = "info"
+
+[chains.base]
+chain_id = 8453
+url = "https://lingering-methodical-choice.base-mainnet.quiknode.pro/"
+explorer_url = "https://basescan.org/tx/"
+simple_account_factory_address = "0x43c9A2f9c691E2034aaC3E3A4D1Ae5C888577632"
+usdc_address = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+currency = "ETH"
+entrypoint_address = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+verifying_paymaster_address = "0x4B27F464b50bB4f41222d7f01B5320D3aFC54986"
+
+[default_gas]
+call_gas_limit = 90153
+verification_gas_limit = 299609
+pre_verification_gas = 1299129
+max_fee_per_gas = 114100000
+max_priority_fee_per_gas = 114100000

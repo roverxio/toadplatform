@@ -37,12 +37,24 @@ pub struct Chain {
     pub verifying_paymaster_address: Address,
 }
 
+impl Server {
+    pub fn get_port(&self) -> u16 {
+        let port = std::env::var("PORT");
+        if port.is_ok() {
+            port.unwrap().parse::<u16>().unwrap()
+        } else {
+            self.port
+        }
+    }
+}
+
 impl Chain {
     pub fn get_url(&self) -> String {
         format!(
             "{}{}",
             self.url.clone(),
-            std::env::var("INFURA_KEY").expect("INFURA_KEY must be set")
+            std::env::var("PROVIDER_API_KEY")
+                .expect("PROVIDER_API_KEY must be set to connect with a node provider")
         )
     }
 }

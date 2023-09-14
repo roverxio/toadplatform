@@ -1,5 +1,4 @@
-use crate::CONFIG;
-use ethers::abi::Address;
+use ethers::abi::{Abi, Address};
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Bytes, U256};
@@ -13,9 +12,12 @@ pub struct USDCProvider {
 }
 
 impl USDCProvider {
-    pub fn init_abi(current_chain: &str, client: Arc<Provider<Http>>) -> ERC20<Provider<Http>> {
-        let contract: ERC20<Provider<Http>> =
-            ERC20::new(CONFIG.chains[current_chain].usdc_address, client);
+    pub fn abi(&self) -> &Abi {
+        self.abi.abi()
+    }
+
+    pub fn init_abi(address: Address, client: Arc<Provider<Http>>) -> ERC20<Provider<Http>> {
+        let contract: ERC20<Provider<Http>> = ERC20::new(address, client);
         contract
     }
 
@@ -26,6 +28,18 @@ impl USDCProvider {
             .calldata();
         if data.is_none() {
             return Err("transfer data failed".to_string());
+        }
+
+        Ok(data.unwrap())
+    }
+
+    pub fn mint(&self, to: Address, value: String) -> Result<Bytes, String> {
+        let data = self
+            .abi
+            .sudo_mint(to, U256::from_dec_str(&value).unwrap())
+            .calldata();
+        if data.is_none() {
+            return Err("mint data failed".to_string());
         }
 
         Ok(data.unwrap())

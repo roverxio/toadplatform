@@ -1,3 +1,4 @@
+use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, Zero};
 use ethers::prelude::U256;
 use std::sync::Arc;
@@ -10,11 +11,12 @@ use log::{info, warn};
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
-use crate::db::dao::wallet_dao::WalletDao;
+use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
+use crate::services::mint_service::{mint, MintService};
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -23,27 +25,43 @@ pub struct WalletService {
     pub transaction_dao: TransactionDao,
     pub simple_account_factory_provider: SimpleAccountFactory<Provider<Http>>,
     pub client: Arc<Provider<Http>>,
+    pub mint_service: MintService,
 }
 
 impl WalletService {
-    pub async fn get_wallet_address(&self, usr: &str) -> Result<AddressResponse, ApiError> {
+    pub async fn get_wallet_address(
+        &self,
+        user: User,
+        user_wallet: String,
+    ) -> Result<AddressResponse, ApiError> {
         let result: Wallet;
-        let address = self.wallet_dao.get_wallet_address(usr.to_string()).await;
-        if address.is_empty() {
-            result = self.get_address(usr).await;
+        if user.wallet_address.is_empty() {
+            result = self
+                .get_address(user.external_user_id.as_str(), user_wallet.parse().unwrap())
+                .await;
             info!("salt -> {}", result.salt);
             self.wallet_dao
                 .create_wallet(
-                    usr.to_string(),
+                    user.email,
+                    user.name,
                     format!("{:?}", result.address),
+                    user_wallet,
+                    user.external_user_id,
                     result.salt,
-                    false,
+                    result.deployed,
                 )
                 .await;
+            // spawn a thread to mint for user
+            spawn(mint(
+                result.address.clone(),
+                self.mint_service.usdc_provider.clone(),
+                self.mint_service.signer.clone(),
+            ));
         } else {
             result = Wallet {
-                address: address.parse().unwrap(),
+                address: user.wallet_address.parse().unwrap(),
                 salt: BigDecimal::zero(),
+                deployed: user.deployed,
             }
         }
 
@@ -52,21 +70,23 @@ impl WalletService {
         })
     }
 
-    async fn get_address(&self, usr: &str) -> Wallet {
+    async fn get_address(&self, external_user_id: &str, user_wallet: Address) -> Wallet {
         let mut result;
         let mut suffix = "".to_string();
         let mut salt;
+        let mut deployed = false;
         loop {
-            let user = usr.to_string().clone() + suffix.as_str();
+            let user = external_user_id.to_string().clone() + suffix.as_str();
             salt = get_hash(user);
             result = self
                 .simple_account_factory_provider
-                .get_address(CONFIG.run_config.account_owner, U256::from(salt))
+                .get_address(user_wallet, U256::from(salt))
                 .await
                 .unwrap();
             if contract_exists_at(format!("{:?}", result)).await {
                 info!("contract exists at {:?}", result);
                 if self.is_deployed_by_us(result).await {
+                    deployed = true;
                     break;
                 }
             } else {
@@ -81,6 +101,7 @@ impl WalletService {
         Wallet {
             address: result,
             salt: BigDecimal::from(salt),
+            deployed,
         }
     }
 
@@ -103,19 +124,14 @@ impl WalletService {
         &self,
         page_size: i64,
         id: Option<i32>,
-        user_id: &String,
+        user: User,
     ) -> Vec<Transaction> {
-        let user_wallet_address = self
-            .wallet_dao
-            .get_wallet_address(user_id.to_string())
-            .await;
-
         let row_id = id.unwrap_or(i32::MAX);
 
         let mut transactions = Vec::new();
         let result = self
             .transaction_dao
-            .list_transactions(page_size, row_id, user_wallet_address)
+            .list_transactions(page_size, row_id, user.wallet_address)
             .await;
 
         for transaction_and_exponent in result {
@@ -129,4 +145,5 @@ impl WalletService {
 struct Wallet {
     pub address: Address,
     pub salt: BigDecimal,
+    pub deployed: bool,
 }

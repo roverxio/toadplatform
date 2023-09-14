@@ -4,7 +4,7 @@ use log::info;
 
 use crate::contracts::usdc_provider::ERC20;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
-use crate::db::dao::wallet_dao::WalletDao;
+use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::currency::Currency;
 use crate::models::wallet::balance_response::BalanceResponse;
@@ -22,15 +22,14 @@ impl BalanceService {
         &self,
         chain: &String,
         currency: &String,
-        user: &str,
+        user: User,
     ) -> Result<BalanceResponse, ApiError> {
         info!("Chain: {:?}", chain); // will be relevant when we add support for multiple chains
         let balance: String;
-        let address = self.wallet_dao.get_wallet_address(user.to_string()).await;
-        if address.is_empty() {
+        if user.wallet_address.is_empty() {
             return Err(ApiError::NotFound("Wallet not found".to_string()));
         }
-        let user: Address = address.parse().unwrap();
+        let wallet_address: Address = user.wallet_address.parse().unwrap();
 
         match Currency::from_str(
             self.token_metadata_dao
@@ -43,14 +42,14 @@ impl BalanceService {
             Some(Currency::Erc20) => {
                 balance = self
                     .erc20_provider
-                    .balance_of(user.clone())
+                    .balance_of(wallet_address.clone())
                     .await
                     .unwrap()
                     .to_string();
             }
             Some(Currency::Native) => {
                 balance = PROVIDER
-                    .get_balance(user.clone(), None)
+                    .get_balance(wallet_address.clone(), None)
                     .await
                     .unwrap()
                     .to_string();
@@ -59,7 +58,7 @@ impl BalanceService {
 
         Ok(BalanceResponse {
             balance: balance.clone(),
-            address: address.clone(),
+            address: user.wallet_address,
             currency: currency.to_string(),
             exponent: self
                 .token_metadata_dao
