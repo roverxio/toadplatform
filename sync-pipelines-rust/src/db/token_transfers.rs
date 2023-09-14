@@ -28,9 +28,9 @@ impl TokenTransfers {
             TokenTransfers,
             "SELECT lower(from_address) from_address, lower(to_address) to_address, value, \
             lower(transaction_hash) transaction_hash, block_number, symbol \
-            FROM token_transfers \
-            JOIN users ON to_address = wallet_address \
-            JOIN token_metadata ON token_address = contract_address \
+            FROM token_transfers t \
+            JOIN users u ON lower(t.to_address) = u.wallet_address \
+            JOIN token_metadata m ON lower(t.token_address) = m.contract_address \
             WHERE block_number > $1",
             block_number
         );

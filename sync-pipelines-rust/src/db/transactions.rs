@@ -27,8 +27,8 @@ impl Transactions {
             Transactions,
             "SELECT lower(from_address) from_address, lower(to_address) to_address, value, \
             lower(hash) transaction_hash, block_number \
-            FROM transactions \
-            JOIN users ON to_address = wallet_address \
+            FROM transactions txn \
+            JOIN users usr ON lower(txn.to_address) = usr.wallet_address \
             WHERE block_number > $1",
             block_number
         );
