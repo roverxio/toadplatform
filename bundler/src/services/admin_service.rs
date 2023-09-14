@@ -3,6 +3,7 @@ use std::sync::Arc;
 use ethers::middleware::SignerMiddleware;
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
+use ethers::utils::parse_ether;
 use ethers_signers::LocalWallet;
 
 use crate::constants::Constants;
@@ -32,7 +33,7 @@ pub struct AdminService {
 impl AdminService {
     pub async fn topup_paymaster_deposit(
         &self,
-        value: String,
+        eth_value: String,
         paymaster: String,
         metadata: Metadata,
     ) -> Result<TransferResponse, ApiError> {
@@ -41,6 +42,10 @@ impl AdminService {
         }
         if paymaster != Constants::VERIFYING_PAYMASTER {
             return Err(ApiError::BadRequest("Invalid Paymaster".to_string()));
+        }
+        let value = parse_ether(eth_value);
+        if value.is_err() {
+            return Err(ApiError::BadRequest("Invalid value".to_string()));
         }
 
         let data = self
@@ -53,7 +58,7 @@ impl AdminService {
         let response = Web3Provider::execute(
             self.relayer_signer.clone(),
             CONFIG.get_chain().entrypoint_address,
-            value,
+            value.unwrap().to_string(),
             data.unwrap(),
             self.entrypoint_provider.abi(),
         )
