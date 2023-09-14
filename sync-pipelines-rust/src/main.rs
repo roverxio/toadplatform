@@ -1,4 +1,5 @@
 use lazy_static::lazy_static;
+use log::error;
 use std::env::args;
 use std::process::exit;
 
@@ -18,11 +19,22 @@ lazy_static! {
     static ref CONFIG: Settings = Settings::new().expect("Unable to import config");
 }
 
+const LOG_CONFIG: &str = "log_config.yaml";
+
 #[tokio::main]
 async fn main() {
+    log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
+
     let pool = Connection::init().await;
 
-    let table_name = Table::from(args().nth(1).expect("No table argument provided"));
+    let table_arg = args().nth(1);
+    let table_name = match table_arg {
+        Some(table) => Table::from(table),
+        None => {
+            error!("No table argument provided");
+            exit(1);
+        }
+    };
 
     match table_name {
         Table::TokenTransfers => {
