@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 
 #[derive(Deserialize)]
-pub struct LastSyncBlock {
+pub struct LastSync {
     block: Block,
     files: Files,
 }
@@ -23,7 +23,7 @@ pub struct Block {
 #[derive(Deserialize)]
 pub struct Settings {
     chain: String,
-    last_sync_block: LastSyncBlock,
+    last_sync: LastSync,
     native_currency: String,
     transaction_id_prefix: String,
 }
@@ -40,19 +40,19 @@ impl Settings {
     }
 
     pub fn get_last_sync_file_token_transfers(&self) -> &Path {
-        &self.last_sync_block.files.token_transfers
+        &self.last_sync.files.token_transfers
     }
 
     pub fn get_last_sync_file_transactions(&self) -> &Path {
-        &self.last_sync_block.files.transactions
+        &self.last_sync.files.transactions
     }
 
     pub fn get_last_sync_block_token_transfers(&self) -> i64 {
-        self.last_sync_block.block.token_transfers.clone()
+        self.last_sync.block.token_transfers.clone()
     }
 
     pub fn get_last_sync_block_transactions(&self) -> i64 {
-        self.last_sync_block.block.transactions.clone()
+        self.last_sync.block.transactions.clone()
     }
 
     pub fn get_chain(&self) -> &str {
