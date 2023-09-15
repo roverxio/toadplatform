@@ -136,18 +136,13 @@ impl UserTransaction {
     }
 
     pub fn from_token_transfers(token_transfers: Vec<TokenTransfers>) -> Vec<UserTransaction> {
-        let mut user_transactions: Vec<UserTransaction> = vec![];
-        for transfer in token_transfers {
-            user_transactions.push(UserTransaction::from(transfer));
-        }
-        user_transactions
+        token_transfers
+            .into_iter()
+            .map(UserTransaction::from)
+            .collect()
     }
 
     pub fn from_transactions(transfers: Vec<Transactions>) -> Vec<UserTransaction> {
-        let mut user_transactions: Vec<UserTransaction> = vec![];
-        for transfer in transfers {
-            user_transactions.push(UserTransaction::from(transfer));
-        }
-        user_transactions
+        transfers.into_iter().map(UserTransaction::from).collect()
     }
 }
