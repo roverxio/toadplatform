@@ -48,11 +48,11 @@ impl Settings {
     }
 
     pub fn get_last_sync_block_token_transfers(&self) -> i64 {
-        self.last_sync.block.token_transfers.clone()
+        self.last_sync.block.token_transfers
     }
 
     pub fn get_last_sync_block_transactions(&self) -> i64 {
-        self.last_sync.block.transactions.clone()
+        self.last_sync.block.transactions
     }
 
     pub fn get_chain(&self) -> &str {
