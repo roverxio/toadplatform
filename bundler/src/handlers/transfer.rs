@@ -5,10 +5,10 @@ use actix_web::{Error, HttpResponse};
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transfer::transfer_execute_request::TransferExecuteRequest;
 use crate::models::transfer::transfer_request::TransferRequest;
-use crate::services::transfer::transfer_service_v2::TransferServiceV2;
+use crate::services::transfer_service::TransferService;
 
 pub async fn init_transfer(
-    service: Data<TransferServiceV2>,
+    service: Data<TransferService>,
     body: Json<TransferRequest>,
     user: ReqData<User>,
 ) -> Result<HttpResponse, Error> {
@@ -27,7 +27,7 @@ pub async fn init_transfer(
 }
 
 pub async fn execute_transfer(
-    service: Data<TransferServiceV2>,
+    service: Data<TransferService>,
     body: Json<TransferExecuteRequest>,
     req: ReqData<User>,
 ) -> Result<HttpResponse, Error> {
