@@ -31,11 +31,10 @@ impl Transactions {
             lower(t.hash) transaction_hash, t.block_number, m.exponent \
             FROM transactions t \
             JOIN users u ON lower(t.to_address) = u.wallet_address \
-            JOIN (SELECT exponent FROM token_metadata WHERE chain = $2 and contract_address = $3) m ON true \
+            JOIN (SELECT exponent FROM token_metadata WHERE chain = $2 and token_type='native') m ON true \
             WHERE block_number > $1",
             block_number,
             CONFIG.get_chain(),
-            "0x0000000000000000000000000000000000000000"
         );
         let result = query.fetch_all(&pool).await;
         return match result {
