@@ -12,7 +12,7 @@ impl SyncUserTransactions {
     pub async fn sync_from_token_transfers(pool: Pool<Postgres>) -> Result<(), String> {
         let block_number = LastSync::get_last_synced_block(Table::TokenTransfers);
         let token_transfers = TokenTransfers::get(pool.clone(), block_number).await;
-        if token_transfers.clone().len() == 0 {
+        if token_transfers.len() == 0 {
             exit(0);
         }
         let number = TokenTransfers::get_max_block_number(token_transfers.clone());
@@ -23,7 +23,7 @@ impl SyncUserTransactions {
     pub async fn sync_from_transactions(pool: Pool<Postgres>) -> Result<(), String> {
         let block_number = LastSync::get_last_synced_block(Table::Transactions);
         let transactions = Transactions::get(pool.clone(), block_number).await;
-        if transactions.clone().len() == 0 {
+        if transactions.len() == 0 {
             exit(0);
         }
         let number = Transactions::get_max_block_number(transactions.clone());
