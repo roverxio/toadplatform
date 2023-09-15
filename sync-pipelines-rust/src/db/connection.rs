@@ -1,6 +1,4 @@
-use log::error;
-use sqlx::{Error, PgPool, Pool, Postgres};
-use std::process::exit;
+use sqlx::{PgPool, Pool, Postgres};
 
 pub struct Connection {}
 

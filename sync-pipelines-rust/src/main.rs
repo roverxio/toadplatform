@@ -28,7 +28,7 @@ async fn main() {
         Ok(db_pool) => db_pool,
         Err(error) => {
             error!("{}", error);
-            exit(1);
+            exit(1)
         }
     };
 
@@ -37,12 +37,17 @@ async fn main() {
         Some(table) => Table::from(table),
         None => {
             error!("No table argument provided");
-            exit(1);
+            exit(1)
         }
     };
 
-    match table_name {
+    let result = match table_name {
         Table::TokenTransfers => SyncUserTransactions::sync_from_token_transfers(pool).await,
         Table::Transactions => SyncUserTransactions::sync_from_transactions(pool).await,
     };
+
+    if result.is_err() {
+        error!("{}", result.err().unwrap());
+        exit(1)
+    }
 }

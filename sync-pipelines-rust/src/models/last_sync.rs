@@ -1,6 +1,4 @@
 use crate::utils::table::Table;
-use crate::CONFIG;
-use std::fmt::format;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -17,7 +15,7 @@ impl LastSync {
     }
 
     pub fn update_last_synced_block(table: Table, last_sync_block: i64) -> Result<(), String> {
-        let mut file = File::create(CONFIG.get_last_sync_file_transactions())
+        let mut file = File::create(table.get_path())
             .map_err(|_| format!("Unable to create last sync file {}", table.to_string()))?;
         file.write(last_sync_block.to_string().as_bytes())
             .map_err(|_| format!("Unable to write to last sync file {}", table.to_string()))?;
