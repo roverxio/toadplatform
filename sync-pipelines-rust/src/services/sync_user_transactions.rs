@@ -1,7 +1,7 @@
 use crate::db::token_transfers::TokenTransfers;
 use crate::db::transactions::Transactions;
 use crate::db::user_transactions::UserTransaction;
-use crate::utils::last_sync::LastSync;
+use crate::models::last_sync::LastSync;
 use sqlx::{Pool, Postgres};
 use std::process::exit;
 

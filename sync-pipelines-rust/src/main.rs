@@ -9,7 +9,8 @@ use crate::settings::Settings;
 use crate::utils::table::Table;
 
 pub mod db;
-mod services;
+pub mod models;
+pub mod services;
 pub mod settings;
 pub mod utils;
 
