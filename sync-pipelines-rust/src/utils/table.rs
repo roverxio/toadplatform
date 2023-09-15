@@ -1,7 +1,5 @@
 use crate::CONFIG;
-use log::error;
 use std::path::Path;
-use std::process::exit;
 
 #[derive(Clone)]
 pub enum Table {
@@ -17,14 +15,11 @@ impl Table {
         }
     }
 
-    pub fn from(table: String) -> Self {
+    pub fn from(table: String) -> Result<Self, String> {
         match table.as_str() {
-            "token_transfers" => Table::TokenTransfers,
-            "transactions" => Table::Transactions,
-            _ => {
-                error!("Invalid table argument");
-                exit(1);
-            }
+            "token_transfers" => Ok(Table::TokenTransfers),
+            "transactions" => Ok(Table::Transactions),
+            _ => Err("Invalid table argument".to_string()),
         }
     }
 

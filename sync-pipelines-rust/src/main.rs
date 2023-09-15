@@ -27,16 +27,23 @@ async fn main() {
     let pool = match Connection::init().await {
         Ok(db_pool) => db_pool,
         Err(error) => {
-            error!("{}", error);
+            error!("{error}");
             exit(1)
         }
     };
 
-    let table_arg = args().nth(1);
-    let table_name = match table_arg {
-        Some(table) => Table::from(table),
+    let table_arg = match args().nth(1) {
+        Some(table) => table,
         None => {
             error!("No table argument provided");
+            exit(1)
+        }
+    };
+
+    let table_name = match Table::from(table_arg) {
+        Ok(table) => table,
+        Err(error) => {
+            error!("{error}");
             exit(1)
         }
     };
