@@ -24,29 +24,20 @@ const LOG_CONFIG: &str = "./log_config.yaml";
 async fn main() {
     log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
 
-    let table_arg = match args().nth(1) {
-        Some(table) => table,
-        None => {
-            error!("No table argument provided");
-            exit(1)
-        }
-    };
+    let table_arg = args().nth(1).unwrap_or_else(|| {
+        error!("No table argument provided");
+        exit(1)
+    });
 
-    let table_name = match Table::from(table_arg) {
-        Ok(table) => table,
-        Err(error) => {
-            error!("{error}");
-            exit(1)
-        }
-    };
+    let table_name = Table::from(table_arg).unwrap_or_else(|error| {
+        error!("{error}");
+        exit(1)
+    });
 
-    let pool = match Connection::init().await {
-        Ok(db_pool) => db_pool,
-        Err(error) => {
-            error!("{error}");
-            exit(1)
-        }
-    };
+    let pool = Connection::init().await.unwrap_or_else(|error| {
+        error!("{error}");
+        exit(1)
+    });
 
     let result = match table_name {
         Table::TokenTransfers => SyncUserTransactions::sync_from_token_transfers(pool).await,
@@ -55,6 +46,5 @@ async fn main() {
 
     if result.is_err() {
         error!("{}", result.err().unwrap());
-        exit(1)
     }
 }
