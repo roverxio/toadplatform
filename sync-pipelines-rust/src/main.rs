@@ -18,7 +18,7 @@ lazy_static! {
     static ref CONFIG: Settings = Settings::new().expect("Unable to import config");
 }
 
-const LOG_CONFIG: &str = "log_config.yaml";
+const LOG_CONFIG: &str = "./log_config.yaml";
 
 #[tokio::main]
 async fn main() {
