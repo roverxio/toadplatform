@@ -10,7 +10,6 @@ This serves as a simple data pipeline to read data from a `transactions` and `to
 2. Copy `config-example.toml` into `Config.toml` and fill in the details
 3. Run the script using `cargo run token_transfers` to sync ERC20 credit transactions
 4. Run the script using `cargo run transactions` to sync credit transactions for the chain native currency
-5. Ideally, the script should be run as a cron job to sync the data periodically. This is written to be run as a cron job every minute
 
 ## How it works
 1. The script reads the last synced block number from the `transaction_last_sync_block.txt` file for transactions and from `erc20_last_sync_block.txt` file for token_transfers. If the file is not present, it starts from the time mentioned in config file
@@ -18,4 +17,4 @@ This serves as a simple data pipeline to read data from a `transactions` and `to
 3. It goes on to push the transactions to the `user_transactions` table. It also updates the respective file with the latest block number
 
 ## Formatting
-This code is formatted using `rustfmt` formatter
+This code is formatted using `rustfmt` formatted
