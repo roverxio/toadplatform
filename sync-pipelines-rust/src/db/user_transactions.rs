@@ -1,6 +1,5 @@
 use crate::CONFIG;
 use bigdecimal::BigDecimal;
-use log::error;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres, QueryBuilder};
 use std::process::exit;
@@ -97,7 +96,10 @@ impl From<Transactions> for UserTransaction {
 }
 
 impl UserTransaction {
-    pub async fn insert(pool: Pool<Postgres>, transactions: Vec<UserTransaction>) {
+    pub async fn insert(
+        pool: Pool<Postgres>,
+        transactions: Vec<UserTransaction>,
+    ) -> Result<(), String> {
         let mut query_builder = QueryBuilder::new(
             "INSERT INTO user_transactions (user_address, transaction_id, from_address, \
             to_address, amount, currency, type, status, metadata, exponent) ",
@@ -114,7 +116,7 @@ impl UserTransaction {
                 .push_bind(match serde_json::to_value(&txn.metadata) {
                     Ok(data) => data,
                     Err(err) => {
-                        error!(
+                        format!(
                             "Metadata conversion failed: {}, err: {:?}",
                             txn.transaction_id, err
                         );
@@ -127,11 +129,8 @@ impl UserTransaction {
         let query = query_builder.build();
         let res = query.execute(&pool).await;
         match res {
-            Ok(_) => return,
-            Err(e) => {
-                error!("Unable to insert into user_transactions: {}", e);
-                exit(1);
-            }
+            Ok(_) => Ok(()),
+            Err(e) => Err(format!("Failed to insert into user_transactions: {}", e)),
         }
     }
 

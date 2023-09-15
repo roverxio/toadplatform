@@ -1,8 +1,6 @@
 use crate::CONFIG;
 use bigdecimal::BigDecimal;
-use log::error;
 use sqlx::{query_as, Pool, Postgres};
-use std::process::exit;
 
 #[derive(Clone)]
 pub struct Transactions {
@@ -24,7 +22,7 @@ impl Transactions {
             .unwrap_or(0)
     }
 
-    pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Vec<Transactions> {
+    pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Result<Vec<Transactions>, String> {
         let query = query_as!(
             Transactions,
             "SELECT t.from_address, t.to_address, t.value, t.hash transaction_hash, t.block_number, m.exponent \
@@ -37,11 +35,8 @@ impl Transactions {
         );
         let result = query.fetch_all(&pool).await;
         return match result {
-            Ok(rows) => rows,
-            Err(error) => {
-                error!("Failed to fetch transactions: {:?}", error);
-                exit(1);
-            }
+            Ok(rows) => Ok(rows),
+            Err(error) => Err(format!("Failed to fetch transactions: {:?}", error)),
         };
     }
 }

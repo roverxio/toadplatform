@@ -1,7 +1,5 @@
 use bigdecimal::BigDecimal;
-use log::error;
 use sqlx::{query_as, Pool, Postgres};
-use std::process::exit;
 
 #[derive(Clone)]
 pub struct TokenTransfers {
@@ -24,7 +22,10 @@ impl TokenTransfers {
             .unwrap_or(0)
     }
 
-    pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Vec<TokenTransfers> {
+    pub async fn get(
+        pool: Pool<Postgres>,
+        block_number: i64,
+    ) -> Result<Vec<TokenTransfers>, String> {
         let query = query_as!(
             TokenTransfers,
             "SELECT t.from_address, t.to_address, t.value, \
@@ -37,11 +38,8 @@ impl TokenTransfers {
         );
         let result = query.fetch_all(&pool).await;
         return match result {
-            Ok(rows) => rows,
-            Err(error) => {
-                error!("Failed to fetch token_transfers: {:?}", error);
-                exit(1);
-            }
+            Ok(rows) => Ok(rows),
+            Err(error) => Err(format!("Failed to fetch token_transfers: {:?}", error)),
         };
     }
 }
