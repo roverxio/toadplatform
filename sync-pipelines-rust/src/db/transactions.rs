@@ -27,11 +27,10 @@ impl Transactions {
     pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Vec<Transactions> {
         let query = query_as!(
             Transactions,
-            "SELECT lower(t.from_address) from_address, lower(t.to_address) to_address, t.value, \
-            lower(t.hash) transaction_hash, t.block_number, m.exponent \
+            "SELECT t.from_address, t.to_address, t.value, t.hash transaction_hash, t.block_number, m.exponent \
             FROM transactions t \
-            JOIN users u ON lower(t.to_address) = u.wallet_address \
-            JOIN (SELECT exponent FROM token_metadata WHERE chain = $2 and token_type='native') m ON true \
+            JOIN users u ON t.to_address = u.wallet_address \
+            JOIN (SELECT exponent FROM token_metadata WHERE chain = $2 and lower(token_type)='native') m ON true \
             WHERE block_number > $1",
             block_number,
             CONFIG.get_chain(),

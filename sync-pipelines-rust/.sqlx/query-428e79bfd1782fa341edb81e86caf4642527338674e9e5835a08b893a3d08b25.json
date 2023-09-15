@@ -1,17 +1,17 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT lower(t.from_address) from_address, lower(t.to_address) to_address, t.value, lower(t.transaction_hash) transaction_hash, t.block_number, m.symbol, m.exponent FROM token_transfers t JOIN users u ON lower(t.to_address) = u.wallet_address JOIN token_metadata m ON lower(t.token_address) = m.contract_address WHERE block_number > $1",
+  "query": "SELECT t.from_address, t.to_address, t.value, t.transaction_hash, t.block_number, lower(m.symbol) symbol, m.exponent FROM token_transfers t JOIN users u ON lower(t.to_address) = u.wallet_address JOIN token_metadata m ON lower(t.token_address) = m.contract_address WHERE block_number > $1",
   "describe": {
     "columns": [
       {
         "ordinal": 0,
         "name": "from_address",
-        "type_info": "Text"
+        "type_info": "Varchar"
       },
       {
         "ordinal": 1,
         "name": "to_address",
-        "type_info": "Text"
+        "type_info": "Varchar"
       },
       {
         "ordinal": 2,
@@ -21,7 +21,7 @@
       {
         "ordinal": 3,
         "name": "transaction_hash",
-        "type_info": "Text"
+        "type_info": "Varchar"
       },
       {
         "ordinal": 4,
@@ -31,7 +31,7 @@
       {
         "ordinal": 5,
         "name": "symbol",
-        "type_info": "Varchar"
+        "type_info": "Text"
       },
       {
         "ordinal": 6,
@@ -45,14 +45,14 @@
       ]
     },
     "nullable": [
-      null,
-      null,
       true,
-      null,
+      true,
       true,
       false,
+      true,
+      null,
       false
     ]
   },
-  "hash": "3ebd6f11d02e6463d260ff323af66b1c83648f987c202bcac51eba036518b088"
+  "hash": "428e79bfd1782fa341edb81e86caf4642527338674e9e5835a08b893a3d08b25"
 }
