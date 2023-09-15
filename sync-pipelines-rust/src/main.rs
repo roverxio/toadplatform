@@ -24,7 +24,13 @@ const LOG_CONFIG: &str = "log_config.yaml";
 async fn main() {
     log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
 
-    let pool = Connection::init().await;
+    let pool = match Connection::init().await {
+        Ok(db_pool) => db_pool,
+        Err(error) => {
+            error!("{}", error);
+            exit(1);
+        }
+    };
 
     let table_arg = args().nth(1);
     let table_name = match table_arg {

@@ -1,4 +1,6 @@
+use crate::utils::table::Table;
 use crate::CONFIG;
+use std::fmt::format;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -6,33 +8,19 @@ use std::io::Write;
 pub struct LastSync {}
 
 impl LastSync {
-    pub fn get_last_synced_block_transactions() -> i64 {
-        let result = fs::read_to_string(CONFIG.get_last_sync_file_transactions());
+    pub fn get_last_synced_block(table: Table) -> i64 {
+        let result = fs::read_to_string(table.get_path());
         match result {
             Ok(block) => block.parse::<i64>().unwrap(),
-            Err(_) => CONFIG.get_last_sync_block_transactions(),
+            Err(_) => table.get_block_number(),
         }
     }
 
-    pub fn get_last_synced_block_token_transfers() -> i64 {
-        let result = fs::read_to_string(CONFIG.get_last_sync_file_token_transfers());
-        match result {
-            Ok(block) => block.parse::<i64>().unwrap(),
-            Err(_) => CONFIG.get_last_sync_block_token_transfers(),
-        }
-    }
-
-    pub fn update_last_synced_block_transactions(last_sync_block: i64) {
+    pub fn update_last_synced_block(table: Table, last_sync_block: i64) -> Result<(), String> {
         let mut file = File::create(CONFIG.get_last_sync_file_transactions())
-            .expect("Unable to create last sync file token_transfers");
+            .map_err(|_| format!("Unable to create last sync file {}", table.to_string()))?;
         file.write(last_sync_block.to_string().as_bytes())
-            .expect("Unable to write to last sync file token_transfers");
-    }
-
-    pub fn update_last_synced_block_token_transfers(last_sync_block: i64) {
-        let mut file = File::create(CONFIG.get_last_sync_file_token_transfers())
-            .expect("Unable to create last sync file token_transfers");
-        file.write(last_sync_block.to_string().as_bytes())
-            .expect("Unable to write to last sync file token_transfers");
+            .map_err(|_| format!("Unable to write to last sync file {}", table.to_string()))?;
+        Ok(())
     }
 }
