@@ -27,8 +27,8 @@ impl TokenTransfers {
     pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Vec<TokenTransfers> {
         let query = query_as!(
             TokenTransfers,
-            "SELECT lower(from_address) from_address, lower(to_address) to_address, value, \
-            lower(transaction_hash) transaction_hash, block_number, symbol, exponent \
+            "SELECT lower(t.from_address) from_address, lower(t.to_address) to_address, t.value, \
+            lower(t.transaction_hash) transaction_hash, t.block_number, m.symbol, m.exponent \
             FROM token_transfers t \
             JOIN users u ON lower(t.to_address) = u.wallet_address \
             JOIN token_metadata m ON lower(t.token_address) = m.contract_address \
