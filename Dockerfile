@@ -1,4 +1,4 @@
-FROM rust:1.71.1-buster as build
+FROM rust:1.71.0-buster as build
 
 WORKDIR /usr/src/bundler
 COPY bundler .
