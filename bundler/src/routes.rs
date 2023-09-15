@@ -18,7 +18,6 @@ pub fn routes(cfg: &mut ServiceConfig) {
                         .wrap(ToadAuthMiddleware)
                         .route("address", web::get().to(get_address))
                         .route("balance", web::get().to(get_balance))
-                        .route("transact", web::post().to(transfer))
                         .route("transfer", web::post().to(transfer))
                         .service(
                             web::scope("transfer")
