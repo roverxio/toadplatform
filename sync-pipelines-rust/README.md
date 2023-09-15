@@ -12,7 +12,7 @@ This serves as a simple data pipeline to read data from a `transactions` and `to
 4. Run the script using `cargo run transactions` to sync credit transactions for the chain native currency
 
 ## How it works
-1. The script reads the last synced block number from the `transaction_last_sync_block.txt` file for transactions and from `erc20_last_sync_block.txt` file for token_transfers. If the file is not present, it starts from the time mentioned in config file
+1. The script reads the last synced block number from the `transaction_last_sync_block.txt` file for transactions and from `erc20_last_sync_block.txt` file for token_transfers. If the file is not present, it starts from the block-number mentioned in config file
 2. It then queries the respective table for all the transactions that have happened since the last synced block number
 3. It goes on to push the transactions to the `user_transactions` table. It also updates the respective file with the latest block number
 
