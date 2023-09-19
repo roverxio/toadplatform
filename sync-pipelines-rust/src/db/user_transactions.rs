@@ -2,13 +2,12 @@ use crate::CONFIG;
 use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
 use sqlx::{Pool, Postgres, QueryBuilder};
-use std::process::exit;
 
 use crate::db::token_transfers::TokenTransfers;
 use crate::db::transactions::Transactions;
 use crate::utils::utils::Utils;
 
-#[derive(Clone, Default)]
+#[derive(Clone, Default, PartialEq)]
 pub struct UserTransaction {
     pub user_address: String,
     pub transaction_id: String,
@@ -22,7 +21,7 @@ pub struct UserTransaction {
     pub exponent: i32,
 }
 
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Default, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TransactionMetadata {
     pub chain: String,
     pub to_name: String,
@@ -51,7 +50,7 @@ impl TransactionMetadata {
     }
 }
 
-#[derive(Default, Serialize, Deserialize, Clone)]
+#[derive(Default, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Gas {
     pub currency: String,
     pub value: u64,
@@ -102,29 +101,39 @@ impl UserTransaction {
     ) -> Result<(), String> {
         let mut query_builder = QueryBuilder::new(
             "INSERT INTO user_transactions (user_address, transaction_id, from_address, \
-            to_address, amount, currency, type, status, metadata, exponent) ",
+            to_address, amount, currency, type, status, metadata, exponent) VALUES",
         );
-        query_builder.push_values(transactions, |mut b, txn| {
-            b.push_bind(txn.user_address)
-                .push_bind(txn.transaction_id.clone())
-                .push_bind(txn.from_address)
-                .push_bind(txn.to_address)
-                .push_bind(txn.amount)
-                .push_bind(txn.currency)
-                .push_bind(txn.transaction_type)
-                .push_bind(txn.status)
-                .push_bind(match serde_json::to_value(&txn.metadata) {
-                    Ok(data) => data,
-                    Err(err) => {
-                        format!(
-                            "Metadata conversion failed: {}, err: {:?}",
-                            txn.transaction_id, err
-                        );
-                        exit(1);
-                    }
-                })
-                .push_bind(txn.exponent);
-        });
+        for txn in transactions.iter() {
+            let metadata_value = match serde_json::to_value(&txn.metadata) {
+                Ok(data) => data,
+                Err(err) => {
+                    return Err(format!(
+                        "Metadata conversion failed: {}, err: {:?}",
+                        txn.transaction_id, err
+                    ));
+                }
+            };
+
+            query_builder.push(format!(
+                "('{}','{}','{}','{}',{},'{}','{}','{}','{}',{})",
+                txn.user_address,
+                txn.transaction_id,
+                txn.from_address,
+                txn.to_address,
+                txn.amount,
+                txn.currency,
+                txn.transaction_type,
+                txn.status,
+                metadata_value,
+                txn.exponent,
+            ));
+
+            if Some(txn) == transactions.last() {
+                query_builder.push(";");
+            } else {
+                query_builder.push(",");
+            }
+        }
 
         let query = query_builder.build();
         let res = query.execute(&pool).await;
