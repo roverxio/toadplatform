@@ -9,8 +9,9 @@ This serves as a simple data pipeline to read data from a `transactions` and `to
 1. Clone the [repo](https://github.com/roverxio/toadplatform)
 2. Copy `config-example.toml` into `Config.toml` and fill in the details
 3. Set env variables using `.env.example`
-4. Run the script using `cargo run token_transfers` to sync ERC20 credit transactions
-5. Run the script using `cargo run transactions` to sync credit transactions for the chain native currency
+4. Run `cargo sqlx migrate run --ignore-missing` to crate index on token_transfers block_number
+5. Run the script using `cargo run token_transfers` to sync ERC20 credit transactions
+6. Run the script using `cargo run transactions` to sync credit transactions for the chain native currency
 
 ## How it works
 1. The script reads the last synced block number from the `transaction_last_sync_block.txt` file for transactions and from `erc20_last_sync_block.txt` file for token_transfers. If the file is not present, it starts from the block-number mentioned in config file
