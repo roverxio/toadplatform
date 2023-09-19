@@ -31,8 +31,8 @@ impl TokenTransfers {
             "SELECT t.from_address, t.to_address, t.value, \
             t.transaction_hash, t.block_number, lower(m.symbol) symbol, m.exponent \
             FROM token_transfers t \
-            JOIN users u ON lower(t.to_address) = u.wallet_address \
-            JOIN token_metadata m ON lower(t.token_address) = m.contract_address \
+            JOIN users u ON t.to_address = u.wallet_address \
+            JOIN token_metadata m ON t.token_address = m.contract_address \
             WHERE block_number > $1",
             block_number
         );
