@@ -1,8 +1,10 @@
-use crate::db::dao::wallet_dao::User;
 use actix_web::web::{Data, Json, Query, ReqData};
 use actix_web::{Error, HttpRequest, HttpResponse};
+use ethers::providers::{Http, Provider};
 use sqlx::{Pool, Postgres};
 
+use crate::contracts::usdc_provider::ERC20;
+use crate::db::dao::wallet_dao::User;
 use crate::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
@@ -28,18 +30,20 @@ pub async fn get_address(
 }
 
 pub async fn get_balance(
-    service: Data<BalanceService>,
+    pool: Data<Pool<Postgres>>,
+    provider: Data<ERC20<Provider<Http>>>,
     body: Query<BalanceRequest>,
     user: ReqData<User>,
 ) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
     let balance_request = body.get_balance_request();
-    let data = service
-        .get_wallet_balance(
-            &balance_request.get_chain(),
-            &balance_request.get_currency(),
-            user.into_inner(),
-        )
-        .await?;
+    let data = BalanceService::get_wallet_balance(
+        pool.get_ref(),
+        provider.get_ref().clone(),
+        &balance_request.get_chain(),
+        &balance_request.get_currency(),
+        user.into_inner(),
+    )
+    .await?;
     respond_json(data)
 }
 
