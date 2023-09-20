@@ -9,7 +9,7 @@ pub struct AddMetadataRequest {
 #[derive(Serialize, Deserialize)]
 pub struct Chain {
     name: String,
-    id: i64,
+    id: i32,
     display_name: String,
 }
 
@@ -18,17 +18,18 @@ pub struct Token {
     symbol: String,
     image_url: String,
     contract_address: String,
+    #[serde(rename = "type")]
     token_type: String,
     display_name: String,
     exponent: i32,
 }
 
 impl AddMetadataRequest {
-    pub fn get_chain(&self) -> String {
+    pub fn get_chain_name(&self) -> String {
         self.chain.name.trim().to_string()
     }
 
-    pub fn get_currency(&self) -> String {
+    pub fn get_symbol(&self) -> String {
         self.token.symbol.trim().to_string()
     }
 
@@ -44,7 +45,19 @@ impl AddMetadataRequest {
         self.token.token_type.trim().to_lowercase()
     }
 
-    pub fn get_name(&self) -> String {
+    pub fn get_token_name(&self) -> String {
         self.token.display_name.trim().to_string()
+    }
+
+    pub fn get_chain_id(&self) -> i32 {
+        self.chain.id
+    }
+
+    pub fn get_chain_display_name(&self) -> String {
+        self.chain.display_name.trim().to_string()
+    }
+
+    pub fn get_token_image_url(&self) -> String {
+        self.token.image_url.trim().to_string()
     }
 }

@@ -47,6 +47,21 @@
         "ordinal": 8,
         "name": "updated_at",
         "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "chain_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "chain_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "token_image_url",
+        "type_info": "Text"
       }
     ],
     "parameters": {
@@ -64,7 +79,10 @@
       false,
       false,
       false,
-      false
+      false,
+      true,
+      true,
+      true
     ]
   },
   "hash": "cf5d891d170b69209fe904fcbb1dea9046cd8716e9c9028c25a9d1c00be760ca"
