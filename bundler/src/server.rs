@@ -6,6 +6,7 @@ use actix_web::{App, HttpServer};
 use dotenvy::dotenv;
 use env_logger::{init_from_env, Env};
 use ethers::middleware::SignerMiddleware;
+use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
@@ -15,7 +16,7 @@ use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
-use crate::contracts::usdc_provider::USDCProvider;
+use crate::contracts::usdc_provider::{USDCProvider, ERC20};
 use crate::db::connection::DatabaseConnection;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::transaction_dao::TransactionDao;
@@ -26,7 +27,6 @@ use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
 use crate::routes::routes;
 use crate::services::admin_service::AdminService;
-use crate::services::balance_service::BalanceService;
 use crate::services::hello_world_service::HelloWorldService;
 use crate::services::mint_service::MintService;
 use crate::services::token_metadata_service::TokenMetadataService;
@@ -38,10 +38,10 @@ use crate::{CONFIG, PROVIDER};
 pub struct ToadService {
     pub hello_world_service: HelloWorldService,
     pub wallet_service: WalletService,
-    pub balance_service: BalanceService,
     pub transfer_service: TransferService,
     pub admin_service: AdminService,
     pub token_metadata_service: TokenMetadataService,
+    pub erc20_provider: ERC20<Provider<Http>>,
     pub db_pool: Pool<Postgres>,
 }
 
@@ -121,11 +121,6 @@ pub async fn init_services() -> ToadService {
         client: client.clone(),
         mint_service: mint_service.clone(),
     };
-    let balance_service = BalanceService {
-        wallet_dao: wallet_dao.clone(),
-        token_metadata_dao: token_metadata_dao.clone(),
-        erc20_provider: erc20.clone(),
-    };
     let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
@@ -153,10 +148,10 @@ pub async fn init_services() -> ToadService {
     ToadService {
         hello_world_service,
         wallet_service,
-        balance_service,
         transfer_service,
         admin_service,
         token_metadata_service,
+        erc20_provider: erc20.clone(),
         db_pool: pool,
     }
 }
@@ -176,10 +171,10 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .configure(routes)
             .app_data(Data::new(service.hello_world_service.clone()))
             .app_data(Data::new(service.wallet_service.clone()))
-            .app_data(Data::new(service.balance_service.clone()))
             .app_data(Data::new(service.transfer_service.clone()))
             .app_data(Data::new(service.admin_service.clone()))
             .app_data(Data::new(service.token_metadata_service.clone()))
+            .app_data(Data::new(service.erc20_provider.clone()))
             .app_data(Data::new(service.db_pool.clone()))
     })
     .bind(server.url())?
