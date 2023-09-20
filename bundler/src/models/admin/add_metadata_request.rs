@@ -1,37 +1,50 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Serialize, Deserialize)]
 pub struct AddMetadataRequest {
-    pub chain: String,
-    pub currency: String,
-    pub contract_address: String,
-    pub exponent: i32,
-    pub token_type: String,
-    pub name: String,
+    chain: Chain,
+    token: Token,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Chain {
+    name: String,
+    id: i64,
+    display_name: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Token {
+    symbol: String,
+    image_url: String,
+    contract_address: String,
+    token_type: String,
+    display_name: String,
+    exponent: i32,
 }
 
 impl AddMetadataRequest {
     pub fn get_chain(&self) -> String {
-        self.chain.trim().to_string()
+        self.chain.name.trim().to_string()
     }
 
     pub fn get_currency(&self) -> String {
-        self.currency.trim().to_string()
+        self.token.symbol.trim().to_string()
     }
 
     pub fn get_contract_address(&self) -> String {
-        self.contract_address.trim().to_lowercase()
+        self.token.contract_address.trim().to_lowercase()
     }
 
     pub fn get_exponent(&self) -> i32 {
-        self.exponent
+        self.token.exponent
     }
 
     pub fn get_token_type(&self) -> String {
-        self.token_type.trim().to_lowercase()
+        self.token.token_type.trim().to_lowercase()
     }
 
     pub fn get_name(&self) -> String {
-        self.name.trim().to_string()
+        self.token.display_name.trim().to_string()
     }
 }
