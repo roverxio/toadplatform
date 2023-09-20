@@ -4,7 +4,7 @@ use actix_web::web::ServiceConfig;
 use crate::handlers::admin::{add_currency_metadata, admin_get_balance, topup_paymaster_deposit};
 use crate::handlers::hello_world::hello_world;
 use crate::handlers::metadata::get_metadata;
-use crate::handlers::transfer::{execute_transfer, init_transfer, transfer};
+use crate::handlers::transfer::{execute_transfer, init_transfer};
 use crate::handlers::wallet::{get_address, get_balance, list_transactions, poll_transaction};
 use crate::middleware::auth::ToadAuthMiddleware;
 use crate::CONFIG;
@@ -18,8 +18,6 @@ pub fn routes(cfg: &mut ServiceConfig) {
                         .wrap(ToadAuthMiddleware)
                         .route("address", web::get().to(get_address))
                         .route("balance", web::get().to(get_balance))
-                        .route("transact", web::post().to(transfer))
-                        .route("transfer", web::post().to(transfer))
                         .service(
                             web::scope("transfer")
                                 .route("init", web::post().to(init_transfer))
