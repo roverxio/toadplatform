@@ -44,4 +44,10 @@ impl USDCProvider {
 
         Ok(data.unwrap())
     }
+
+    pub async fn balance_of(abi: ERC20<Provider<Http>>, address: Address) -> Result<U256, String> {
+        abi.balance_of(address)
+            .await
+            .map_err(|_| String::from("Failed to get balance"))
+    }
 }
