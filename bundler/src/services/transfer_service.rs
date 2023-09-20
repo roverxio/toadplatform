@@ -1,10 +1,10 @@
 use actix_web::rt::spawn;
-use std::str::FromStr;
-
 use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
+use sqlx::{Pool, Postgres};
+use std::str::FromStr;
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -18,19 +18,20 @@ use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::currency::Currency;
+use crate::models::transaction::transaction::Transaction;
 use crate::models::transaction_type::TransactionType;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_init_response::TransferInitResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
-use crate::provider::helpers::generate_txn_id;
+use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::listeners::user_op_event_listener;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
 use crate::CONFIG;
 
 #[derive(Clone)]
-pub struct TransferServiceV2 {
+pub struct TransferService {
     pub wallet_dao: WalletDao,
     pub transaction_dao: TransactionDao,
     pub token_metadata_dao: TokenMetadataDao,
@@ -41,10 +42,11 @@ pub struct TransferServiceV2 {
     pub simple_account_factory_provider: SimpleAccountFactoryProvider,
     pub verifying_paymaster_provider: PaymasterProvider,
     pub verifying_paymaster_wallet: LocalWallet,
+    pub scw_owner_wallet: LocalWallet,
     pub bundler: Bundler,
 }
 
-impl TransferServiceV2 {
+impl TransferService {
     pub async fn init(
         &self,
         to: String,
@@ -200,6 +202,17 @@ impl TransferServiceV2 {
         })
     }
 
+    pub async fn get_status(
+        db_pool: &Pool<Postgres>,
+        txn_id: String,
+        user: User,
+    ) -> Result<Transaction, ApiError> {
+        let transaction_and_exponent =
+            TransactionDao::get_transaction_by_id(db_pool, txn_id, user.wallet_address).await;
+
+        Ok(Transaction::from(transaction_and_exponent))
+    }
+
     fn get_transaction_metadata(&self) -> TransactionMetadata {
         let mut txn_metadata = TransactionMetadata::new();
         txn_metadata.chain(CONFIG.run_config.current_chain.clone());
@@ -279,8 +292,4 @@ impl TransferServiceV2 {
             None => Err("Currency not found".to_string()),
         }
     }
-}
-
-pub fn get_explorer_url(txn_hash: &str) -> String {
-    CONFIG.get_chain().explorer_url.clone() + &txn_hash.clone()
 }

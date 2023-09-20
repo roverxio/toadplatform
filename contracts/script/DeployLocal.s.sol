@@ -24,7 +24,7 @@ contract DeployLocal is Script {
     function setUp() public {
         deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         owner = address(vm.addr(deployerPrivateKey));
-        console.log("=SignerAddress==", owner);
+        console.log("=Signer addr==", owner);
 
         entryPointSalt = vm.envOr("ENTRYPOINT_SALT", uint256(1));
         factorySalt = vm.envOr("SIMPLE_ACCOUNT_FACTORY_SALT", uint256(2));

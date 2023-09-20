@@ -1,17 +1,17 @@
-FROM rust:1.71.0
+FROM rust:1.71.0-buster as build
 
-# Create a working directory
-WORKDIR /app
-
-# Copy the 'bundler' project files, including the .env file, into the container
+WORKDIR /usr/src/bundler
 COPY bundler .
 
-# Build the Rust application
+# Build the application
 RUN cargo build --release
 
-# Expose port 9010
-EXPOSE 9010
+# Using Distroless as runtime
+FROM gcr.io/distroless/cc-debian10
 
-# Start your Actix-Web application
-CMD ["./target/release/bundler"]
+# Copy the compiled binary and other required files
+COPY --from=build /usr/src/bundler/target/release/bundler /usr/local/bin/bundler
+COPY --from=build /usr/src/bundler/config /config
 
+# Command to run
+CMD ["bundler"]

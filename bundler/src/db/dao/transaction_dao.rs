@@ -181,11 +181,6 @@ impl TransactionMetadata {
         self.chain = chain;
         self
     }
-
-    pub fn transaction_hash(&mut self, transaction_hash: String) -> &mut TransactionMetadata {
-        self.transaction_hash = transaction_hash;
-        self
-    }
 }
 
 impl From<JsonValue> for TransactionMetadata {

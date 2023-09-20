@@ -13,7 +13,7 @@ use crate::models::wallet::balance_request::BalanceRequest;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::helpers::{get_user_wallet, respond_json};
 use crate::services::balance_service::BalanceService;
-use crate::services::transfer::transfer_service::TransferService;
+use crate::services::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
 
 pub async fn get_address(
