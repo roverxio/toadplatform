@@ -44,6 +44,14 @@ impl TokenMetadataDao {
         chain: String,
         currency: Option<String>,
     ) -> Vec<TokenMetadata> {
+        Self::get_metadata(self.pool.clone(), chain, currency).await
+    }
+
+    pub async fn get_metadata(
+        pool: Pool<Postgres>,
+        chain: String,
+        currency: Option<String>,
+    ) -> Vec<TokenMetadata> {
         let result: Result<Vec<TokenMetadata>, Error> = match currency {
             None => {
                 let query = query_as!(
@@ -51,7 +59,7 @@ impl TokenMetadataDao {
                     "SELECT * FROM token_metadata WHERE lower(chain) = lower($1) and is_supported = true",
                     chain
                 );
-                query.fetch_all(&self.pool).await
+                query.fetch_all(&pool).await
             }
             Some(currency) => {
                 let query = query_as!(
@@ -60,7 +68,7 @@ impl TokenMetadataDao {
                     chain,
                     currency
                 );
-                query.fetch_all(&self.pool).await
+                query.fetch_all(&pool).await
             }
         };
         return match result {
