@@ -6,7 +6,6 @@ use actix_web::{App, HttpServer};
 use dotenvy::dotenv;
 use env_logger::{init_from_env, Env};
 use ethers::middleware::SignerMiddleware;
-use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
@@ -16,7 +15,7 @@ use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
-use crate::contracts::usdc_provider::{USDCProvider, ERC20};
+use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::connection::DatabaseConnection;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::transaction_dao::TransactionDao;
@@ -25,6 +24,7 @@ use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
+use crate::provider::web3_client::Web3Client;
 use crate::routes::routes;
 use crate::services::admin_service::AdminService;
 use crate::services::hello_world_service::HelloWorldService;
@@ -41,7 +41,7 @@ pub struct ToadService {
     pub transfer_service: TransferService,
     pub admin_service: AdminService,
     pub token_metadata_service: TokenMetadataService,
-    pub erc20_provider: ERC20<Provider<Http>>,
+    pub web3_client: Web3Client,
     pub db_pool: Pool<Postgres>,
 }
 
@@ -151,7 +151,7 @@ pub async fn init_services() -> ToadService {
         transfer_service,
         admin_service,
         token_metadata_service,
-        erc20_provider: erc20.clone(),
+        web3_client: Web3Client::new(client.clone()),
         db_pool: pool,
     }
 }
@@ -174,7 +174,7 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .app_data(Data::new(service.transfer_service.clone()))
             .app_data(Data::new(service.admin_service.clone()))
             .app_data(Data::new(service.token_metadata_service.clone()))
-            .app_data(Data::new(service.erc20_provider.clone()))
+            .app_data(Data::new(service.web3_client.clone()))
             .app_data(Data::new(service.db_pool.clone()))
     })
     .bind(server.url())?
