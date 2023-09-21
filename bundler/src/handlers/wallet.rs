@@ -37,7 +37,7 @@ pub async fn get_balance(
     let balance_request = body.get_balance_request();
     let data = BalanceService::get_wallet_balance(
         pool.get_ref(),
-        provider.get_ref().get_usdc_provider(),
+        provider.get_ref(),
         &balance_request.get_chain(),
         &balance_request.get_currency(),
         user.into_inner(),

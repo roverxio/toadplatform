@@ -1,14 +1,15 @@
 use ethers::abi::Address;
-use ethers::providers::{Http, Middleware, Provider};
+use ethers::providers::Middleware;
 use log::info;
 use sqlx::{Pool, Postgres};
 
-use crate::contracts::usdc_provider::{USDCProvider, ERC20};
+use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::wallet_dao::User;
 use crate::errors::ApiError;
 use crate::models::currency::Currency;
 use crate::models::wallet::balance_response::BalanceResponse;
+use crate::provider::web3_client::Web3Client;
 use crate::PROVIDER;
 
 #[derive(Clone)]
@@ -17,7 +18,7 @@ pub struct BalanceService;
 impl BalanceService {
     pub async fn get_wallet_balance(
         pool: &Pool<Postgres>,
-        provider: ERC20<Provider<Http>>,
+        provider: &Web3Client,
         chain: &String,
         currency: &String,
         user: User,

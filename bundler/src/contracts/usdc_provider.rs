@@ -1,3 +1,4 @@
+use crate::provider::web3_client::Web3Client;
 use ethers::abi::{Abi, Address};
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
@@ -45,8 +46,10 @@ impl USDCProvider {
         Ok(data.unwrap())
     }
 
-    pub async fn balance_of(abi: ERC20<Provider<Http>>, address: Address) -> Result<U256, String> {
-        abi.balance_of(address)
+    pub async fn balance_of(client: &Web3Client, address: Address) -> Result<U256, String> {
+        client
+            .get_usdc_provider()
+            .balance_of(address)
             .await
             .map_err(|_| String::from("Failed to get balance"))
     }
