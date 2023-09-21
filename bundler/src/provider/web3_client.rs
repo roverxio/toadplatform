@@ -17,16 +17,7 @@ impl Web3Client {
         }
     }
 
-    pub fn get_usdc_provider(mut self) -> ERC20<Provider<Http>> {
-        if self.usdc_provider.is_some() {
-            return self.usdc_provider.clone().unwrap();
-        }
-        let provider = USDCProvider::init_abi(CONFIG.get_chain().usdc_address, self.client.clone());
-        self.set_usdc_provider(provider.clone());
-        provider.clone()
-    }
-
-    fn set_usdc_provider(&mut self, provider: ERC20<Provider<Http>>) {
-        self.usdc_provider = Some(provider);
+    pub fn get_usdc_provider(&self) -> ERC20<Provider<Http>> {
+        USDCProvider::init_abi(CONFIG.get_chain().usdc_address, self.client.clone())
     }
 }
