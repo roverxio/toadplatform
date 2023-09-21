@@ -3,7 +3,7 @@ use std::hash::{Hash, Hasher};
 
 use actix_web::http::header::HeaderName;
 use actix_web::web::Json;
-use actix_web::HttpRequest;
+use actix_web::{Error, HttpRequest, HttpResponse};
 use ethers::providers::Middleware;
 use ethers::types::Address;
 use rand::distributions::Alphanumeric;
@@ -22,6 +22,13 @@ where
         data,
         err: Default::default(),
     }))
+}
+
+pub fn toad_response<T>(data: BaseResponse<T>) -> Result<HttpResponse, Error>
+where
+    T: Serialize,
+{
+    Ok(HttpResponse::Ok().json(data))
 }
 
 pub fn get_user(req: HttpRequest) -> String {
