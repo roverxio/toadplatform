@@ -6,15 +6,11 @@ use std::sync::Arc;
 #[derive(Clone)]
 pub struct Web3Client {
     pub client: Arc<Provider<Http>>,
-    pub usdc_provider: Option<ERC20<Provider<Http>>>,
 }
 
 impl Web3Client {
     pub fn new(client: Arc<Provider<Http>>) -> Self {
-        Self {
-            client,
-            usdc_provider: None,
-        }
+        Self { client }
     }
 
     pub fn get_usdc_provider(&self) -> ERC20<Provider<Http>> {
