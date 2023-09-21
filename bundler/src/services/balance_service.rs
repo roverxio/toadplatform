@@ -5,18 +5,14 @@ use sqlx::{Pool, Postgres};
 
 use crate::contracts::usdc_provider::{USDCProvider, ERC20};
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
-use crate::db::dao::wallet_dao::{User, WalletDao};
+use crate::db::dao::wallet_dao::User;
 use crate::errors::ApiError;
 use crate::models::currency::Currency;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::PROVIDER;
 
 #[derive(Clone)]
-pub struct BalanceService {
-    pub wallet_dao: WalletDao,
-    pub token_metadata_dao: TokenMetadataDao,
-    pub erc20_provider: ERC20<Provider<Http>>,
-}
+pub struct BalanceService;
 
 impl BalanceService {
     pub async fn get_wallet_balance(
