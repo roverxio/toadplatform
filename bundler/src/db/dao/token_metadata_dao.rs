@@ -79,9 +79,25 @@ impl TokenMetadataDao {
             }
         };
     }
+
+    pub async fn get_metadata(&self) -> Vec<TokenMetadata> {
+        let query = query_as!(
+            TokenMetadata,
+            "SELECT * FROM token_metadata where is_supported = true"
+        );
+        let result = query.fetch_all(&self.pool).await;
+
+        return match result {
+            Ok(metadata) => metadata,
+            Err(err) => {
+                error!("Failed to get metadata, err: {:?}", err);
+                vec![]
+            }
+        };
+    }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub struct TokenMetadata {
     pub chain: String,
     pub symbol: String,

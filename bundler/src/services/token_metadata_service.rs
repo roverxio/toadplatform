@@ -1,6 +1,7 @@
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::errors::ApiError;
 use crate::models::admin::metadata_response::MetadataResponse;
+use crate::models::admin::metadata_response_v2::MetadataResponseV2;
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -15,11 +16,21 @@ impl TokenMetadataService {
             .get_metadata_for_chain(CONFIG.run_config.current_chain.clone(), None)
             .await;
 
+        for currency in &supported_currencies {
+            println!("currency: {:?}", currency);
+        }
+
         Ok(MetadataResponse::new().to(
             supported_currencies,
             CONFIG.run_config.current_chain.clone(),
             CONFIG.get_chain().chain_id,
             CONFIG.get_chain().currency.clone(),
+        ))
+    }
+
+    pub async fn get_chain_v2(&self) -> Result<MetadataResponseV2, ApiError> {
+        Ok(MetadataResponseV2::from_token_metadata(
+            self.token_metadata_dao.get_metadata().await,
         ))
     }
 }
