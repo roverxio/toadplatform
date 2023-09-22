@@ -1,0 +1,86 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT * FROM token_metadata where is_supported = true",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "chain",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "symbol",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "contract_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 3,
+        "name": "exponent",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 4,
+        "name": "token_type",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 5,
+        "name": "name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 6,
+        "name": "is_supported",
+        "type_info": "Bool"
+      },
+      {
+        "ordinal": 7,
+        "name": "created_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 8,
+        "name": "updated_at",
+        "type_info": "Timestamptz"
+      },
+      {
+        "ordinal": 9,
+        "name": "chain_id",
+        "type_info": "Int4"
+      },
+      {
+        "ordinal": 10,
+        "name": "chain_name",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 11,
+        "name": "token_image_url",
+        "type_info": "Text"
+      }
+    ],
+    "parameters": {
+      "Left": []
+    },
+    "nullable": [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+      true,
+      true
+    ]
+  },
+  "hash": "26e4230f5f69d64dfe59258bfdf08ed0f803ebcc9aa2bbf6ef1949d6a2613014"
+}
