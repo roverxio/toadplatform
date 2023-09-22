@@ -1,5 +1,6 @@
 use ethers::abi::Address;
 use ethers::providers::Middleware;
+use ethers::types::U256;
 use log::info;
 use sqlx::{Pool, Postgres};
 
@@ -24,13 +25,14 @@ impl BalanceService {
         user: User,
     ) -> Result<BalanceResponse, ApiError> {
         info!("Chain: {:?}", chain); // will be relevant when we add support for multiple chains
-        let balance: String;
+        let balance: U256;
         if user.wallet_address.is_empty() {
             return Err(ApiError::NotFound("Wallet not found".to_string()));
         }
         let wallet_address: Address = user.wallet_address.parse().unwrap();
-        let metadata =
-            TokenMetadataDao::get_metadata(pool, chain.clone(), Some(currency.clone())).await;
+        let metadata = TokenMetadataDao::get_metadata(pool, chain.clone(), Some(currency.clone()))
+            .await
+            .map_err(|error| ApiError::InternalServer(error))?;
         if metadata.is_empty() {
             return Err(ApiError::BadRequest("Currency not supported".to_string()));
         }
@@ -40,20 +42,18 @@ impl BalanceService {
             Some(Currency::Erc20) => {
                 balance = USDCProvider::balance_of(provider, wallet_address.clone())
                     .await
-                    .unwrap()
-                    .to_string();
+                    .map_err(|error| ApiError::BadRequest(error))?;
             }
             Some(Currency::Native) => {
                 balance = PROVIDER
                     .get_balance(wallet_address.clone(), None)
                     .await
-                    .unwrap()
-                    .to_string();
+                    .map_err(|_| ApiError::BadRequest(String::from("Failed to get balance")))?;
             }
         }
 
         Ok(BalanceResponse {
-            balance: balance.clone(),
+            balance: balance.to_string(),
             address: user.wallet_address,
             currency: currency.to_string(),
             exponent: metadata[0].exponent,

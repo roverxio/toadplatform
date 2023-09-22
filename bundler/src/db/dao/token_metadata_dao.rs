@@ -44,14 +44,16 @@ impl TokenMetadataDao {
         chain: String,
         currency: Option<String>,
     ) -> Vec<TokenMetadata> {
-        Self::get_metadata(&self.pool, chain, currency).await
+        Self::get_metadata(&self.pool, chain, currency)
+            .await
+            .unwrap()
     }
 
     pub async fn get_metadata(
         pool: &Pool<Postgres>,
         chain: String,
         currency: Option<String>,
-    ) -> Vec<TokenMetadata> {
+    ) -> Result<Vec<TokenMetadata>, String> {
         let result: Result<Vec<TokenMetadata>, Error> = match currency {
             None => {
                 let query = query_as!(
@@ -71,13 +73,13 @@ impl TokenMetadataDao {
                 query.fetch_all(pool).await
             }
         };
-        return match result {
-            Ok(currencies) => currencies,
+        match result {
+            Ok(currencies) => Ok(currencies),
             Err(err) => {
                 error!("Failed to get currencies, err: {:?}", err);
-                vec![]
+                Err(String::from("Failed to get currencies"))
             }
-        };
+        }
     }
 }
 
