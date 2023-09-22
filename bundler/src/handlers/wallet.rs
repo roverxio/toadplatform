@@ -10,7 +10,7 @@ use crate::models::transaction::poll_transaction_params::PollTransactionParams;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
-use crate::provider::helpers::{get_user_wallet, respond_json, toad_response};
+use crate::provider::helpers::{get_user_wallet, respond_json};
 use crate::provider::web3_client::Web3Client;
 use crate::services::balance_service::BalanceService;
 use crate::services::transfer_service::TransferService;
@@ -42,7 +42,7 @@ pub async fn get_balance(
         user.into_inner(),
     )
     .await?;
-    toad_response(BaseResponse::init(data))
+    Ok(HttpResponse::Ok().json(BaseResponse::init(data)))
 }
 
 pub async fn list_transactions(
