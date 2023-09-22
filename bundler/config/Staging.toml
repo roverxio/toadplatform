@@ -1,5 +1,6 @@
 [run_config]
 current_chain = "base_goerli"
+default_currency = "USDC"
 account_owner = "0x245d2f541e3af7541241e3A0EA551187b165016B"
 paymaster_account_owner = "0x245d2f541e3af7541241e3A0EA551187b165016B"
 deployed_by_identifier = "toad.cash"
