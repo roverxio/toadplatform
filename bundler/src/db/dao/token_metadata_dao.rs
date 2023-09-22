@@ -71,13 +71,13 @@ impl TokenMetadataDao {
                 query.fetch_all(&self.pool).await
             }
         };
-        return match result {
+        match result {
             Ok(currencies) => currencies,
             Err(err) => {
                 error!("Failed to get currencies, err: {:?}", err);
                 vec![]
             }
-        };
+        }
     }
 
     pub async fn get_metadata(&self) -> Vec<TokenMetadata> {
@@ -87,13 +87,13 @@ impl TokenMetadataDao {
         );
         let result = query.fetch_all(&self.pool).await;
 
-        return match result {
+        match result {
             Ok(metadata) => metadata,
             Err(err) => {
                 error!("Failed to get metadata, err: {:?}", err);
                 vec![]
             }
-        };
+        }
     }
 }
 

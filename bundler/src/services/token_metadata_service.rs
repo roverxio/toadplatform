@@ -16,10 +16,6 @@ impl TokenMetadataService {
             .get_metadata_for_chain(CONFIG.run_config.current_chain.clone(), None)
             .await;
 
-        for currency in &supported_currencies {
-            println!("currency: {:?}", currency);
-        }
-
         Ok(MetadataResponse::new().to(
             supported_currencies,
             CONFIG.run_config.current_chain.clone(),
