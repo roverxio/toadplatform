@@ -7,7 +7,7 @@ use sqlx::{Pool, Postgres};
 use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::wallet_dao::User;
-use crate::errors::errors::ApiError;
+use crate::errors::balance::BalanceError;
 use crate::models::currency::Currency;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::web3_client::Web3Client;
@@ -23,32 +23,32 @@ impl BalanceService {
         chain: &String,
         currency: &String,
         user: User,
-    ) -> Result<BalanceResponse, ApiError> {
+    ) -> Result<BalanceResponse, BalanceError> {
         info!("Chain: {:?}", chain); // will be relevant when we add support for multiple chains
         let balance: U256;
         if user.wallet_address.is_empty() {
-            return Err(ApiError::NotFound("Wallet not found".to_string()));
+            return Err(BalanceError::NotFound);
         }
         let wallet_address: Address = user.wallet_address.parse().unwrap();
         let metadata = TokenMetadataDao::get_metadata(pool, chain.clone(), Some(currency.clone()))
             .await
-            .map_err(|error| ApiError::InternalServer(error))?;
+            .map_err(BalanceError::Database)?;
         if metadata.is_empty() {
-            return Err(ApiError::BadRequest("Currency not supported".to_string()));
+            return Err(BalanceError::InvalidCurrency);
         }
 
         match Currency::from_str(metadata[0].token_type.clone()) {
-            None => return Err(ApiError::BadRequest("Currency not supported".to_string())),
+            None => return Err(BalanceError::InvalidCurrency),
             Some(Currency::Erc20) => {
                 balance = USDCProvider::balance_of(provider, wallet_address.clone())
                     .await
-                    .map_err(|error| ApiError::BadRequest(error))?;
+                    .map_err(BalanceError::Provider)?;
             }
             Some(Currency::Native) => {
                 balance = PROVIDER
                     .get_balance(wallet_address.clone(), None)
                     .await
-                    .map_err(|_| ApiError::BadRequest(String::from("Failed to get balance")))?;
+                    .map_err(|_| BalanceError::Provider(String::from("Failed to get balance")))?;
             }
         }
 
