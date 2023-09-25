@@ -4,7 +4,7 @@ use actix_web::{HttpResponse, ResponseError};
 use derive_more::Display;
 use log::error;
 
-#[derive(Debug, Display)]
+#[derive(Debug, Display, PartialEq)]
 pub enum BalanceError {
     NotFound,
     Database(String),

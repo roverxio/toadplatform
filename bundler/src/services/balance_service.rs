@@ -60,3 +60,58 @@ impl BalanceService {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::db::connection::DatabaseConnection;
+    use crate::db::dao::wallet_dao::User;
+    use crate::errors::balance::BalanceError;
+    use crate::provider::web3_client::Web3Client;
+    use crate::services::balance_service::BalanceService;
+    use crate::PROVIDER;
+    use std::sync::Arc;
+
+    #[actix_web::test]
+    async fn test_get_balance_with_default_user() {
+        let pool = DatabaseConnection::init().await;
+        let chain = String::from("localhost");
+        let currency = String::from("USDC");
+        let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
+        let user: User = Default::default();
+
+        let result =
+            BalanceService::get_wallet_balance(&pool, &web3_client, &chain, &currency, user).await;
+
+        assert_eq!(result.err().unwrap(), BalanceError::NotFound);
+    }
+
+    #[actix_web::test]
+    async fn test_get_balance_with_invalid_currency() {
+        let pool = DatabaseConnection::init().await;
+        let chain = String::from("localhost");
+        let currency = String::from("");
+        let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
+        let mut user: User = Default::default();
+        user.wallet_address = "0x1bb719eec37efff15ab534f5ea24107531f58bfa".to_string();
+
+        let result =
+            BalanceService::get_wallet_balance(&pool, &web3_client, &chain, &currency, user).await;
+
+        assert_eq!(result.err().unwrap(), BalanceError::InvalidCurrency);
+    }
+
+    #[actix_web::test]
+    async fn test_get_balance_success() {
+        let pool = DatabaseConnection::init().await;
+        let chain = String::from("localhost");
+        let currency = String::from("USDC");
+        let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
+        let mut user: User = Default::default();
+        user.wallet_address = "0x1bb719eec37efff15ab534f5ea24107531f58bfa".to_string();
+
+        let result =
+            BalanceService::get_wallet_balance(&pool, &web3_client, &chain, &currency, user).await;
+
+        assert_eq!(result.is_ok(), true);
+    }
+}
