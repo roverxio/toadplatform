@@ -97,7 +97,7 @@ impl TokenMetadataDao {
     }
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone)]
 pub struct TokenMetadata {
     pub chain: String,
     pub symbol: String,
