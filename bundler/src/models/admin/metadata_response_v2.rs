@@ -7,8 +7,7 @@ use crate::CONFIG;
 
 #[derive(Clone, Default, Serialize, Deserialize)]
 pub struct MetadataResponseV2 {
-    #[serde(rename = "default")]
-    default_data: DefaultData,
+    defaults: DefaultData,
     chains: HashMap<String, ChainDetail>,
 }
 
@@ -55,14 +54,11 @@ impl MetadataResponseV2 {
                 .insert(token.symbol.clone(), token_detail);
         }
 
-        let default_data = DefaultData {
+        let defaults = DefaultData {
             chain: CONFIG.run_config.current_chain.clone(),
             currency: CONFIG.run_config.default_currency.clone(),
         };
 
-        MetadataResponseV2 {
-            default_data,
-            chains,
-        }
+        MetadataResponseV2 { defaults, chains }
     }
 }
