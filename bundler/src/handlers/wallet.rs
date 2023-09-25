@@ -107,7 +107,7 @@ mod tests {
 
         let req = test::TestRequest::get()
             .uri("/app/v1/user/balance?q=eyAgICAiY2hhaW4iOiAibG9jYWxob3N0IiwgICAgImN1cnJlbmN5IjogIlVTREMifQ==")
-            .append_header((header::AUTHORIZATION, "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlRZT2dnXy01RU9FYmxhWS1WVlJZcVZhREFncHRuZktWNDUzNU1aUEMwdzAifQ.eyJpYXQiOjE2OTU2MzkwMTYsImF1ZCI6IkJKRDIxdWhIeHZWS0laa2JqT1lua1NlUkdCd2JvbDJwT212aHFWN2ZnNWR6NDJaRGhiTHdOemt0cDA0YU93VENsZnRVU094eHJqZVQyTUFlQUFpb0drMCIsIm5vbmNlIjoiMDI4MTdmZTVlNjBlODkyYTk0ZGQ5NTQyMTNhMWM4YjkxOGU4MjE2NDRkNzBhZjY4Y2FlM2JhYmU1YTdkNmMyZjQwIiwiaXNzIjoiaHR0cHM6Ly9hcGktYXV0aC53ZWIzYXV0aC5pbyIsIndhbGxldHMiOlt7InB1YmxpY19rZXkiOiIwM2RjYmI2ZGRhNTE5ZjZiNTg0NGExMmRlNDY4YTU3MmYwNTdlN2VlNmNkYWI2M2M2MGIxNDA1NjkzZWYxYTMxODciLCJ0eXBlIjoid2ViM2F1dGhfYXBwX2tleSIsImN1cnZlIjoic2VjcDI1NmsxIn1dLCJlbWFpbCI6InZpc2hudWt2bnZ2QGdtYWlsLmNvbSIsIm5hbWUiOiJWaXNobnUgVmFyZGhhbiIsInByb2ZpbGVJbWFnZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FBY0hUdGREWlVfbUFNWjk3bUFiaWZWaWVLSEIwbndqczdyQkl2a3VzM3kxVDUxZWJ3PXM5Ni1jIiwidmVyaWZpZXIiOiJ0b2FkLWNhc2gtdmVyaWZpZXIiLCJ2ZXJpZmllcklkIjoiSkNIRUlkNzUxWGczTnMwQkp3d0N3em9zQUtqMSIsImFnZ3JlZ2F0ZVZlcmlmaWVyIjoidG9hZC1jYXNoLXZlcmlmaWVyIiwiZXhwIjoxNjk1NzI1NDE2fQ.-d22vJ2p1z5BRKYLSa29L5b0ygMp0IvdKguPcWlBWbbKSqTKo_PFKXal8CK7lKZT9vIOMYd15kgrT5bHsYMM5A"))
+            .append_header((header::AUTHORIZATION, "Bearer {token}"))
             .to_request();
 
         let result = test::call_service(&mut app, req).await;
@@ -127,7 +127,7 @@ mod tests {
 
         let req = test::TestRequest::get()
             .uri("/app/v1/user/balance?q=eyAgICAiY2hhaW4iOiAibG9jYWxob3N0IiwgICAgImN1cnJlbmN5IjogIkVUSCJ9")
-            .append_header((header::AUTHORIZATION, "Bearer eyJhbGciOiJFUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IlRZT2dnXy01RU9FYmxhWS1WVlJZcVZhREFncHRuZktWNDUzNU1aUEMwdzAifQ.eyJpYXQiOjE2OTU2MzkwMTYsImF1ZCI6IkJKRDIxdWhIeHZWS0laa2JqT1lua1NlUkdCd2JvbDJwT212aHFWN2ZnNWR6NDJaRGhiTHdOemt0cDA0YU93VENsZnRVU094eHJqZVQyTUFlQUFpb0drMCIsIm5vbmNlIjoiMDI4MTdmZTVlNjBlODkyYTk0ZGQ5NTQyMTNhMWM4YjkxOGU4MjE2NDRkNzBhZjY4Y2FlM2JhYmU1YTdkNmMyZjQwIiwiaXNzIjoiaHR0cHM6Ly9hcGktYXV0aC53ZWIzYXV0aC5pbyIsIndhbGxldHMiOlt7InB1YmxpY19rZXkiOiIwM2RjYmI2ZGRhNTE5ZjZiNTg0NGExMmRlNDY4YTU3MmYwNTdlN2VlNmNkYWI2M2M2MGIxNDA1NjkzZWYxYTMxODciLCJ0eXBlIjoid2ViM2F1dGhfYXBwX2tleSIsImN1cnZlIjoic2VjcDI1NmsxIn1dLCJlbWFpbCI6InZpc2hudWt2bnZ2QGdtYWlsLmNvbSIsIm5hbWUiOiJWaXNobnUgVmFyZGhhbiIsInByb2ZpbGVJbWFnZSI6Imh0dHBzOi8vbGgzLmdvb2dsZXVzZXJjb250ZW50LmNvbS9hL0FBY0hUdGREWlVfbUFNWjk3bUFiaWZWaWVLSEIwbndqczdyQkl2a3VzM3kxVDUxZWJ3PXM5Ni1jIiwidmVyaWZpZXIiOiJ0b2FkLWNhc2gtdmVyaWZpZXIiLCJ2ZXJpZmllcklkIjoiSkNIRUlkNzUxWGczTnMwQkp3d0N3em9zQUtqMSIsImFnZ3JlZ2F0ZVZlcmlmaWVyIjoidG9hZC1jYXNoLXZlcmlmaWVyIiwiZXhwIjoxNjk1NzI1NDE2fQ.-d22vJ2p1z5BRKYLSa29L5b0ygMp0IvdKguPcWlBWbbKSqTKo_PFKXal8CK7lKZT9vIOMYd15kgrT5bHsYMM5A"))
+            .append_header((header::AUTHORIZATION, "Bearer {token}"))
             .to_request();
 
         let result = test::call_service(&mut app, req).await;
