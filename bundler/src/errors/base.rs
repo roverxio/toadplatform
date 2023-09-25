@@ -7,6 +7,12 @@ pub struct Error {
     message: String,
 }
 
+#[derive(Debug)]
+pub struct DatabaseError(pub String);
+
+#[derive(Debug)]
+pub struct ProviderError(pub String);
+
 #[derive(Serialize)]
 pub struct ErrorResponse {
     pub data: Value,

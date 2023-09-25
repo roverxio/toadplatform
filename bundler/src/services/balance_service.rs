@@ -1,7 +1,7 @@
 use ethers::abi::Address;
 use ethers::providers::Middleware;
 use ethers::types::U256;
-use log::info;
+use log::{error, info};
 use sqlx::{Pool, Postgres};
 
 use crate::contracts::usdc_provider::USDCProvider;
@@ -30,9 +30,8 @@ impl BalanceService {
             return Err(BalanceError::NotFound);
         }
         let wallet_address: Address = user.wallet_address.parse().unwrap();
-        let metadata = TokenMetadataDao::get_metadata(pool, chain.clone(), Some(currency.clone()))
-            .await
-            .map_err(BalanceError::Database)?;
+        let metadata =
+            TokenMetadataDao::get_metadata(pool, chain.clone(), Some(currency.clone())).await?;
         if metadata.is_empty() {
             return Err(BalanceError::InvalidCurrency);
         }
@@ -40,15 +39,16 @@ impl BalanceService {
         match Currency::from_str(metadata[0].token_type.clone()) {
             None => return Err(BalanceError::InvalidCurrency),
             Some(Currency::Erc20) => {
-                balance = USDCProvider::balance_of(provider, wallet_address.clone())
-                    .await
-                    .map_err(BalanceError::Provider)?;
+                balance = USDCProvider::balance_of(provider, wallet_address.clone()).await?;
             }
             Some(Currency::Native) => {
                 balance = PROVIDER
                     .get_balance(wallet_address.clone(), None)
                     .await
-                    .map_err(|_| BalanceError::Provider(String::from("Failed to get balance")))?;
+                    .map_err(|error| {
+                        error!("Web3 Provider Error: {error}");
+                        BalanceError::Provider(String::from("Failed to get balance"))
+                    })?;
             }
         }
 

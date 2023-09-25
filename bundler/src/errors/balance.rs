@@ -1,4 +1,4 @@
-use crate::errors::base::ErrorResponse;
+use crate::errors::base::{DatabaseError, ErrorResponse, ProviderError};
 use actix_web::http::StatusCode;
 use actix_web::{HttpResponse, ResponseError};
 use derive_more::Display;
@@ -38,7 +38,19 @@ impl ResponseError for BalanceError {
                     .json(ErrorResponse::from(String::from("Internal server error")))
             }
             BalanceError::InvalidCurrency => HttpResponse::BadRequest()
-                .json(ErrorResponse::from(String::from("Invalid currency"))),
+                .json(ErrorResponse::from(String::from("Invalid chain/currency"))),
         }
+    }
+}
+
+impl From<DatabaseError> for BalanceError {
+    fn from(error: DatabaseError) -> Self {
+        BalanceError::Database(error.0)
+    }
+}
+
+impl From<ProviderError> for BalanceError {
+    fn from(error: ProviderError) -> Self {
+        BalanceError::Provider(error.0)
     }
 }
