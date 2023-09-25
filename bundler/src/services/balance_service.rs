@@ -68,19 +68,25 @@ mod tests {
     use crate::errors::balance::BalanceError;
     use crate::provider::web3_client::Web3Client;
     use crate::services::balance_service::BalanceService;
-    use crate::PROVIDER;
+    use crate::{CONFIG, PROVIDER};
+    use std::default::Default;
     use std::sync::Arc;
 
     #[actix_web::test]
     async fn test_get_balance_with_default_user() {
         let pool = DatabaseConnection::init().await;
-        let chain = String::from("localhost");
+        let chain = CONFIG.run_config.current_chain.clone();
         let currency = String::from("USDC");
         let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
-        let user: User = Default::default();
 
-        let result =
-            BalanceService::get_wallet_balance(&pool, &web3_client, &chain, &currency, user).await;
+        let result = BalanceService::get_wallet_balance(
+            &pool,
+            &web3_client,
+            &chain,
+            &currency,
+            Default::default(),
+        )
+        .await;
 
         assert_eq!(result.err().unwrap(), BalanceError::NotFound);
     }
@@ -88,14 +94,19 @@ mod tests {
     #[actix_web::test]
     async fn test_get_balance_with_invalid_currency() {
         let pool = DatabaseConnection::init().await;
-        let chain = String::from("localhost");
-        let currency = String::from("");
+        let chain = CONFIG.run_config.current_chain.clone();
         let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
         let mut user: User = Default::default();
         user.wallet_address = "0x1bb719eec37efff15ab534f5ea24107531f58bfa".to_string();
 
-        let result =
-            BalanceService::get_wallet_balance(&pool, &web3_client, &chain, &currency, user).await;
+        let result = BalanceService::get_wallet_balance(
+            &pool,
+            &web3_client,
+            &chain,
+            &Default::default(),
+            user,
+        )
+        .await;
 
         assert_eq!(result.err().unwrap(), BalanceError::InvalidCurrency);
     }
@@ -103,7 +114,7 @@ mod tests {
     #[actix_web::test]
     async fn test_get_balance_success() {
         let pool = DatabaseConnection::init().await;
-        let chain = String::from("localhost");
+        let chain = CONFIG.run_config.current_chain.clone();
         let currency = String::from("USDC");
         let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
         let mut user: User = Default::default();
@@ -112,6 +123,6 @@ mod tests {
         let result =
             BalanceService::get_wallet_balance(&pool, &web3_client, &chain, &currency, user).await;
 
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
     }
 }

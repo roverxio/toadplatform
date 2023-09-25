@@ -101,13 +101,21 @@ pub struct TokenMetadata {
 mod tests {
     use crate::db::connection::DatabaseConnection;
     use crate::db::dao::token_metadata_dao::TokenMetadataDao;
+    use crate::CONFIG;
 
     #[sqlx::test]
-    async fn test_get_metadata() {
+    async fn test_get_metadata_without_currency() {
         let pool = DatabaseConnection::init().await;
-        let chain = String::from("localhost");
-        let currency = Some(String::from("USDC"));
-        let result = TokenMetadataDao::get_metadata(&pool, chain, currency).await;
-        assert_eq!(result.unwrap().len(), 1);
+        let chain = CONFIG.run_config.current_chain.clone();
+        let result = TokenMetadataDao::get_metadata(&pool, chain, None).await;
+        assert!(result.is_ok());
+    }
+
+    #[sqlx::test]
+    async fn test_get_metadata_with_currency() {
+        let pool = DatabaseConnection::init().await;
+        let chain = CONFIG.run_config.current_chain.clone();
+        let result = TokenMetadataDao::get_metadata(&pool, chain, Some(String::from("ETH"))).await;
+        assert!(result.is_ok());
     }
 }

@@ -68,7 +68,7 @@ mod tests {
     use std::sync::Arc;
 
     #[actix_web::test]
-    async fn test_get_balance() {
+    async fn test_get_balance_success() {
         let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
         let address = "0x1bb719eec37efff15ab534f5ea24107531f58bfa"
             .parse()
@@ -76,6 +76,6 @@ mod tests {
 
         let result = USDCProvider::balance_of(&web3_client, address).await;
 
-        assert_eq!(result.is_ok(), true);
+        assert!(result.is_ok());
     }
 }
