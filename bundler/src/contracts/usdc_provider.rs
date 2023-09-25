@@ -59,3 +59,23 @@ impl USDCProvider {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::contracts::usdc_provider::USDCProvider;
+    use crate::provider::web3_client::Web3Client;
+    use crate::PROVIDER;
+    use std::sync::Arc;
+
+    #[actix_web::test]
+    async fn test_get_balance() {
+        let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
+        let address = "0x1bb719eec37efff15ab534f5ea24107531f58bfa"
+            .parse()
+            .unwrap();
+
+        let result = USDCProvider::balance_of(&web3_client, address).await;
+
+        assert_eq!(result.is_ok(), true);
+    }
+}
