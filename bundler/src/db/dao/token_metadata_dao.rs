@@ -96,3 +96,18 @@ pub struct TokenMetadata {
     pub updated_at: Option<DateTime<Utc>>,
     pub is_supported: bool,
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::db::connection::DatabaseConnection;
+    use crate::db::dao::token_metadata_dao::TokenMetadataDao;
+
+    #[sqlx::test]
+    async fn test_get_metadata() {
+        let pool = DatabaseConnection::init().await;
+        let chain = String::from("localhost");
+        let currency = Some(String::from("USDC"));
+        let result = TokenMetadataDao::get_metadata(&pool, chain, currency).await;
+        assert_eq!(result.unwrap().len(), 1);
+    }
+}
