@@ -5,6 +5,8 @@ use sqlx::{Pool, Postgres, QueryBuilder};
 
 use crate::db::token_transfers::TokenTransfers;
 use crate::db::transactions::Transactions;
+use crate::utils::status::Status::SUCCESS;
+use crate::utils::transaction_type::TransactionType::CREDIT;
 use crate::utils::utils::Utils;
 
 #[derive(Clone, Default, PartialEq)]
@@ -64,8 +66,8 @@ impl From<TokenTransfers> for UserTransaction {
             to_address: transfer.to_address.unwrap_or("".to_string()),
             amount: transfer.value.unwrap_or(BigDecimal::from(0)),
             currency: transfer.symbol.unwrap_or("".to_string()),
-            transaction_type: "credit".to_string(),
-            status: "success".to_string(),
+            transaction_type: CREDIT.to_string(),
+            status: SUCCESS.to_string(),
             metadata: TransactionMetadata::get_transaction_metadata(
                 transfer.transaction_hash.unwrap_or("".to_string()),
             ),
@@ -82,8 +84,8 @@ impl From<Transactions> for UserTransaction {
             to_address: transfer.to_address.unwrap_or("".to_string()),
             amount: transfer.value.unwrap_or(BigDecimal::from(0)),
             currency: CONFIG.get_native_currency().to_string(),
-            transaction_type: "credit".to_string(),
-            status: "success".to_string(),
+            transaction_type: CREDIT.to_string(),
+            status: SUCCESS.to_string(),
             metadata: TransactionMetadata::get_transaction_metadata(
                 transfer.transaction_hash.unwrap_or("".to_string()),
             ),
