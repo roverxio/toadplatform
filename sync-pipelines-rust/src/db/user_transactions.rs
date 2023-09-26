@@ -76,17 +76,15 @@ impl From<TokenTransfers> for UserTransaction {
 impl From<Transactions> for UserTransaction {
     fn from(transfer: Transactions) -> UserTransaction {
         UserTransaction {
-            user_address: transfer.to_address.clone().unwrap_or("".to_string()),
+            user_address: transfer.to_address.clone().unwrap(),
             transaction_id: Utils::generate_txn_id(),
-            from_address: transfer.from_address.unwrap_or("".to_string()),
-            to_address: transfer.to_address.unwrap_or("".to_string()),
-            amount: transfer.value.unwrap_or(BigDecimal::from(0)),
+            from_address: transfer.from_address.unwrap(),
+            to_address: transfer.to_address.unwrap(),
+            amount: transfer.value.unwrap(),
             currency: CONFIG.get_native_currency().to_string(),
             transaction_type: CREDIT.to_string(),
             status: SUCCESS.to_string(),
-            metadata: TransactionMetadata::get_transaction_metadata(
-                transfer.transaction_hash.unwrap_or("".to_string()),
-            ),
+            metadata: TransactionMetadata::get_transaction_metadata(transfer.transaction_hash),
         }
     }
 }

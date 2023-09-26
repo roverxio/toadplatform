@@ -7,7 +7,7 @@ pub struct Transactions {
     pub from_address: Option<String>,
     pub to_address: Option<String>,
     pub value: Option<BigDecimal>,
-    pub transaction_hash: Option<String>,
+    pub transaction_hash: String,
     pub block_number: Option<i64>,
 }
 
