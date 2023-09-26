@@ -60,17 +60,15 @@ pub struct Gas {
 impl From<TokenTransfers> for UserTransaction {
     fn from(transfer: TokenTransfers) -> UserTransaction {
         UserTransaction {
-            user_address: transfer.to_address.clone().unwrap_or("".to_string()),
+            user_address: transfer.to_address.clone().unwrap(),
             transaction_id: Utils::generate_txn_id(),
-            from_address: transfer.from_address.unwrap_or("".to_string()),
-            to_address: transfer.to_address.unwrap_or("".to_string()),
-            amount: transfer.value.unwrap_or(BigDecimal::from(0)),
-            currency: transfer.symbol.unwrap_or("".to_string()),
+            from_address: transfer.from_address.unwrap(),
+            to_address: transfer.to_address.unwrap(),
+            amount: transfer.value.unwrap(),
+            currency: transfer.symbol.unwrap(),
             transaction_type: CREDIT.to_string(),
             status: SUCCESS.to_string(),
-            metadata: TransactionMetadata::get_transaction_metadata(
-                transfer.transaction_hash.unwrap_or("".to_string()),
-            ),
+            metadata: TransactionMetadata::get_transaction_metadata(transfer.transaction_hash),
         }
     }
 }
