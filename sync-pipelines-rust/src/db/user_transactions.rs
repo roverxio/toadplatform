@@ -101,7 +101,7 @@ impl UserTransaction {
     ) -> Result<(), String> {
         let mut query_builder = QueryBuilder::new(
             "INSERT INTO user_transactions (user_address, transaction_id, from_address, \
-            to_address, amount, currency, type, status, metadata, exponent) VALUES",
+            to_address, amount, currency, type, status, metadata) VALUES",
         );
         for txn in transactions.iter() {
             let metadata_value = match serde_json::to_value(&txn.metadata) {
@@ -115,7 +115,7 @@ impl UserTransaction {
             };
 
             query_builder.push(format!(
-                "('{}','{}','{}','{}',{},'{}','{}','{}','{}',{})",
+                "('{}','{}','{}','{}',{},'{}','{}','{}','{}')",
                 txn.user_address,
                 txn.transaction_id,
                 txn.from_address,
@@ -125,7 +125,6 @@ impl UserTransaction {
                 txn.transaction_type,
                 txn.status,
                 metadata_value,
-                txn.exponent,
             ));
 
             if Some(txn) == transactions.last() {

@@ -13,15 +13,6 @@ pub struct TokenTransfers {
 }
 
 impl TokenTransfers {
-    pub fn get_max_block_number(transfers: Vec<TokenTransfers>) -> i64 {
-        transfers
-            .into_iter()
-            .max_by_key(|t| t.block_number)
-            .unwrap()
-            .block_number
-            .unwrap_or(0)
-    }
-
     pub async fn get(
         pool: Pool<Postgres>,
         block_number: i64,
@@ -33,7 +24,7 @@ impl TokenTransfers {
             FROM token_transfers t \
             JOIN users u ON t.to_address = u.wallet_address \
             JOIN token_metadata m ON t.token_address = m.contract_address \
-            WHERE block_number > $1",
+            WHERE block_number > $1 ORDER BY block_number desc",
             block_number
         );
         let result = query.fetch_all(&pool).await;
