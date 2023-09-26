@@ -1,0 +1,11 @@
+appenders:
+  file:
+    kind: file
+    path: 'logs/sync.log'
+    encoder:
+      pattern: "{d(%Y-%m-%d %H:%M:%S)} | {({l}):5.5} | {f}:{L} — {m}{n}"
+
+root:
+  level: debug
+  appenders:
+    - file

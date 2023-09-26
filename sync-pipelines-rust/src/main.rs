@@ -1,37 +1,50 @@
-use std::env::args;
 use lazy_static::lazy_static;
+use log::error;
+use std::env::args;
+use std::process::exit;
 
-use crate::config::Config;
 use crate::db::connection::Connection;
-use crate::db::token_transfers::TokenTransfers;
-use crate::db::transactions::Transactions;
-use crate::db::user_transactions::UserTransaction;
+use crate::services::sync_user_transactions::SyncUserTransactions;
+use crate::settings::Settings;
 use crate::utils::table::Table;
-use crate::utils::utils::Utils;
 
-pub mod config;
 pub mod db;
+pub mod models;
+pub mod services;
+pub mod settings;
 pub mod utils;
 
 lazy_static! {
-    static ref CONFIG: Config = Config::new();
+    static ref CONFIG: Settings = Settings::new().expect("Unable to import config");
 }
 
-fn main() {
-    let _pool = Connection::init();
+const LOG_CONFIG: &str = "./log_config.yaml";
 
-    let table = Table::from(args().nth(1).expect("no table given"));
+#[tokio::main]
+async fn main() {
+    log4rs::init_file(LOG_CONFIG, Default::default()).unwrap();
 
-    let _last_sync_time = Utils::get_last_synced_time(table.to_string());
+    let table_arg = args().nth(1).unwrap_or_else(|| {
+        error!("No table argument provided");
+        exit(1)
+    });
 
-    let user_transactions = match table {
-        Table::TokenTransfers => {
-            UserTransaction::from_token_transfers(TokenTransfers::get(_last_sync_time))
-        }
-        Table::Transactions => {
-            UserTransaction::from_transactions(Transactions::get(_last_sync_time))
-        }
+    let table_name = Table::from(table_arg).unwrap_or_else(|error| {
+        error!("{error}");
+        exit(1)
+    });
+
+    let pool = Connection::init().await.unwrap_or_else(|error| {
+        error!("{error}");
+        exit(1)
+    });
+
+    let result = match table_name {
+        Table::TokenTransfers => SyncUserTransactions::sync_from_token_transfers(pool).await,
+        Table::Transactions => SyncUserTransactions::sync_from_transactions(pool).await,
     };
 
-    UserTransaction::insert(user_transactions);
+    if result.is_err() {
+        error!("{}", result.err().unwrap());
+    }
 }

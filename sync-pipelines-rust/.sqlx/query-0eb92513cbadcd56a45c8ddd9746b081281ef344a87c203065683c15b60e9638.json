@@ -1,0 +1,53 @@
+{
+  "db_name": "PostgreSQL",
+  "query": "SELECT t.from_address, t.to_address, t.value, t.hash transaction_hash, t.block_number, m.exponent FROM transactions t JOIN users u ON t.to_address = u.wallet_address JOIN (SELECT exponent FROM token_metadata WHERE chain = $2 and lower(token_type)='native') m ON true WHERE block_number > $1",
+  "describe": {
+    "columns": [
+      {
+        "ordinal": 0,
+        "name": "from_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 1,
+        "name": "to_address",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 2,
+        "name": "value",
+        "type_info": "Numeric"
+      },
+      {
+        "ordinal": 3,
+        "name": "transaction_hash",
+        "type_info": "Varchar"
+      },
+      {
+        "ordinal": 4,
+        "name": "block_number",
+        "type_info": "Int8"
+      },
+      {
+        "ordinal": 5,
+        "name": "exponent",
+        "type_info": "Int4"
+      }
+    ],
+    "parameters": {
+      "Left": [
+        "Int8",
+        "Text"
+      ]
+    },
+    "nullable": [
+      true,
+      true,
+      true,
+      false,
+      true,
+      false
+    ]
+  },
+  "hash": "0eb92513cbadcd56a45c8ddd9746b081281ef344a87c203065683c15b60e9638"
+}

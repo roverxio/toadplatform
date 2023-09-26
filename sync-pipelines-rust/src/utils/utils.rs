@@ -1,20 +1,17 @@
-use chrono::{DateTime, Utc};
+use crate::CONFIG;
+use rand::distributions::Alphanumeric;
+use rand::Rng;
 
 pub struct Utils {}
 
 impl Utils {
-    pub fn get_last_synced_time(_table: String) -> DateTime<Utc> {
-        // gets last seen time for the table
-        unimplemented!();
-    }
-
-    pub fn update_last_synced_time(_table: String, _last_sync_time: DateTime<Utc>) {
-        // update the last sync time for the table
-        unimplemented!();
-    }
-
     pub fn generate_txn_id() -> String {
-        // generate and return random id
-        unimplemented!();
+        let prefix = CONFIG.get_transaction_id_prefix();
+        let id: String = rand::thread_rng()
+            .sample_iter(&Alphanumeric)
+            .take(6)
+            .map(char::from)
+            .collect();
+        format!("{}_{}", prefix, id).to_string()
     }
 }

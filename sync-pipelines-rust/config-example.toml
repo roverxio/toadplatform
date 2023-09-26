@@ -1,12 +1,11 @@
-transaction_id_prefix = "toad_"
-native_currency = "sepoliaeth"
 chain = "sepolia"
-erc20_contracts = [{usdc = "0x0"}]
+native_currency = "sepoliaeth"
+transaction_id_prefix = "toad"
 
-[last_sync_time.files]
-transactions = "~/roverx-rpc/sync-pipelines/transaction_last_sync_blocktimestamp.txt"
-token_transfers = "~/roverx-rpc/sync-pipelines/erc20_last_sync_blocktimestamp.txt"
+[last_sync.files]
+token_transfers = "erc20_last_sync_block.txt"
+transactions = "transaction_last_sync_block.txt"
 
-[last_sync_time.start_time]
-transactions = 2023-01-01T00:00:00.000Z
-token_transfers = 2023-01-01T00:00:00.000Z
+[last_sync.block]
+token_transfers = 0
+transactions = 0
