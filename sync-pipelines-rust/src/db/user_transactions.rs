@@ -18,7 +18,6 @@ pub struct UserTransaction {
     pub transaction_type: String,
     pub status: String,
     pub metadata: TransactionMetadata,
-    pub exponent: i32,
 }
 
 #[derive(Default, Serialize, Deserialize, Clone, PartialEq)]
@@ -70,7 +69,6 @@ impl From<TokenTransfers> for UserTransaction {
             metadata: TransactionMetadata::get_transaction_metadata(
                 transfer.transaction_hash.unwrap_or("".to_string()),
             ),
-            exponent: transfer.exponent.unwrap_or(0),
         }
     }
 }
@@ -89,7 +87,6 @@ impl From<Transactions> for UserTransaction {
             metadata: TransactionMetadata::get_transaction_metadata(
                 transfer.transaction_hash.unwrap_or("".to_string()),
             ),
-            exponent: transfer.exponent.unwrap_or(0),
         }
     }
 }

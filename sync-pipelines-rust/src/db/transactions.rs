@@ -9,16 +9,14 @@ pub struct Transactions {
     pub value: Option<BigDecimal>,
     pub transaction_hash: Option<String>,
     pub block_number: Option<i64>,
-    pub exponent: Option<i32>,
 }
 
 impl Transactions {
     pub async fn get(pool: Pool<Postgres>, block_number: i64) -> Result<Vec<Transactions>, String> {
         let query = query_as!(
             Transactions,
-            "SELECT t.from_address, t.to_address, t.value, t.hash transaction_hash, t.block_number, m.exponent \
-            FROM transactions t \
-            JOIN users u ON t.to_address = u.wallet_address \
+            "SELECT t.from_address, t.to_address, t.value, t.hash transaction_hash, t.block_number \
+            FROM transactions t JOIN users u ON t.to_address = u.wallet_address \
             JOIN (SELECT exponent FROM token_metadata WHERE chain = $2 and lower(token_type)='native') m ON true \
             WHERE block_number > $1 ORDER BY block_number DESC",
             block_number,
