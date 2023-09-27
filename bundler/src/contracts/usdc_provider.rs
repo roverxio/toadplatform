@@ -1,3 +1,4 @@
+use crate::errors::base::ProviderError;
 use crate::provider::web3_client::Web3Client;
 use ethers::abi::{Abi, Address};
 use ethers::contract::abigen;
@@ -47,13 +48,13 @@ impl USDCProvider {
         Ok(data.unwrap())
     }
 
-    pub async fn balance_of(client: &Web3Client, address: Address) -> Result<U256, String> {
+    pub async fn balance_of(client: &Web3Client, address: Address) -> Result<U256, ProviderError> {
         let result = client.get_usdc_provider().balance_of(address).await;
         match result {
             Ok(balance) => Ok(balance),
             Err(err) => {
                 error!("Failed to get balance: {}", err);
-                Err(String::from("Failed to get balance"))
+                Err(ProviderError(String::from("Failed to get balance")))
             }
         }
     }

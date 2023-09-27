@@ -15,7 +15,7 @@ use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::transaction_dao::{TransactionDao, TransactionMetadata, UserTransaction};
 use crate::db::dao::user_operation_dao::UserOperationDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
-use crate::errors::ApiError;
+use crate::errors::errors::ApiError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::currency::Currency;
 use crate::models::transaction::transaction::Transaction;

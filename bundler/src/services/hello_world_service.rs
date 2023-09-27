@@ -1,4 +1,4 @@
-use crate::errors::ApiError;
+use crate::errors::errors::ApiError;
 use crate::models::hello_world::HelloWorld;
 
 #[derive(Clone)]

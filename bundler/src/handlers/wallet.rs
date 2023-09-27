@@ -3,7 +3,8 @@ use actix_web::{Error, HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 
 use crate::db::dao::wallet_dao::User;
-use crate::errors::ApiError;
+use crate::errors::balance::BalanceError;
+use crate::errors::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
 use crate::models::transaction::poll_transaction_params::PollTransactionParams;
@@ -32,7 +33,7 @@ pub async fn get_balance(
     provider: Data<Web3Client>,
     body: Query<BalanceRequest>,
     user: ReqData<User>,
-) -> Result<HttpResponse, Error> {
+) -> Result<HttpResponse, BalanceError> {
     let balance_request = body.get_balance_request();
     let data = BalanceService::get_wallet_balance(
         pool.get_ref(),

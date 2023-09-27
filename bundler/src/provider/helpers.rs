@@ -10,7 +10,7 @@ use rand::distributions::Alphanumeric;
 use rand::Rng;
 use serde::Serialize;
 
-use crate::errors::ApiError;
+use crate::errors::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
 use crate::{CONFIG, PROVIDER};
 
