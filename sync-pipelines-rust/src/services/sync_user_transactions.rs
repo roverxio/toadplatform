@@ -15,7 +15,7 @@ impl SyncUserTransactions {
         if token_transfers.len() == 0 {
             exit(0);
         }
-        let number = TokenTransfers::get_max_block_number(token_transfers.clone());
+        let number = token_transfers[0].block_number.unwrap_or(0);
         UserTransaction::insert(pool, UserTransaction::from_token_transfers(token_transfers))
             .await?;
         LastSync::update_last_synced_block(Table::TokenTransfers, number)
@@ -27,7 +27,7 @@ impl SyncUserTransactions {
         if transactions.len() == 0 {
             exit(0);
         }
-        let number = Transactions::get_max_block_number(transactions.clone());
+        let number = transactions[0].block_number.unwrap_or(0);
         UserTransaction::insert(pool, UserTransaction::from_transactions(transactions)).await?;
         LastSync::update_last_synced_block(Table::Transactions, number)
     }

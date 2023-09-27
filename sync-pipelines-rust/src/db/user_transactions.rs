@@ -5,6 +5,8 @@ use sqlx::{Pool, Postgres, QueryBuilder};
 
 use crate::db::token_transfers::TokenTransfers;
 use crate::db::transactions::Transactions;
+use crate::utils::status::Status::SUCCESS;
+use crate::utils::transaction_type::TransactionType::CREDIT;
 use crate::utils::utils::Utils;
 
 #[derive(Clone, Default, PartialEq)]
@@ -18,7 +20,6 @@ pub struct UserTransaction {
     pub transaction_type: String,
     pub status: String,
     pub metadata: TransactionMetadata,
-    pub exponent: i32,
 }
 
 #[derive(Default, Serialize, Deserialize, Clone, PartialEq)]
@@ -59,18 +60,15 @@ pub struct Gas {
 impl From<TokenTransfers> for UserTransaction {
     fn from(transfer: TokenTransfers) -> UserTransaction {
         UserTransaction {
-            user_address: transfer.to_address.clone().unwrap_or("".to_string()),
+            user_address: transfer.to_address.clone().unwrap(),
             transaction_id: Utils::generate_txn_id(),
-            from_address: transfer.from_address.unwrap_or("".to_string()),
-            to_address: transfer.to_address.unwrap_or("".to_string()),
-            amount: transfer.value.unwrap_or(BigDecimal::from(0)),
-            currency: transfer.symbol.unwrap_or("".to_string()),
-            transaction_type: "credit".to_string(),
-            status: "success".to_string(),
-            metadata: TransactionMetadata::get_transaction_metadata(
-                transfer.transaction_hash.unwrap_or("".to_string()),
-            ),
-            exponent: transfer.exponent.unwrap_or(0),
+            from_address: transfer.from_address.unwrap(),
+            to_address: transfer.to_address.unwrap(),
+            amount: transfer.value.unwrap(),
+            currency: transfer.symbol.unwrap(),
+            transaction_type: CREDIT.to_string(),
+            status: SUCCESS.to_string(),
+            metadata: TransactionMetadata::get_transaction_metadata(transfer.transaction_hash),
         }
     }
 }
@@ -78,18 +76,15 @@ impl From<TokenTransfers> for UserTransaction {
 impl From<Transactions> for UserTransaction {
     fn from(transfer: Transactions) -> UserTransaction {
         UserTransaction {
-            user_address: transfer.to_address.clone().unwrap_or("".to_string()),
+            user_address: transfer.to_address.clone().unwrap(),
             transaction_id: Utils::generate_txn_id(),
-            from_address: transfer.from_address.unwrap_or("".to_string()),
-            to_address: transfer.to_address.unwrap_or("".to_string()),
-            amount: transfer.value.unwrap_or(BigDecimal::from(0)),
+            from_address: transfer.from_address.unwrap(),
+            to_address: transfer.to_address.unwrap(),
+            amount: transfer.value.unwrap(),
             currency: CONFIG.get_native_currency().to_string(),
-            transaction_type: "credit".to_string(),
-            status: "success".to_string(),
-            metadata: TransactionMetadata::get_transaction_metadata(
-                transfer.transaction_hash.unwrap_or("".to_string()),
-            ),
-            exponent: transfer.exponent.unwrap_or(0),
+            transaction_type: CREDIT.to_string(),
+            status: SUCCESS.to_string(),
+            metadata: TransactionMetadata::get_transaction_metadata(transfer.transaction_hash),
         }
     }
 }
@@ -101,7 +96,7 @@ impl UserTransaction {
     ) -> Result<(), String> {
         let mut query_builder = QueryBuilder::new(
             "INSERT INTO user_transactions (user_address, transaction_id, from_address, \
-            to_address, amount, currency, type, status, metadata, exponent) VALUES",
+            to_address, amount, currency, type, status, metadata) VALUES",
         );
         for txn in transactions.iter() {
             let metadata_value = match serde_json::to_value(&txn.metadata) {
@@ -115,7 +110,7 @@ impl UserTransaction {
             };
 
             query_builder.push(format!(
-                "('{}','{}','{}','{}',{},'{}','{}','{}','{}',{})",
+                "('{}','{}','{}','{}',{},'{}','{}','{}','{}')",
                 txn.user_address,
                 txn.transaction_id,
                 txn.from_address,
@@ -125,7 +120,6 @@ impl UserTransaction {
                 txn.transaction_type,
                 txn.status,
                 metadata_value,
-                txn.exponent,
             ));
 
             if Some(txn) == transactions.last() {

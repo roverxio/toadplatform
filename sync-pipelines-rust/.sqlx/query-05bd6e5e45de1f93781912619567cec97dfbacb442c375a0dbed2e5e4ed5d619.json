@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT t.from_address, t.to_address, t.value, t.transaction_hash, t.block_number, lower(m.symbol) symbol, m.exponent FROM token_transfers t JOIN users u ON lower(t.to_address) = u.wallet_address JOIN token_metadata m ON lower(t.token_address) = m.contract_address WHERE block_number > $1",
+  "query": "SELECT t.from_address, t.to_address, t.value, t.transaction_hash, t.block_number, lower(m.symbol) symbol FROM token_transfers t JOIN users u ON t.to_address = u.wallet_address JOIN token_metadata m ON t.token_address = m.contract_address WHERE block_number > $1 ORDER BY block_number desc",
   "describe": {
     "columns": [
       {
@@ -32,11 +32,6 @@
         "ordinal": 5,
         "name": "symbol",
         "type_info": "Text"
-      },
-      {
-        "ordinal": 6,
-        "name": "exponent",
-        "type_info": "Int4"
       }
     ],
     "parameters": {
@@ -50,9 +45,8 @@
       true,
       false,
       true,
-      null,
-      false
+      null
     ]
   },
-  "hash": "428e79bfd1782fa341edb81e86caf4642527338674e9e5835a08b893a3d08b25"
+  "hash": "05bd6e5e45de1f93781912619567cec97dfbacb442c375a0dbed2e5e4ed5d619"
 }
