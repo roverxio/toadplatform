@@ -7,6 +7,7 @@ use crate::models::config::env::ENV;
 #[derive(Debug, Deserialize, Clone)]
 pub struct RunConfig {
     pub current_chain: String,
+    pub default_currency: String,
     pub account_owner: Address,
     pub paymaster_account_owner: Address,
     pub deployed_by_identifier: String,

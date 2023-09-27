@@ -1,6 +1,6 @@
 {
   "db_name": "PostgreSQL",
-  "query": "SELECT * FROM token_metadata WHERE lower(chain) = lower($1) AND lower(symbol) = lower($2) and is_supported = true",
+  "query": "SELECT * FROM token_metadata where is_supported = true",
   "describe": {
     "columns": [
       {
@@ -65,10 +65,7 @@
       }
     ],
     "parameters": {
-      "Left": [
-        "Text",
-        "Text"
-      ]
+      "Left": []
     },
     "nullable": [
       false,
@@ -85,5 +82,5 @@
       true
     ]
   },
-  "hash": "cf5d891d170b69209fe904fcbb1dea9046cd8716e9c9028c25a9d1c00be760ca"
+  "hash": "26e4230f5f69d64dfe59258bfdf08ed0f803ebcc9aa2bbf6ef1949d6a2613014"
 }

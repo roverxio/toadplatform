@@ -16,18 +16,26 @@ impl TokenMetadataDao {
         exponent: i32,
         token_type: String,
         name: String,
+        chain_id: i32,
+        chain_name: String,
+        token_image_url: String,
     ) {
         let query = query!(
             "INSERT INTO token_metadata \
-            (chain, symbol, contract_address, exponent, token_type, name) VALUES \
-            ($1, $2, $3, $4, $5, $6) on conflict (chain, symbol) do update set \
-            contract_address = $3, exponent = $4, token_type = $5, name = $6, updated_at = now()",
+            (chain, symbol, contract_address, exponent, token_type, name, chain_id, chain_name,\
+             token_image_url) VALUES \
+            ($1, $2, $3, $4, $5, $6, $7, $8, $9) on conflict (chain, symbol) do update set \
+            contract_address = $3, exponent = $4, token_type = $5, name = $6, chain_id = $7, \
+            chain_name = $8, token_image_url = $9, updated_at = now()",
             chain,
             currency,
             address,
             exponent,
             token_type,
-            name
+            name,
+            chain_id,
+            chain_name,
+            token_image_url
         );
         let result = query.execute(&self.pool).await;
         if result.is_err() {
@@ -63,13 +71,29 @@ impl TokenMetadataDao {
                 query.fetch_all(&self.pool).await
             }
         };
-        return match result {
+        match result {
             Ok(currencies) => currencies,
             Err(err) => {
                 error!("Failed to get currencies, err: {:?}", err);
                 vec![]
             }
-        };
+        }
+    }
+
+    pub async fn get_metadata(&self) -> Vec<TokenMetadata> {
+        let query = query_as!(
+            TokenMetadata,
+            "SELECT * FROM token_metadata where is_supported = true"
+        );
+        let result = query.fetch_all(&self.pool).await;
+
+        match result {
+            Ok(metadata) => metadata,
+            Err(err) => {
+                error!("Failed to get metadata, err: {:?}", err);
+                vec![]
+            }
+        }
     }
 }
 
@@ -84,4 +108,7 @@ pub struct TokenMetadata {
     pub created_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
     pub is_supported: bool,
+    pub chain_id: Option<i32>,
+    pub chain_name: Option<String>,
+    pub token_image_url: Option<String>,
 }
