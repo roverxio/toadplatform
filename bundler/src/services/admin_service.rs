@@ -117,17 +117,20 @@ impl AdminService {
     ) -> Result<MetadataResponse, ApiError> {
         self.metadata_dao
             .add_metadata(
-                metadata.get_chain().clone(),
-                metadata.get_currency(),
+                metadata.get_chain_name().clone(),
+                metadata.get_symbol(),
                 metadata.get_contract_address(),
                 metadata.get_exponent(),
                 metadata.get_token_type(),
-                metadata.get_name(),
+                metadata.get_token_name(),
+                metadata.get_chain_id(),
+                metadata.get_chain_display_name(),
+                metadata.get_token_image_url(),
             )
             .await;
         let supported_currencies = self
             .metadata_dao
-            .get_metadata_for_chain(metadata.get_chain(), None)
+            .get_metadata_for_chain(metadata.get_chain_name(), None)
             .await;
 
         let exponent_metadata = MetadataResponse::new().to(
