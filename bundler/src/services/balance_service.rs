@@ -31,7 +31,8 @@ impl BalanceService {
         }
         let wallet_address: Address = user.wallet_address.parse().unwrap();
         let metadata =
-            TokenMetadataDao::get_metadata(pool, chain.clone(), Some(currency.clone())).await?;
+            TokenMetadataDao::get_metadata_by_currency(pool, chain.clone(), Some(currency.clone()))
+                .await?;
         if metadata.is_empty() {
             return Err(BalanceError::InvalidCurrency);
         }

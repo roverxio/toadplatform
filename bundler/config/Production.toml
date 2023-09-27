@@ -1,5 +1,6 @@
 [run_config]
 current_chain = "base"
+default_currency = "USDC"
 account_owner = "0x5fb7454bd1925A91137d1f00cdfFcAAd16b2a87e"
 paymaster_account_owner = "0xF664C6e19a212Af0c9a31F49b76bD3E257531084"
 deployed_by_identifier = "toad.cash"
