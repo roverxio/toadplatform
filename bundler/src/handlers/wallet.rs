@@ -95,6 +95,74 @@ mod tests {
     use std::sync::Arc;
 
     #[actix_web::test]
+    async fn test_get_balance_non_user() {
+        let pool = DatabaseConnection::init().await;
+        let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
+        let app = App::new()
+            .configure(routes)
+            .app_data(Data::new(web3_client.clone()))
+            .app_data(Data::new(pool.clone()));
+
+        let mut app = test::init_service(app).await;
+
+        let req = test::TestRequest::get()
+            .uri("/app/v1/user/balance?q=eyAgICAiY2hhaW4iOiAibG9jYWxob3N0IiwgICAgImN1cnJlbmN5IjogIlVTREMifQ==")
+            .append_header((header::AUTHORIZATION, "Bearer {{non registered  valid token}}"))
+            .to_request();
+
+        let result = test::call_service(&mut app, req).await;
+        assert_eq!(result.status(), StatusCode::NOT_FOUND);
+    }
+
+    #[actix_web::test]
+    async fn test_get_balance_invalid_db_credentials() {
+        let _ = temp_env::with_var(
+            "DATABASE_URL",
+            Some("postgres://walrus:325c1c4c5c@localhost/roverx"),
+            || async {
+                let pool = DatabaseConnection::init().await;
+                let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
+                let app = App::new()
+                    .configure(routes)
+                    .app_data(Data::new(web3_client.clone()))
+                    .app_data(Data::new(pool.clone()));
+
+                let mut app = test::init_service(app).await;
+
+                let req = test::TestRequest::get()
+            .uri("/app/v1/user/balance?q=eyAgICAiY2hhaW4iOiAibG9jYWxob3N0IiwgICAgImN1cnJlbmN5IjogIlVTREMifQ==")
+            .append_header((header::AUTHORIZATION, "Bearer {{valid token}}"))
+            .to_request();
+
+                let result = test::call_service(&mut app, req).await;
+                assert_eq!(result.status(), StatusCode::INTERNAL_SERVER_ERROR);
+            },
+        );
+    }
+
+    // Provider Error
+
+    #[actix_web::test]
+    async fn test_get_balance_invalid_currency() {
+        let pool = DatabaseConnection::init().await;
+        let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
+        let app = App::new()
+            .configure(routes)
+            .app_data(Data::new(web3_client.clone()))
+            .app_data(Data::new(pool.clone()));
+
+        let mut app = test::init_service(app).await;
+
+        let req = test::TestRequest::get()
+            .uri("/app/v1/user/balance?q=eyAgICAiY2hhaW4iOiAibG9jYWxob3N0IiwgICAgImN1cnJlbmN5IjogIlhSUCJ9")
+            .append_header((header::AUTHORIZATION, "Bearer {{valid token}}"))
+            .to_request();
+
+        let result = test::call_service(&mut app, req).await;
+        assert_eq!(result.status(), StatusCode::BAD_REQUEST);
+    }
+
+    #[actix_web::test]
     async fn test_get_usdc_balance() {
         let pool = DatabaseConnection::init().await;
         let web3_client = Web3Client::new(Arc::new(PROVIDER.clone()));
@@ -107,7 +175,7 @@ mod tests {
 
         let req = test::TestRequest::get()
             .uri("/app/v1/user/balance?q=eyAgICAiY2hhaW4iOiAibG9jYWxob3N0IiwgICAgImN1cnJlbmN5IjogIlVTREMifQ==")
-            .append_header((header::AUTHORIZATION, "Bearer {token}"))
+            .append_header((header::AUTHORIZATION, "Bearer {{valid token}}"))
             .to_request();
 
         let result = test::call_service(&mut app, req).await;
@@ -127,7 +195,7 @@ mod tests {
 
         let req = test::TestRequest::get()
             .uri("/app/v1/user/balance?q=eyAgICAiY2hhaW4iOiAibG9jYWxob3N0IiwgICAgImN1cnJlbmN5IjogIkVUSCJ9")
-            .append_header((header::AUTHORIZATION, "Bearer {token}"))
+            .append_header((header::AUTHORIZATION, "Bearer {{valid token}}"))
             .to_request();
 
         let result = test::call_service(&mut app, req).await;

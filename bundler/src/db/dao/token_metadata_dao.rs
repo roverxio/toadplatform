@@ -134,7 +134,7 @@ mod tests {
     async fn test_get_metadata_without_currency() {
         let pool = DatabaseConnection::init().await;
         let chain = CONFIG.run_config.current_chain.clone();
-        let result = TokenMetadataDao::get_metadata(&pool, chain, None).await;
+        let result = TokenMetadataDao::get_metadata_by_currency(&pool, chain, None).await;
         assert!(result.is_ok());
     }
 
@@ -142,7 +142,9 @@ mod tests {
     async fn test_get_metadata_with_currency() {
         let pool = DatabaseConnection::init().await;
         let chain = CONFIG.run_config.current_chain.clone();
-        let result = TokenMetadataDao::get_metadata(&pool, chain, Some(String::from("ETH"))).await;
+        let result =
+            TokenMetadataDao::get_metadata_by_currency(&pool, chain, Some(String::from("ETH")))
+                .await;
         assert!(result.is_ok());
     }
 }
