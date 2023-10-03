@@ -9,7 +9,8 @@ use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvi
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
-use crate::errors::errors::ApiError;
+use crate::errors::base::ProviderError;
+use crate::errors::wallet::WalletError;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
@@ -28,7 +29,7 @@ impl WalletService {
         provider: &Web3Client,
         user: User,
         user_wallet: String,
-    ) -> Result<AddressResponse, ApiError> {
+    ) -> Result<AddressResponse, WalletError> {
         let result: Wallet;
         if user.wallet_address.is_empty() {
             result = Self::get_address(
@@ -36,8 +37,7 @@ impl WalletService {
                 user.external_user_id.as_str(),
                 user_wallet.parse().unwrap(),
             )
-            .await
-            .unwrap();
+            .await?;
             info!("salt -> {}", result.salt);
             WalletDao::create_wallet(
                 pool,
@@ -49,8 +49,7 @@ impl WalletService {
                 result.salt,
                 result.deployed,
             )
-            .await
-            .map_err(|_| ApiError::InternalServer("Failed to create wallet".to_string()))?;
+            .await?;
             // spawn a thread to mint for user
             spawn(MintService::mint(provider.clone(), result.address.clone()));
         } else {
@@ -70,18 +69,19 @@ impl WalletService {
         provider: &Web3Client,
         external_user_id: &str,
         user_wallet: Address,
-    ) -> Result<Wallet, String> {
-        let mut result;
+    ) -> Result<Wallet, ProviderError> {
+        let mut contract_address;
         let mut suffix = "".to_string();
         let mut salt;
         let mut deployed = false;
         loop {
             let user = external_user_id.to_string().clone() + suffix.as_str();
             salt = get_hash(user);
-            result = SimpleAccountFactoryProvider::get_address(provider, user_wallet, salt).await?;
-            if contract_exists_at(format!("{:?}", result)).await {
-                info!("contract exists at {:?}", result);
-                if Self::is_deployed_by_us(provider, result).await? {
+            contract_address =
+                SimpleAccountFactoryProvider::get_address(provider, user_wallet, salt).await?;
+            if contract_exists_at(format!("{:?}", contract_address)).await {
+                info!("contract exists at {:?}", contract_address);
+                if Self::is_deployed_by_us(provider, contract_address).await? {
                     deployed = true;
                     break;
                 }
@@ -90,12 +90,12 @@ impl WalletService {
             }
             suffix = SystemTime::now()
                 .duration_since(SystemTime::UNIX_EPOCH)
-                .unwrap()
+                .map_err(|err| ProviderError(format!("Failed to create suffix: {:?}", err)))?
                 .as_nanos()
                 .to_string();
         }
         Ok(Wallet {
-            address: result,
+            address: contract_address,
             salt: BigDecimal::from(salt),
             deployed,
         })
@@ -104,12 +104,12 @@ impl WalletService {
     async fn is_deployed_by_us(
         provider: &Web3Client,
         contract_address: Address,
-    ) -> Result<bool, String> {
+    ) -> Result<bool, ProviderError> {
         let account_deployed_by =
             SimpleAccountProvider::get_deployer(provider, contract_address).await;
         match account_deployed_by {
             Ok(account_deployed_by) => {
-                Ok(account_deployed_by == CONFIG.run_config.deployed_by_identifier.clone())
+                Ok(account_deployed_by == CONFIG.run_config.deployed_by_identifier)
             }
             Err(err) => Err(err),
         }
