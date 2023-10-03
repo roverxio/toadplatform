@@ -8,7 +8,6 @@ use crate::errors::errors::ApiError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
 use crate::models::transaction::poll_transaction_params::PollTransactionParams;
-use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
 use crate::provider::helpers::{get_user_wallet, respond_json};
@@ -47,19 +46,19 @@ pub async fn get_balance(
 }
 
 pub async fn list_transactions(
-    service: Data<WalletService>,
+    pool: Data<Pool<Postgres>>,
     query: Query<ListTransactionsParams>,
     user: ReqData<User>,
-) -> Result<Json<BaseResponse<Vec<Transaction>>>, ApiError> {
+) -> Result<HttpResponse, ApiError> {
     let query_params = query.into_inner();
-    let data = service
-        .list_transactions(
-            query_params.page_size.unwrap_or(10),
-            query_params.id,
-            user.into_inner(),
-        )
-        .await?;
-    respond_json(data)
+    let data = WalletService::list_transactions(
+        pool.get_ref(),
+        query_params.page_size.unwrap_or(10),
+        query_params.id,
+        user.into_inner(),
+    )
+    .await?;
+    Ok(HttpResponse::Ok().json(BaseResponse::init(data)))
 }
 
 pub async fn poll_transaction(
