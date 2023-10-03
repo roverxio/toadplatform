@@ -46,18 +46,18 @@ pub async fn get_balance(
 }
 
 pub async fn list_transactions(
-    service: Data<WalletService>,
+    pool: Data<Pool<Postgres>>,
     query: Query<ListTransactionsParams>,
     user: ReqData<User>,
 ) -> Result<HttpResponse, ApiError> {
     let query_params = query.into_inner();
-    let data = service
-        .list_transactions(
-            query_params.page_size.unwrap_or(10),
-            query_params.id,
-            user.into_inner(),
-        )
-        .await?;
+    let data = WalletService::list_transactions(
+        pool.get_ref(),
+        query_params.page_size.unwrap_or(10),
+        query_params.id,
+        user.into_inner(),
+    )
+    .await?;
     Ok(HttpResponse::Ok().json(BaseResponse::init(data)))
 }
 

@@ -1,12 +1,12 @@
 use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, Zero};
 use ethers::prelude::U256;
-use std::sync::Arc;
-use std::time::SystemTime;
-
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use log::{info, warn};
+use sqlx::{Pool, Postgres};
+use std::sync::Arc;
+use std::time::SystemTime;
 
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
@@ -22,7 +22,6 @@ use crate::CONFIG;
 #[derive(Clone)]
 pub struct WalletService {
     pub wallet_dao: WalletDao,
-    pub transaction_dao: TransactionDao,
     pub simple_account_factory_provider: SimpleAccountFactory<Provider<Http>>,
     pub client: Arc<Provider<Http>>,
     pub mint_service: MintService,
@@ -121,21 +120,17 @@ impl WalletService {
     }
 
     pub async fn list_transactions(
-        &self,
+        pool: &Pool<Postgres>,
         page_size: i64,
         id: Option<i32>,
         user: User,
     ) -> Result<Vec<Transaction>, ApiError> {
         let row_id = id.unwrap_or(i32::MAX);
 
-        let result = TransactionDao::list_transactions(
-            &self.transaction_dao.pool.clone(),
-            page_size,
-            row_id,
-            user.wallet_address,
-        )
-        .await
-        .map_err(|_| ApiError::InternalServer("Internal server error".to_string()))?;
+        let result =
+            TransactionDao::list_transactions(pool, page_size, row_id, user.wallet_address)
+                .await
+                .map_err(|_| ApiError::InternalServer("Internal server error".to_string()))?;
 
         let transactions = result
             .iter()
