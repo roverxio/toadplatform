@@ -40,17 +40,18 @@ impl WalletService {
                 .get_address(user.external_user_id.as_str(), user_wallet.parse().unwrap())
                 .await;
             info!("salt -> {}", result.salt);
-            self.wallet_dao
-                .create_wallet(
-                    user.email,
-                    user.name,
-                    format!("{:?}", result.address),
-                    user_wallet,
-                    user.external_user_id,
-                    result.salt,
-                    result.deployed,
-                )
-                .await;
+            WalletDao::create_wallet(
+                &self.wallet_dao.pool.clone(),
+                user.email,
+                user.name,
+                format!("{:?}", result.address),
+                user_wallet,
+                user.external_user_id,
+                result.salt,
+                result.deployed,
+            )
+            .await
+            .map_err(|_| ApiError::InternalServer("Failed to create wallet".to_string()))?;
             // spawn a thread to mint for user
             spawn(mint(
                 result.address.clone(),
