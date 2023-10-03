@@ -1,6 +1,6 @@
 use crate::errors::base::ProviderError;
 use crate::provider::web3_client::Web3Client;
-use ethers::abi::{Abi, Address};
+use ethers::abi::Address;
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Bytes, U256};
@@ -15,10 +15,6 @@ pub struct USDCProvider {
 }
 
 impl USDCProvider {
-    pub fn abi(&self) -> &Abi {
-        self.abi.abi()
-    }
-
     pub fn init_abi(address: Address, client: Arc<Provider<Http>>) -> ERC20<Provider<Http>> {
         let contract: ERC20<Provider<Http>> = ERC20::new(address, client);
         contract
@@ -36,9 +32,9 @@ impl USDCProvider {
         Ok(data.unwrap())
     }
 
-    pub fn mint(&self, to: Address, value: String) -> Result<Bytes, String> {
-        let data = self
-            .abi
+    pub fn mint(client: &Web3Client, to: Address, value: String) -> Result<Bytes, String> {
+        let data = client
+            .get_usdc_provider()
             .sudo_mint(to, U256::from_dec_str(&value).unwrap())
             .calldata();
         if data.is_none() {

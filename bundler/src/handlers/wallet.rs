@@ -18,13 +18,18 @@ use crate::services::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
 
 pub async fn get_address(
-    service: Data<WalletService>,
+    pool: Data<Pool<Postgres>>,
+    provider: Data<Web3Client>,
     user: ReqData<User>,
     req: HttpRequest,
 ) -> Result<Json<BaseResponse<AddressResponse>>, ApiError> {
-    let wallet_address = service
-        .get_wallet_address(user.into_inner(), get_user_wallet(req))
-        .await?;
+    let wallet_address = WalletService::get_wallet_address(
+        pool.get_ref(),
+        provider.get_ref(),
+        user.into_inner(),
+        get_user_wallet(req),
+    )
+    .await?;
     respond_json(wallet_address)
 }
 

@@ -1,7 +1,9 @@
-use crate::CONFIG;
+use crate::provider::web3_client::Web3Client;
+use ethers::abi::Address;
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
-use ethers::types::{Address, Bytes, U256};
+use ethers::types::{Bytes, U256};
+use log::error;
 use std::sync::Arc;
 
 abigen!(SimpleAccountFactory, "abi/SimpleAccountFactory.json");
@@ -13,13 +15,11 @@ pub struct SimpleAccountFactoryProvider {
 
 impl SimpleAccountFactoryProvider {
     pub fn init_abi(
-        current_chain: &str,
+        address: Address,
         client: Arc<Provider<Http>>,
     ) -> SimpleAccountFactory<Provider<Http>> {
-        let contract: SimpleAccountFactory<Provider<Http>> = SimpleAccountFactory::new(
-            CONFIG.chains[current_chain].simple_account_factory_address,
-            client,
-        );
+        let contract: SimpleAccountFactory<Provider<Http>> =
+            SimpleAccountFactory::new(address, client);
         contract
     }
 
@@ -30,5 +30,23 @@ impl SimpleAccountFactoryProvider {
         }
 
         Ok(data.unwrap())
+    }
+
+    pub async fn get_address(
+        client: &Web3Client,
+        owner: Address,
+        salt: u64,
+    ) -> Result<Address, String> {
+        let result = client
+            .get_factory_provider()
+            .get_address(owner, U256::from(salt))
+            .await;
+        match result {
+            Ok(address) => Ok(address),
+            Err(err) => {
+                error!("Failed to get address: {}", err);
+                Err(String::from("Failed to get address"))
+            }
+        }
     }
 }
