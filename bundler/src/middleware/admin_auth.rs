@@ -7,7 +7,7 @@ use log::error;
 use reqwest::header::HeaderName;
 use std::future::{ready, Ready};
 
-use crate::errors::ApiError;
+use crate::errors::errors::ApiError;
 
 pub struct AdminAuthMiddleware;
 

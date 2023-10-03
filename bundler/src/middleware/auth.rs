@@ -11,7 +11,7 @@ use std::pin::Pin;
 use std::sync::Arc;
 
 use crate::db::dao::wallet_dao::WalletDao;
-use crate::errors::ApiError;
+use crate::errors::errors::ApiError;
 use crate::services::auth_service::AuthService;
 
 pub struct ToadAuthMiddleware;

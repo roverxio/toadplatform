@@ -1,7 +1,7 @@
 use actix_web::web::{Data, Json};
 use actix_web::HttpResponse;
 
-use crate::errors::ApiError;
+use crate::errors::errors::ApiError;
 use crate::models::admin::metadata_response::MetadataResponse;
 use crate::models::response::base_response::BaseResponse;
 use crate::provider::helpers::respond_json;

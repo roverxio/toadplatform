@@ -1,3 +1,4 @@
+use crate::errors::base::DatabaseError;
 use chrono::{DateTime, Utc};
 use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
@@ -52,6 +53,16 @@ impl TokenMetadataDao {
         chain: String,
         currency: Option<String>,
     ) -> Vec<TokenMetadata> {
+        Self::get_metadata_by_currency(&self.pool, chain, currency)
+            .await
+            .unwrap()
+    }
+
+    pub async fn get_metadata_by_currency(
+        pool: &Pool<Postgres>,
+        chain: String,
+        currency: Option<String>,
+    ) -> Result<Vec<TokenMetadata>, DatabaseError> {
         let result: Result<Vec<TokenMetadata>, Error> = match currency {
             None => {
                 let query = query_as!(
@@ -59,7 +70,7 @@ impl TokenMetadataDao {
                     "SELECT * FROM token_metadata WHERE lower(chain) = lower($1) and is_supported = true",
                     chain
                 );
-                query.fetch_all(&self.pool).await
+                query.fetch_all(pool).await
             }
             Some(currency) => {
                 let query = query_as!(
@@ -68,14 +79,14 @@ impl TokenMetadataDao {
                     chain,
                     currency
                 );
-                query.fetch_all(&self.pool).await
+                query.fetch_all(pool).await
             }
         };
         match result {
-            Ok(currencies) => currencies,
+            Ok(currencies) => Ok(currencies),
             Err(err) => {
                 error!("Failed to get currencies, err: {:?}", err);
-                vec![]
+                Err(DatabaseError(String::from("Failed to get currencies")))
             }
         }
     }
