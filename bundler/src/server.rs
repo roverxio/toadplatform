@@ -28,7 +28,6 @@ use crate::provider::web3_client::Web3Client;
 use crate::routes::routes;
 use crate::services::admin_service::AdminService;
 use crate::services::hello_world_service::HelloWorldService;
-use crate::services::mint_service::MintService;
 use crate::services::token_metadata_service::TokenMetadataService;
 use crate::services::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
@@ -112,16 +111,8 @@ pub async fn init_services() -> ToadService {
 
     // Services
     let hello_world_service = HelloWorldService {};
-    let mint_service = MintService {
-        usdc_provider: usdc_provider.clone(),
-        signer: relayer_signer.clone(),
-    };
     let wallet_service = WalletService {
-        wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
-        simple_account_factory_provider: simple_account_factory.clone(),
-        client: client.clone(),
-        mint_service: mint_service.clone(),
     };
     let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),

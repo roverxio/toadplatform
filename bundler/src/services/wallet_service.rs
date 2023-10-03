@@ -1,15 +1,11 @@
 use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, Zero};
-use ethers::providers::{Http, Provider};
 use ethers::types::Address;
-use log::{info, warn};
+use log::info;
 use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 use std::time::SystemTime;
 
-use crate::contracts::simple_account_factory_provider::{
-    SimpleAccountFactory, SimpleAccountFactoryProvider,
-};
+use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
@@ -18,16 +14,12 @@ use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
 use crate::provider::web3_client::Web3Client;
-use crate::services::mint_service::{mint, MintService};
+use crate::services::mint_service::MintService;
 use crate::CONFIG;
 
 #[derive(Clone)]
 pub struct WalletService {
-    pub wallet_dao: WalletDao,
     pub transaction_dao: TransactionDao,
-    pub simple_account_factory_provider: SimpleAccountFactory<Provider<Http>>,
-    pub client: Arc<Provider<Http>>,
-    pub mint_service: MintService,
 }
 
 impl WalletService {
@@ -40,7 +32,7 @@ impl WalletService {
         let result: Wallet;
         if user.wallet_address.is_empty() {
             result = Self::get_address(
-                provider,
+                &provider.clone(),
                 user.external_user_id.as_str(),
                 user_wallet.parse().unwrap(),
             )
@@ -60,11 +52,7 @@ impl WalletService {
             .await
             .map_err(|_| ApiError::InternalServer("Failed to create wallet".to_string()))?;
             // spawn a thread to mint for user
-            // spawn(mint(
-            //     result.address.clone(),
-            //     self.mint_service.usdc_provider.clone(),
-            //     self.mint_service.signer.clone(),
-            // ));
+            spawn(MintService::mint(provider.clone(), result.address.clone()));
         } else {
             result = Wallet {
                 address: user.wallet_address.parse().unwrap(),
