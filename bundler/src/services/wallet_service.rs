@@ -10,7 +10,7 @@ use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::base::ProviderError;
-use crate::errors::errors::ApiError;
+use crate::errors::wallet::WalletError;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
@@ -29,7 +29,7 @@ impl WalletService {
         provider: &Web3Client,
         user: User,
         user_wallet: String,
-    ) -> Result<AddressResponse, ApiError> {
+    ) -> Result<AddressResponse, WalletError> {
         let result: Wallet;
         if user.wallet_address.is_empty() {
             result = Self::get_address(
@@ -37,8 +37,7 @@ impl WalletService {
                 user.external_user_id.as_str(),
                 user_wallet.parse().unwrap(),
             )
-            .await
-            .unwrap();
+            .await?;
             info!("salt -> {}", result.salt);
             WalletDao::create_wallet(
                 pool,
@@ -50,8 +49,7 @@ impl WalletService {
                 result.salt,
                 result.deployed,
             )
-            .await
-            .map_err(|_| ApiError::InternalServer("Failed to create wallet".to_string()))?;
+            .await?;
             // spawn a thread to mint for user
             spawn(MintService::mint(provider.clone(), result.address.clone()));
         } else {
