@@ -48,7 +48,7 @@ impl SimpleAccountProvider {
             Ok(address) => Ok(address),
             Err(err) => {
                 error!("Failed to get deployer: {}", err);
-                Err(format!("Failed to get deployer "))
+                Err(String::from("Failed to get deployer"))
             }
         }
     }
