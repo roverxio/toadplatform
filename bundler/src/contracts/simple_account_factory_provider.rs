@@ -1,10 +1,11 @@
-use crate::provider::web3_client::Web3Client;
 use ethers::abi::Address;
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Bytes, U256};
-use log::error;
 use std::sync::Arc;
+
+use crate::errors::base::ProviderError;
+use crate::provider::web3_client::Web3Client;
 
 abigen!(SimpleAccountFactory, "abi/SimpleAccountFactory.json");
 
@@ -36,17 +37,14 @@ impl SimpleAccountFactoryProvider {
         client: &Web3Client,
         owner: Address,
         salt: u64,
-    ) -> Result<Address, String> {
+    ) -> Result<Address, ProviderError> {
         let result = client
             .get_factory_provider()
             .get_address(owner, U256::from(salt))
             .await;
         match result {
             Ok(address) => Ok(address),
-            Err(err) => {
-                error!("Failed to get address: {}", err);
-                Err(String::from("Failed to get address"))
-            }
+            Err(err) => Err(ProviderError(format!("Failed to get address: {:?}", err))),
         }
     }
 }
