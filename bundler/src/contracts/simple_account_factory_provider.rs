@@ -1,3 +1,4 @@
+use crate::provider::web3_client::Web3Client;
 use ethers::abi::Address;
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
@@ -32,11 +33,14 @@ impl SimpleAccountFactoryProvider {
     }
 
     pub async fn get_address(
-        provider: SimpleAccountFactory<Provider<Http>>,
+        client: &Web3Client,
         owner: Address,
         salt: u64,
     ) -> Result<Address, String> {
-        let result = provider.get_address(owner, U256::from(salt)).await;
+        let result = client
+            .get_factory_provider()
+            .get_address(owner, U256::from(salt))
+            .await;
         match result {
             Ok(address) => Ok(address),
             Err(err) => {

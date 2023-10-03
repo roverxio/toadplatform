@@ -2,7 +2,10 @@ use ethers::abi::Address;
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Bytes, U256};
+use log::error;
 use std::sync::Arc;
+
+use crate::provider::web3_client::Web3Client;
 
 abigen!(SimpleAccount, "abi/SimpleAccount.json");
 
@@ -13,8 +16,8 @@ pub struct SimpleAccountProvider {
 
 impl SimpleAccountProvider {
     pub fn init_abi(
-        client: Arc<Provider<Http>>,
         address: Address,
+        client: Arc<Provider<Http>>,
     ) -> SimpleAccount<Provider<Http>> {
         let contract: SimpleAccount<Provider<Http>> = SimpleAccount::new(address, client);
         contract
@@ -30,5 +33,23 @@ impl SimpleAccountProvider {
         }
 
         Ok(data.unwrap())
+    }
+
+    pub async fn get_deployer(
+        client: &Web3Client,
+        contract_address: Address,
+    ) -> Result<String, String> {
+        let result = client
+            .get_scw_provider_by_address(contract_address)
+            .deployed_by()
+            .call()
+            .await;
+        match result {
+            Ok(address) => Ok(address),
+            Err(err) => {
+                error!("Failed to get deployer: {}", err);
+                Err(format!("Failed to get deployer "))
+            }
+        }
     }
 }

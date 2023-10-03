@@ -56,7 +56,7 @@ pub async fn init_services() -> ToadService {
     );
     let erc20 = USDCProvider::init_abi(CONFIG.get_chain().usdc_address, client.clone());
     let entrypoint = EntryPointProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
-    let simple_account = SimpleAccountProvider::init_abi(client.clone(), Address::zero());
+    let simple_account = SimpleAccountProvider::init_abi(Address::zero(), client.clone());
     let verifying_paymaster_provider =
         get_verifying_paymaster_abi(&CONFIG.run_config.current_chain, client.clone());
 

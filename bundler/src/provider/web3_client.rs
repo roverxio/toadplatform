@@ -1,10 +1,13 @@
+use ethers::providers::{Http, Provider};
+use ethers::types::Address;
+use std::sync::Arc;
+
 use crate::contracts::simple_account_factory_provider::{
     SimpleAccountFactory, SimpleAccountFactoryProvider,
 };
+use crate::contracts::simple_account_provider::{SimpleAccount, SimpleAccountProvider};
 use crate::contracts::usdc_provider::{USDCProvider, ERC20};
 use crate::CONFIG;
-use ethers::providers::{Http, Provider};
-use std::sync::Arc;
 
 #[derive(Clone)]
 pub struct Web3Client {
@@ -25,5 +28,9 @@ impl Web3Client {
             CONFIG.get_chain().simple_account_factory_address,
             self.client.clone(),
         )
+    }
+
+    pub fn get_scw_provider_by_address(&self, address: Address) -> SimpleAccount<Provider<Http>> {
+        SimpleAccountProvider::init_abi(address, self.client.clone())
     }
 }

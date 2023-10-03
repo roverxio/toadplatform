@@ -3,6 +3,7 @@ use bigdecimal::{BigDecimal, Zero};
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use log::{info, warn};
+use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 use std::time::SystemTime;
 
@@ -16,6 +17,7 @@ use crate::errors::errors::ApiError;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
+use crate::provider::web3_client::Web3Client;
 use crate::services::mint_service::{mint, MintService};
 use crate::CONFIG;
 
@@ -30,19 +32,23 @@ pub struct WalletService {
 
 impl WalletService {
     pub async fn get_wallet_address(
-        &self,
+        pool: &Pool<Postgres>,
+        provider: &Web3Client,
         user: User,
         user_wallet: String,
     ) -> Result<AddressResponse, ApiError> {
         let result: Wallet;
         if user.wallet_address.is_empty() {
-            result = self
-                .get_address(user.external_user_id.as_str(), user_wallet.parse().unwrap())
-                .await
-                .unwrap();
+            result = Self::get_address(
+                provider,
+                user.external_user_id.as_str(),
+                user_wallet.parse().unwrap(),
+            )
+            .await
+            .unwrap();
             info!("salt -> {}", result.salt);
             WalletDao::create_wallet(
-                &self.wallet_dao.pool.clone(),
+                pool,
                 user.email,
                 user.name,
                 format!("{:?}", result.address),
@@ -54,11 +60,11 @@ impl WalletService {
             .await
             .map_err(|_| ApiError::InternalServer("Failed to create wallet".to_string()))?;
             // spawn a thread to mint for user
-            spawn(mint(
-                result.address.clone(),
-                self.mint_service.usdc_provider.clone(),
-                self.mint_service.signer.clone(),
-            ));
+            // spawn(mint(
+            //     result.address.clone(),
+            //     self.mint_service.usdc_provider.clone(),
+            //     self.mint_service.signer.clone(),
+            // ));
         } else {
             result = Wallet {
                 address: user.wallet_address.parse().unwrap(),
@@ -73,7 +79,7 @@ impl WalletService {
     }
 
     async fn get_address(
-        &self,
+        provider: &Web3Client,
         external_user_id: &str,
         user_wallet: Address,
     ) -> Result<Wallet, String> {
@@ -84,15 +90,10 @@ impl WalletService {
         loop {
             let user = external_user_id.to_string().clone() + suffix.as_str();
             salt = get_hash(user);
-            result = SimpleAccountFactoryProvider::get_address(
-                self.simple_account_factory_provider.clone(),
-                user_wallet,
-                salt,
-            )
-            .await?;
+            result = SimpleAccountFactoryProvider::get_address(provider, user_wallet, salt).await?;
             if contract_exists_at(format!("{:?}", result)).await {
                 info!("contract exists at {:?}", result);
-                if Self::is_deployed_by_us(self.client.clone(), result).await? {
+                if Self::is_deployed_by_us(provider, result).await? {
                     deployed = true;
                     break;
                 }
@@ -113,19 +114,16 @@ impl WalletService {
     }
 
     async fn is_deployed_by_us(
-        client: Arc<Provider<Http>>,
+        provider: &Web3Client,
         contract_address: Address,
     ) -> Result<bool, String> {
-        let simple_account_provider = SimpleAccountProvider::init_abi(client, contract_address);
-        let account_deployed_by = simple_account_provider.deployed_by().call().await;
+        let account_deployed_by =
+            SimpleAccountProvider::get_deployer(provider, contract_address).await;
         match account_deployed_by {
             Ok(account_deployed_by) => {
                 Ok(account_deployed_by == CONFIG.run_config.deployed_by_identifier.clone())
             }
-            Err(err) => {
-                warn!("Error while calling 'deployedBy' -> {}", err);
-                Err(format!("Error while calling 'deployedBy' -> {}", err))
-            }
+            Err(err) => Err(err),
         }
     }
 
