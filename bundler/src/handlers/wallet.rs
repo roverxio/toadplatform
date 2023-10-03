@@ -58,7 +58,8 @@ pub async fn list_transactions(
             query_params.id,
             user.into_inner(),
         )
-        .await;
+        .await
+        .unwrap();
     respond_json(data)
 }
 
