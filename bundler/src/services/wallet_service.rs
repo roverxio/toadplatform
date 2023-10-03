@@ -1,14 +1,14 @@
 use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, Zero};
-use ethers::prelude::U256;
-use std::sync::Arc;
-use std::time::SystemTime;
-
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use log::{info, warn};
+use std::sync::Arc;
+use std::time::SystemTime;
 
-use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
+use crate::contracts::simple_account_factory_provider::{
+    SimpleAccountFactory, SimpleAccountFactoryProvider,
+};
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
@@ -38,7 +38,8 @@ impl WalletService {
         if user.wallet_address.is_empty() {
             result = self
                 .get_address(user.external_user_id.as_str(), user_wallet.parse().unwrap())
-                .await;
+                .await
+                .unwrap();
             info!("salt -> {}", result.salt);
             WalletDao::create_wallet(
                 &self.wallet_dao.pool.clone(),
@@ -71,7 +72,11 @@ impl WalletService {
         })
     }
 
-    async fn get_address(&self, external_user_id: &str, user_wallet: Address) -> Wallet {
+    async fn get_address(
+        &self,
+        external_user_id: &str,
+        user_wallet: Address,
+    ) -> Result<Wallet, String> {
         let mut result;
         let mut suffix = "".to_string();
         let mut salt;
@@ -79,14 +84,15 @@ impl WalletService {
         loop {
             let user = external_user_id.to_string().clone() + suffix.as_str();
             salt = get_hash(user);
-            result = self
-                .simple_account_factory_provider
-                .get_address(user_wallet, U256::from(salt))
-                .await
-                .unwrap();
+            result = SimpleAccountFactoryProvider::get_address(
+                self.simple_account_factory_provider.clone(),
+                user_wallet,
+                salt,
+            )
+            .await?;
             if contract_exists_at(format!("{:?}", result)).await {
                 info!("contract exists at {:?}", result);
-                if self.is_deployed_by_us(result).await {
+                if Self::is_deployed_by_us(self.client.clone(), result).await? {
                     deployed = true;
                     break;
                 }
@@ -99,24 +105,26 @@ impl WalletService {
                 .as_nanos()
                 .to_string();
         }
-        Wallet {
+        Ok(Wallet {
             address: result,
             salt: BigDecimal::from(salt),
             deployed,
-        }
+        })
     }
 
-    async fn is_deployed_by_us(&self, contract_address: Address) -> bool {
-        let simple_account_provider =
-            SimpleAccountProvider::init_abi(self.client.clone(), contract_address);
+    async fn is_deployed_by_us(
+        client: Arc<Provider<Http>>,
+        contract_address: Address,
+    ) -> Result<bool, String> {
+        let simple_account_provider = SimpleAccountProvider::init_abi(client, contract_address);
         let account_deployed_by = simple_account_provider.deployed_by().call().await;
         match account_deployed_by {
             Ok(account_deployed_by) => {
-                account_deployed_by == CONFIG.run_config.deployed_by_identifier.clone()
+                Ok(account_deployed_by == CONFIG.run_config.deployed_by_identifier.clone())
             }
             Err(err) => {
                 warn!("Error while calling 'deployedBy' -> {}", err);
-                false
+                Err(format!("Error while calling 'deployedBy' -> {}", err))
             }
         }
     }

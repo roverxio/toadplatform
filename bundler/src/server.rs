@@ -50,8 +50,10 @@ pub async fn init_services() -> ToadService {
     info!("Starting server...");
     // contract providers
     let client = Arc::new(PROVIDER.clone());
-    let simple_account_factory =
-        SimpleAccountFactoryProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
+    let simple_account_factory = SimpleAccountFactoryProvider::init_abi(
+        CONFIG.get_chain().simple_account_factory_address,
+        client.clone(),
+    );
     let erc20 = USDCProvider::init_abi(CONFIG.get_chain().usdc_address, client.clone());
     let entrypoint = EntryPointProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
     let simple_account = SimpleAccountProvider::init_abi(client.clone(), Address::zero());
