@@ -13,6 +13,7 @@ use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::errors::ApiError;
+use crate::errors::transaction::TransactionError;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
@@ -124,18 +125,17 @@ impl WalletService {
         page_size: i64,
         id: Option<i32>,
         user: User,
-    ) -> Result<Vec<Transaction>, ApiError> {
+    ) -> Result<Vec<Transaction>, TransactionError> {
         let row_id = id.unwrap_or(i32::MAX);
 
         let result =
-            TransactionDao::list_transactions(pool, page_size, row_id, user.wallet_address)
-                .await
-                .map_err(|_| ApiError::InternalServer("Internal server error".to_string()))?;
+            TransactionDao::list_transactions(pool, page_size, row_id, user.wallet_address).await?;
 
         let transactions = result
             .iter()
             .map(|txn| Transaction::from(txn.clone()))
             .collect();
+
         Ok(transactions)
     }
 }

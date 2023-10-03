@@ -7,6 +7,8 @@ use sqlx::types::JsonValue;
 use sqlx::{query, query_as, Pool, Postgres};
 use std::default::Default;
 
+use crate::errors::base::DatabaseError;
+
 #[derive(Clone)]
 pub struct TransactionDao {
     pub pool: Pool<Postgres>,
@@ -18,7 +20,7 @@ impl TransactionDao {
         page_size: i64,
         id: i32,
         user_wallet: String,
-    ) -> Result<Vec<UserTransaction>, String> {
+    ) -> Result<Vec<UserTransaction>, DatabaseError> {
         let query = query_as!(
             UserTransaction,
             "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, t1.to_address, \
@@ -34,7 +36,10 @@ impl TransactionDao {
         let result = query.fetch_all(pool).await;
         match result {
             Ok(rows) => Ok(rows),
-            Err(error) => Err(format!("Failed to fetch transactions: {:?}", error)),
+            Err(error) => Err(DatabaseError(format!(
+                "Failed to fetch transactions: {:?}",
+                error
+            ))),
         }
     }
 

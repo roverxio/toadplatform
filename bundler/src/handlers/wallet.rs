@@ -5,6 +5,7 @@ use sqlx::{Pool, Postgres};
 use crate::db::dao::wallet_dao::User;
 use crate::errors::balance::BalanceError;
 use crate::errors::errors::ApiError;
+use crate::errors::transaction::TransactionError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
 use crate::models::transaction::poll_transaction_params::PollTransactionParams;
@@ -49,7 +50,7 @@ pub async fn list_transactions(
     pool: Data<Pool<Postgres>>,
     query: Query<ListTransactionsParams>,
     user: ReqData<User>,
-) -> Result<HttpResponse, ApiError> {
+) -> Result<HttpResponse, TransactionError> {
     let query_params = query.into_inner();
     let data = WalletService::list_transactions(
         pool.get_ref(),
