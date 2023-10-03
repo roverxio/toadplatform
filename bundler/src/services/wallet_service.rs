@@ -1,18 +1,19 @@
 use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, Zero};
 use ethers::prelude::U256;
-use std::sync::Arc;
-use std::time::SystemTime;
-
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use log::{info, warn};
+use sqlx::{Pool, Postgres};
+use std::sync::Arc;
+use std::time::SystemTime;
 
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactory;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::errors::ApiError;
+use crate::errors::transaction::TransactionError;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
@@ -22,7 +23,6 @@ use crate::CONFIG;
 #[derive(Clone)]
 pub struct WalletService {
     pub wallet_dao: WalletDao,
-    pub transaction_dao: TransactionDao,
     pub simple_account_factory_provider: SimpleAccountFactory<Provider<Http>>,
     pub client: Arc<Provider<Http>>,
     pub mint_service: MintService,
@@ -121,24 +121,22 @@ impl WalletService {
     }
 
     pub async fn list_transactions(
-        &self,
+        pool: &Pool<Postgres>,
         page_size: i64,
         id: Option<i32>,
         user: User,
-    ) -> Vec<Transaction> {
+    ) -> Result<Vec<Transaction>, TransactionError> {
         let row_id = id.unwrap_or(i32::MAX);
 
-        let mut transactions = Vec::new();
-        let result = self
-            .transaction_dao
-            .list_transactions(page_size, row_id, user.wallet_address)
-            .await;
+        let result =
+            TransactionDao::list_transactions(pool, page_size, row_id, user.wallet_address).await?;
 
-        for transaction_and_exponent in result {
-            transactions.push(Transaction::from(transaction_and_exponent))
-        }
+        let transactions = result
+            .iter()
+            .map(|txn| Transaction::from(txn.clone()))
+            .collect();
 
-        transactions
+        Ok(transactions)
     }
 }
 

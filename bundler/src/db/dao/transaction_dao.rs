@@ -7,6 +7,8 @@ use sqlx::types::JsonValue;
 use sqlx::{query, query_as, Pool, Postgres};
 use std::default::Default;
 
+use crate::errors::base::DatabaseError;
+
 #[derive(Clone)]
 pub struct TransactionDao {
     pub pool: Pool<Postgres>,
@@ -14,30 +16,31 @@ pub struct TransactionDao {
 
 impl TransactionDao {
     pub async fn list_transactions(
-        &self,
+        pool: &Pool<Postgres>,
         page_size: i64,
         id: i32,
         user_wallet: String,
-    ) -> Vec<UserTransaction> {
+    ) -> Result<Vec<UserTransaction>, DatabaseError> {
         let query = query_as!(
             UserTransaction,
             "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, t1.to_address, \
             t1.amount, t1.currency, t1.type as transaction_type, t1.status, t1.metadata, \
             t1.created_at, t1.updated_at, t2.exponent from user_transactions t1 left join \
-            token_metadata t2 on lower(t1.currency) = lower(t2.symbol) and lower(t1.metadata ->> 'chain') = lower(t2.chain) \
+            token_metadata t2 on lower(t1.currency) = lower(t2.symbol) \
+            and lower(t1.metadata ->> 'chain') = lower(t2.chain) \
             where user_address = $1 and id < $2 order by id desc limit $3",
             user_wallet,
             id,
             page_size
         );
-        let result = query.fetch_all(&self.pool).await;
-        return match result {
-            Ok(rows) => rows,
-            Err(error) => {
-                error!("Failed to fetch transactions: {:?}", error);
-                vec![]
-            }
-        };
+        let result = query.fetch_all(pool).await;
+        match result {
+            Ok(rows) => Ok(rows),
+            Err(error) => Err(DatabaseError(format!(
+                "Failed to fetch transactions: {:?}",
+                error
+            ))),
+        }
     }
 
     pub async fn create_user_transaction(&self, txn: UserTransaction) {
