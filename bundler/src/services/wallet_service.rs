@@ -125,20 +125,23 @@ impl WalletService {
         page_size: i64,
         id: Option<i32>,
         user: User,
-    ) -> Vec<Transaction> {
+    ) -> Result<Vec<Transaction>, ApiError> {
         let row_id = id.unwrap_or(i32::MAX);
 
-        let mut transactions = Vec::new();
-        let result = self
-            .transaction_dao
-            .list_transactions(page_size, row_id, user.wallet_address)
-            .await;
+        let result = TransactionDao::list_transactions(
+            &self.transaction_dao.pool.clone(),
+            page_size,
+            row_id,
+            user.wallet_address,
+        )
+        .await
+        .map_err(|_| ApiError::InternalServer("Internal server error".to_string()))?;
 
-        for transaction_and_exponent in result {
-            transactions.push(Transaction::from(transaction_and_exponent))
-        }
-
-        transactions
+        let transactions = result
+            .iter()
+            .map(|txn| Transaction::from(txn.clone()))
+            .collect();
+        Ok(transactions)
     }
 }
 
