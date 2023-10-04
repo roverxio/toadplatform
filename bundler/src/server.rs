@@ -132,7 +132,6 @@ pub async fn init_services() -> ToadService {
         paymaster_provider: verify_paymaster_provider.clone(),
         entrypoint_provider: entrypoint_provider.clone(),
         relayer_signer: relayer_signer.clone(),
-        metadata_dao: token_metadata_dao.clone(),
     };
     let token_metadata_service = TokenMetadataService {
         token_metadata_dao: token_metadata_dao.clone(),

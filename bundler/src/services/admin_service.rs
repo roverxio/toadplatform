@@ -28,7 +28,6 @@ pub struct AdminService {
     pub paymaster_provider: PaymasterProvider,
     pub entrypoint_provider: EntryPointProvider,
     pub relayer_signer: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
-    pub metadata_dao: TokenMetadataDao,
 }
 
 impl AdminService {
