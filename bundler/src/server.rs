@@ -28,7 +28,6 @@ use crate::provider::web3_client::Web3Client;
 use crate::routes::routes;
 use crate::services::admin_service::AdminService;
 use crate::services::hello_world_service::HelloWorldService;
-use crate::services::mint_service::MintService;
 use crate::services::token_metadata_service::TokenMetadataService;
 use crate::services::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
@@ -50,11 +49,13 @@ pub async fn init_services() -> ToadService {
     info!("Starting server...");
     // contract providers
     let client = Arc::new(PROVIDER.clone());
-    let simple_account_factory =
-        SimpleAccountFactoryProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
+    let simple_account_factory = SimpleAccountFactoryProvider::init_abi(
+        CONFIG.get_chain().simple_account_factory_address,
+        client.clone(),
+    );
     let erc20 = USDCProvider::init_abi(CONFIG.get_chain().usdc_address, client.clone());
     let entrypoint = EntryPointProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
-    let simple_account = SimpleAccountProvider::init_abi(client.clone(), Address::zero());
+    let simple_account = SimpleAccountProvider::init_abi(Address::zero(), client.clone());
     let verifying_paymaster_provider =
         get_verifying_paymaster_abi(&CONFIG.run_config.current_chain, client.clone());
 
@@ -110,16 +111,7 @@ pub async fn init_services() -> ToadService {
 
     // Services
     let hello_world_service = HelloWorldService {};
-    let mint_service = MintService {
-        usdc_provider: usdc_provider.clone(),
-        signer: relayer_signer.clone(),
-    };
-    let wallet_service = WalletService {
-        wallet_dao: wallet_dao.clone(),
-        simple_account_factory_provider: simple_account_factory.clone(),
-        client: client.clone(),
-        mint_service: mint_service.clone(),
-    };
+    let wallet_service = WalletService {};
     let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
