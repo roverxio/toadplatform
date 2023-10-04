@@ -2,8 +2,8 @@ use actix_web::web::{Data, Json, Path, Query};
 use actix_web::{HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 
-use crate::errors::admin::AdminError;
 use crate::errors::errors::ApiError;
+use crate::errors::AdminError;
 use crate::models::admin::add_metadata_request::AddMetadataRequest;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::response::base_response::BaseResponse;
