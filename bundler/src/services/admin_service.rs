@@ -1,15 +1,16 @@
-use std::sync::Arc;
-
 use ethers::middleware::SignerMiddleware;
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use ethers::utils::parse_ether;
 use ethers_signers::LocalWallet;
+use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::errors::errors::ApiError;
+use crate::errors::AdminError;
 use crate::models::admin::add_metadata_request::AddMetadataRequest;
 use crate::models::admin::metadata_response::MetadataResponse;
 use crate::models::metadata::Metadata;
@@ -27,7 +28,6 @@ pub struct AdminService {
     pub paymaster_provider: PaymasterProvider,
     pub entrypoint_provider: EntryPointProvider,
     pub relayer_signer: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
-    pub metadata_dao: TokenMetadataDao,
 }
 
 impl AdminService {
@@ -112,26 +112,26 @@ impl AdminService {
     }
 
     pub async fn add_currency_metadata(
-        &self,
+        pool: &Pool<Postgres>,
         metadata: AddMetadataRequest,
-    ) -> Result<MetadataResponse, ApiError> {
-        self.metadata_dao
-            .add_metadata(
-                metadata.get_chain_name().clone(),
-                metadata.get_symbol(),
-                metadata.get_contract_address(),
-                metadata.get_exponent(),
-                metadata.get_token_type(),
-                metadata.get_token_name(),
-                metadata.get_chain_id(),
-                metadata.get_chain_display_name(),
-                metadata.get_token_image_url(),
-            )
-            .await;
-        let supported_currencies = self
-            .metadata_dao
-            .get_metadata_for_chain(metadata.get_chain_name(), None)
-            .await;
+    ) -> Result<MetadataResponse, AdminError> {
+        TokenMetadataDao::add_metadata(
+            pool,
+            metadata.get_chain_name().clone(),
+            metadata.get_symbol(),
+            metadata.get_contract_address(),
+            metadata.get_exponent(),
+            metadata.get_token_type(),
+            metadata.get_token_name(),
+            metadata.get_chain_id(),
+            metadata.get_chain_display_name(),
+            metadata.get_token_image_url(),
+        )
+        .await?;
+
+        let supported_currencies =
+            TokenMetadataDao::get_metadata_by_currency(pool, metadata.get_chain_name(), None)
+                .await?;
 
         let exponent_metadata = MetadataResponse::new().to(
             supported_currencies.clone(),
