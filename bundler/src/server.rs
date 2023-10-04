@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use actix_web::middleware::Logger;
 use actix_web::web::Data;
 use actix_web::{App, HttpServer};
@@ -10,6 +8,7 @@ use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
 use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -30,13 +29,11 @@ use crate::services::admin_service::AdminService;
 use crate::services::hello_world_service::HelloWorldService;
 use crate::services::token_metadata_service::TokenMetadataService;
 use crate::services::transfer_service::TransferService;
-use crate::services::wallet_service::WalletService;
 use crate::{CONFIG, PROVIDER};
 
 #[derive(Clone)]
 pub struct ToadService {
     pub hello_world_service: HelloWorldService,
-    pub wallet_service: WalletService,
     pub transfer_service: TransferService,
     pub admin_service: AdminService,
     pub token_metadata_service: TokenMetadataService,
@@ -111,7 +108,6 @@ pub async fn init_services() -> ToadService {
 
     // Services
     let hello_world_service = HelloWorldService {};
-    let wallet_service = WalletService {};
     let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
@@ -138,7 +134,6 @@ pub async fn init_services() -> ToadService {
 
     ToadService {
         hello_world_service,
-        wallet_service,
         transfer_service,
         admin_service,
         token_metadata_service,
@@ -161,7 +156,6 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .wrap(Logger::default())
             .configure(routes)
             .app_data(Data::new(service.hello_world_service.clone()))
-            .app_data(Data::new(service.wallet_service.clone()))
             .app_data(Data::new(service.transfer_service.clone()))
             .app_data(Data::new(service.admin_service.clone()))
             .app_data(Data::new(service.token_metadata_service.clone()))
