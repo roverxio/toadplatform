@@ -4,7 +4,7 @@ use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::types::JsonValue;
-use sqlx::{query, query_as, Pool, Postgres};
+use sqlx::{query, query_as, Error, Pool, Postgres};
 use std::default::Default;
 
 use crate::errors::base::DatabaseError;
@@ -83,7 +83,7 @@ impl TransactionDao {
         pool: &Pool<Postgres>,
         txn_id: String,
         user_wallet_address: String,
-    ) -> Result<UserTransaction, String> {
+    ) -> Result<UserTransaction, DatabaseError> {
         let query = query_as!(
             UserTransaction,
             "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
@@ -99,7 +99,13 @@ impl TransactionDao {
         let result = query.fetch_one(pool).await;
         match result {
             Ok(row) => Ok(row),
-            Err(error) => Err(format!("Failed to fetch transactions: {:?}", error)),
+            Err(error) => match error {
+                Error::RowNotFound => Err(DatabaseError::NotFound),
+                err => Err(DatabaseError::ServerError(format!(
+                    "Failed to get transaction: {:?}",
+                    err
+                ))),
+            },
         }
     }
 
