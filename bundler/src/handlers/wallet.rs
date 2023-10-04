@@ -63,20 +63,16 @@ pub async fn list_transactions(
 }
 
 pub async fn poll_transaction(
-    db_pool: Data<Pool<Postgres>>,
+    pool: Data<Pool<Postgres>>,
     query: Query<PollTransactionParams>,
     user: ReqData<User>,
 ) -> Result<HttpResponse, Error> {
     let transaction = TransferService::get_status(
-        db_pool.get_ref(),
+        pool.get_ref(),
         query.transaction_id.clone(),
         user.into_inner(),
     )
-    .await
-    .unwrap();
+    .await?;
 
-    Ok(HttpResponse::Ok().json(BaseResponse {
-        data: transaction,
-        err: Default::default(),
-    }))
+    Ok(HttpResponse::Ok().json(BaseResponse::init(transaction)))
 }

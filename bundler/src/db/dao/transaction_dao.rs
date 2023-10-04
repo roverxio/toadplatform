@@ -83,26 +83,24 @@ impl TransactionDao {
         pool: &Pool<Postgres>,
         txn_id: String,
         user_wallet_address: String,
-    ) -> UserTransaction {
+    ) -> Result<UserTransaction, String> {
         let query = query_as!(
             UserTransaction,
             "SELECT t1.id, t1.user_address, t1.transaction_id, t1.from_address, \
             t1.to_address, t1.amount, t1.currency, t1.type as transaction_type, \
             t1.status, t1.metadata, t1.created_at, t1.updated_at, t2.exponent \
             from user_transactions t1 left join token_metadata t2 \
-            on lower(t1.currency) = lower(t2.symbol) and lower(t1.metadata ->> 'chain') = lower(t2.chain) \
+            on lower(t1.currency) = lower(t2.symbol) and \
+            lower(t1.metadata ->> 'chain') = lower(t2.chain) \
             where transaction_id = $1 and user_address = $2",
             txn_id,
             user_wallet_address,
         );
         let result = query.fetch_one(pool).await;
-        return match result {
-            Ok(row) => row,
-            Err(error) => {
-                error!("Failed to fetch transactions: {:?}", error);
-                UserTransaction::default()
-            }
-        };
+        match result {
+            Ok(row) => Ok(row),
+            Err(error) => Err(format!("Failed to fetch transactions: {:?}", error)),
+        }
     }
 
     pub async fn update_user_transaction(
