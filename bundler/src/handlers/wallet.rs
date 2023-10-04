@@ -72,11 +72,7 @@ pub async fn poll_transaction(
         query.transaction_id.clone(),
         user.into_inner(),
     )
-    .await
-    .unwrap();
+    .await?;
 
-    Ok(HttpResponse::Ok().json(BaseResponse {
-        data: transaction,
-        err: Default::default(),
-    }))
+    Ok(HttpResponse::Ok().json(BaseResponse::init(transaction)))
 }
