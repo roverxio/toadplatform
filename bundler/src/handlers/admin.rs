@@ -9,7 +9,6 @@ use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
-use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::helpers::{get_user, respond_json};
 use crate::provider::web3_client::Web3Client;
 use crate::services::admin_service::AdminService;
@@ -36,9 +35,9 @@ pub async fn admin_get_balance(
     body: Query<BalanceRequest>,
     req: HttpRequest,
     entity: Path<String>,
-) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
+) -> Result<HttpResponse, AdminError> {
     if is_not_admin(get_user(req)) {
-        return Err(ApiError::BadRequest("Invalid credentials".to_string()));
+        return Err(AdminError::Unauthorized);
     }
     let response = AdminService::get_balance(
         provider.get_ref(),
@@ -46,7 +45,7 @@ pub async fn admin_get_balance(
         body.get_balance_request(),
     )
     .await?;
-    respond_json(response)
+    Ok(HttpResponse::Ok().json(BaseResponse::init(response)))
 }
 
 pub async fn add_currency_metadata(

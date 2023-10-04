@@ -3,9 +3,9 @@ use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use ethers::types::U256;
 use ethers::utils::format_ether;
-use log::error;
 use std::sync::Arc;
 
+use crate::errors::base::ProviderError;
 use crate::models::contract_interaction;
 use crate::provider::web3_client::Web3Client;
 
@@ -22,19 +22,18 @@ impl VerifyingPaymasterProvider {
         contract
     }
 
-    pub async fn get_deposit(client: &Web3Client) -> Result<String, String> {
+    pub async fn get_deposit(client: &Web3Client) -> Result<String, ProviderError> {
         let response = client
             .get_verifying_paymaster_provider()
             .get_deposit()
             .await;
-        if response.is_err() {
-            error!(
+        match response {
+            Ok(deposit) => Ok(format_ether(deposit)),
+            Err(err) => Err(ProviderError(format!(
                 "Paymaster: Deposit: {:?}",
-                response.err().unwrap().to_string()
-            );
-            return Err(String::from("Failed to get balance"));
+                err.to_string()
+            ))),
         }
-        Ok(format_ether(response.unwrap()))
     }
 
     pub fn get_verifying_paymaster_user_operation_payload(
