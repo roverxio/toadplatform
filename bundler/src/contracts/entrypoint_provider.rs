@@ -4,6 +4,7 @@ use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
 use std::sync::Arc;
 
+use crate::errors::base::ProviderError;
 use crate::models::contract_interaction;
 use crate::provider::web3_client::Web3Client;
 
@@ -31,15 +32,18 @@ impl EntryPointProvider {
         Ok(result.unwrap())
     }
 
-    pub async fn add_deposit(client: &Web3Client, address: Address) -> Result<Bytes, String> {
+    pub async fn add_deposit(
+        client: &Web3Client,
+        address: Address,
+    ) -> Result<Bytes, ProviderError> {
         let data = client
             .get_entrypoint_provider()
             .deposit_to(address)
             .calldata();
-        if data.is_none() {
-            return Err(String::from("add deposit data failed"));
+        match data {
+            Some(call_data) => Ok(call_data),
+            None => Err(ProviderError(String::from("EP: Add deposit data failed"))),
         }
-        Ok(data.unwrap())
     }
 
     pub async fn handle_ops(
