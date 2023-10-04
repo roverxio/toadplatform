@@ -70,12 +70,6 @@ pub async fn init_services() -> ToadService {
         .unwrap();
 
     //signers
-    let relayer_signer = SignerMiddleware::new(
-        client.clone(),
-        relayer_wallet
-            .clone()
-            .with_chain_id(CONFIG.get_chain().chain_id),
-    );
     let bundler_signer = SignerMiddleware::new(
         client.clone(),
         relayer_wallet
