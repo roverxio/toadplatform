@@ -1,12 +1,10 @@
-use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
 use ethers::types::U256;
 use std::sync::Arc;
 
+use crate::contracts::verifying_paymaster_provider::{UserOperation, VerifyingPaymaster};
 use crate::models::contract_interaction;
 use crate::CONFIG;
-
-abigen!(VerifyingPaymaster, "abi/VerifyingPaymaster.json");
 
 pub fn get_verifying_paymaster_abi(
     current_chain: &str,
