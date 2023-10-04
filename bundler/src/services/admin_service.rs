@@ -8,6 +8,7 @@ use std::sync::Arc;
 
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
+use crate::contracts::verifying_paymaster_provider::VerifyingPaymasterProvider;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::errors::errors::ApiError;
 use crate::errors::AdminError;
@@ -20,6 +21,7 @@ use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::balance_request::Balance;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::paymaster_provider::PaymasterProvider;
+use crate::provider::web3_client::Web3Client;
 use crate::provider::web3_provider::Web3Provider;
 use crate::CONFIG;
 
@@ -75,7 +77,7 @@ impl AdminService {
     }
 
     pub async fn get_balance(
-        &self,
+        provider: &Web3Client,
         entity: String,
         data: Balance,
     ) -> Result<BalanceResponse, ApiError> {
@@ -84,7 +86,7 @@ impl AdminService {
         }
         if Constants::PAYMASTER == entity {
             let paymaster_address = &CONFIG.get_chain().verifying_paymaster_address;
-            let response = self.paymaster_provider.get_deposit().await;
+            let response = VerifyingPaymasterProvider::get_deposit(provider).await;
             return Self::get_balance_response(paymaster_address, response, data.currency);
         }
         if Constants::RELAYER == entity {
@@ -93,22 +95,6 @@ impl AdminService {
             return Self::get_balance_response(relayer_address, response, data.currency);
         }
         Err(ApiError::BadRequest("Invalid entity".to_string()))
-    }
-
-    fn get_balance_response(
-        address: &Address,
-        response: Result<String, String>,
-        currency: String,
-    ) -> Result<BalanceResponse, ApiError> {
-        return match response {
-            Ok(balance) => Ok(BalanceResponse::new(
-                balance,
-                format!("{:?}", address),
-                currency,
-                0, // sending parsed eth here for ease of readability
-            )),
-            Err(error) => Err(ApiError::InternalServer(error)),
-        };
     }
 
     pub async fn add_currency_metadata(
@@ -143,5 +129,21 @@ impl AdminService {
         );
 
         Ok(exponent_metadata)
+    }
+
+    fn get_balance_response(
+        address: &Address,
+        response: Result<String, String>,
+        currency: String,
+    ) -> Result<BalanceResponse, ApiError> {
+        return match response {
+            Ok(balance) => Ok(BalanceResponse::new(
+                balance,
+                format!("{:?}", address),
+                currency,
+                0, // sending parsed eth here for ease of readability
+            )),
+            Err(error) => Err(ApiError::InternalServer(error)),
+        };
     }
 }

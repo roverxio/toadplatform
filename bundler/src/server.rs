@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use actix_web::middleware::Logger;
 use actix_web::web::Data;
 use actix_web::{App, HttpServer};
@@ -10,12 +8,14 @@ use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use log::info;
 use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
+use crate::contracts::verifying_paymaster_provider::VerifyingPaymasterProvider;
 use crate::db::connection::DatabaseConnection;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::transaction_dao::TransactionDao;
@@ -23,7 +23,6 @@ use crate::db::dao::user_operation_dao::UserOperationDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
 use crate::provider::paymaster_provider::PaymasterProvider;
-use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
 use crate::provider::web3_client::Web3Client;
 use crate::routes::routes;
 use crate::services::admin_service::AdminService;
@@ -56,8 +55,10 @@ pub async fn init_services() -> ToadService {
     let erc20 = USDCProvider::init_abi(CONFIG.get_chain().usdc_address, client.clone());
     let entrypoint = EntryPointProvider::init_abi(&CONFIG.run_config.current_chain, client.clone());
     let simple_account = SimpleAccountProvider::init_abi(Address::zero(), client.clone());
-    let verifying_paymaster_provider =
-        get_verifying_paymaster_abi(&CONFIG.run_config.current_chain, client.clone());
+    let verifying_paymaster_provider = VerifyingPaymasterProvider::init_abi(
+        CONFIG.get_chain().verifying_paymaster_address,
+        client.clone(),
+    );
 
     //wallets
     let verifying_paymaster_wallet: LocalWallet = std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY")

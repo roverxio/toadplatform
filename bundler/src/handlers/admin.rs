@@ -11,6 +11,7 @@ use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
 use crate::models::wallet::balance_response::BalanceResponse;
 use crate::provider::helpers::{get_user, respond_json};
+use crate::provider::web3_client::Web3Client;
 use crate::services::admin_service::AdminService;
 use crate::CONFIG;
 
@@ -31,7 +32,7 @@ pub async fn topup_paymaster_deposit(
 }
 
 pub async fn admin_get_balance(
-    service: Data<AdminService>,
+    provider: Data<Web3Client>,
     body: Query<BalanceRequest>,
     req: HttpRequest,
     entity: Path<String>,
@@ -39,9 +40,12 @@ pub async fn admin_get_balance(
     if is_not_admin(get_user(req)) {
         return Err(ApiError::BadRequest("Invalid credentials".to_string()));
     }
-    let response = service
-        .get_balance(entity.clone(), body.get_balance_request())
-        .await?;
+    let response = AdminService::get_balance(
+        provider.get_ref(),
+        entity.clone(),
+        body.get_balance_request(),
+    )
+    .await?;
     respond_json(response)
 }
 
