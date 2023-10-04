@@ -15,7 +15,7 @@ use crate::services::admin_service::AdminService;
 use crate::CONFIG;
 
 pub async fn topup_paymaster_deposit(
-    service: Data<AdminService>,
+    provider: Data<Web3Client>,
     body: Json<PaymasterTopup>,
     req: HttpRequest,
     paymaster: Path<String>,
@@ -24,9 +24,13 @@ pub async fn topup_paymaster_deposit(
         return Err(ApiError::BadRequest("Invalid credentials".to_string()));
     }
     let req = body.into_inner();
-    let response = service
-        .topup_paymaster_deposit(req.value, paymaster.clone(), req.metadata)
-        .await?;
+    let response = AdminService::topup_paymaster_deposit(
+        provider.as_ref(),
+        req.value,
+        paymaster.clone(),
+        req.metadata,
+    )
+    .await?;
     respond_json(response)
 }
 

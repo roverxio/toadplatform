@@ -4,6 +4,7 @@ use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use std::sync::Arc;
 
+use crate::contracts::entrypoint_provider::{EntryPoint, EntryPointProvider};
 use crate::contracts::simple_account_factory_provider::{
     SimpleAccountFactory, SimpleAccountFactoryProvider,
 };
@@ -39,6 +40,10 @@ impl Web3Client {
         )
     }
 
+    pub fn get_entrypoint_provider(&self) -> EntryPoint<Provider<Http>> {
+        EntryPointProvider::init_abi(CONFIG.get_chain().entrypoint_address, self.client.clone())
+    }
+
     pub fn get_scw_provider_by_address(&self, address: Address) -> SimpleAccount<Provider<Http>> {
         SimpleAccountProvider::init_abi(address, self.client.clone())
     }
@@ -50,7 +55,7 @@ impl Web3Client {
         )
     }
 
-    fn get_relayer_wallet() -> LocalWallet {
+    pub fn get_relayer_wallet() -> LocalWallet {
         std::env::var("WALLET_PRIVATE_KEY")
             .expect("WALLET_PRIVATE_KEY must be set")
             .parse::<LocalWallet>()

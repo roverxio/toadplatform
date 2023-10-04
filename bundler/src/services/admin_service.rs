@@ -34,7 +34,7 @@ pub struct AdminService {
 
 impl AdminService {
     pub async fn topup_paymaster_deposit(
-        &self,
+        provider: &Web3Client,
         eth_value: String,
         paymaster: String,
         metadata: Metadata,
@@ -48,19 +48,20 @@ impl AdminService {
         let value = parse_ether(eth_value)
             .map_err(|_| ApiError::BadRequest("Invalid value".to_string()))?;
 
-        let data = self
-            .entrypoint_provider
-            .add_deposit(CONFIG.get_chain().verifying_paymaster_address)
-            .await;
+        let data = EntryPointProvider::add_deposit(
+            provider,
+            CONFIG.get_chain().verifying_paymaster_address,
+        )
+        .await;
         if data.is_err() {
             return Err(ApiError::BadRequest(String::from("failed to topup")));
         }
         let response = Web3Provider::execute(
-            self.relayer_signer.clone(),
+            provider.get_relayer_signer(),
             CONFIG.get_chain().entrypoint_address,
             value.to_string(),
             data.unwrap(),
-            self.entrypoint_provider.abi(),
+            provider.get_entrypoint_provider().abi(),
         )
         .await;
         match response {
