@@ -16,6 +16,7 @@ use crate::db::dao::transaction_dao::{TransactionDao, TransactionMetadata, UserT
 use crate::db::dao::user_operation_dao::UserOperationDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::errors::ApiError;
+use crate::errors::transaction::TransactionError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::currency::Currency;
 use crate::models::transaction::transaction::Transaction;
@@ -203,14 +204,14 @@ impl TransferService {
     }
 
     pub async fn get_status(
-        db_pool: &Pool<Postgres>,
+        pool: &Pool<Postgres>,
         txn_id: String,
         user: User,
-    ) -> Result<Transaction, ApiError> {
-        let transaction_and_exponent =
-            TransactionDao::get_transaction_by_id(db_pool, txn_id, user.wallet_address).await;
+    ) -> Result<Transaction, TransactionError> {
+        let transaction =
+            TransactionDao::get_transaction_by_id(pool, txn_id, user.wallet_address).await?;
 
-        Ok(Transaction::from(transaction_and_exponent))
+        Ok(Transaction::from(transaction))
     }
 
     fn get_transaction_metadata(&self) -> TransactionMetadata {
