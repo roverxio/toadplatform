@@ -9,6 +9,7 @@ use std::sync::Arc;
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
+use crate::errors::admin::AdminError;
 use crate::errors::errors::ApiError;
 use crate::models::admin::add_metadata_request::AddMetadataRequest;
 use crate::models::admin::metadata_response::MetadataResponse;
@@ -114,7 +115,7 @@ impl AdminService {
     pub async fn add_currency_metadata(
         pool: &Pool<Postgres>,
         metadata: AddMetadataRequest,
-    ) -> Result<MetadataResponse, ApiError> {
+    ) -> Result<MetadataResponse, AdminError> {
         TokenMetadataDao::add_metadata(
             pool,
             metadata.get_chain_name().clone(),
@@ -127,12 +128,11 @@ impl AdminService {
             metadata.get_chain_display_name(),
             metadata.get_token_image_url(),
         )
-        .await
-        .map_err(|_| ApiError::InternalServer(String::from("Failed to create metadata")))?;
+        .await?;
+
         let supported_currencies =
             TokenMetadataDao::get_metadata_by_currency(pool, metadata.get_chain_name(), None)
-                .await
-                .map_err(|_| ApiError::InternalServer(String::from("Failed to fetch metadata")))?;
+                .await?;
 
         let exponent_metadata = MetadataResponse::new().to(
             supported_currencies.clone(),
