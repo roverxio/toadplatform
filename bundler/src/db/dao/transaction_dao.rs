@@ -36,7 +36,7 @@ impl TransactionDao {
         let result = query.fetch_all(pool).await;
         match result {
             Ok(rows) => Ok(rows),
-            Err(error) => Err(DatabaseError(format!(
+            Err(error) => Err(DatabaseError::ServerError(format!(
                 "Failed to fetch transactions: {:?}",
                 error
             ))),

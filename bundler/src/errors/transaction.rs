@@ -34,6 +34,9 @@ impl ResponseError for TransactionError {
 
 impl From<DatabaseError> for TransactionError {
     fn from(error: DatabaseError) -> Self {
-        TransactionError::Database(error.0)
+        match error {
+            DatabaseError::NotFound => TransactionError::NotFound,
+            DatabaseError::ServerError(err) => TransactionError::Database(err),
+        }
     }
 }
