@@ -1,7 +1,7 @@
 use ethers::abi::Abi;
 use ethers::middleware::signer::SignerMiddlewareError;
 use ethers::middleware::SignerMiddleware;
-use ethers::prelude::ProviderError;
+use ethers::prelude::ProviderError as EtherProviderError;
 use ethers::providers::{Http, Middleware, Provider};
 use ethers::types::{Address, Bytes, TransactionRequest};
 use ethers::utils::format_ether;
@@ -11,7 +11,7 @@ use serde_json::Value;
 use std::num::ParseIntError;
 use std::sync::Arc;
 
-use crate::errors::base::ProviderError as InternalError;
+use crate::errors::base::ProviderError;
 use crate::PROVIDER;
 
 #[derive(Clone)]
@@ -23,11 +23,11 @@ impl Web3Provider {
         provider
     }
 
-    pub async fn get_balance(address: Address) -> Result<String, InternalError> {
+    pub async fn get_balance(address: Address) -> Result<String, ProviderError> {
         let result = PROVIDER.get_balance(address, None).await;
         match result {
             Ok(balance) => Ok(format_ether(balance)),
-            Err(err) => Err(InternalError(format!(
+            Err(err) => Err(ProviderError(format!(
                 "Get native balance failed: {:?}",
                 err
             ))),
@@ -60,7 +60,7 @@ impl Web3Provider {
                 }
                 SignerMiddlewareError::MiddlewareError(middleware_error) => {
                     match middleware_error {
-                        ProviderError::JsonRpcClientError(err) => {
+                        EtherProviderError::JsonRpcClientError(err) => {
                             let error = err.as_error_response();
                             match error {
                                 None => Err(String::from("Json RPC error")),
@@ -103,35 +103,35 @@ impl Web3Provider {
                                 }
                             }
                         }
-                        ProviderError::EnsError(err) => {
+                        EtherProviderError::EnsError(err) => {
                             error!("EnsError: {}", err);
                             Err(String::from("ENS name not found"))
                         }
-                        ProviderError::EnsNotOwned(err) => {
+                        EtherProviderError::EnsNotOwned(err) => {
                             error!("EnsNotOwned: {}", err);
                             Err(String::from("Invalid reverse ENS name"))
                         }
-                        ProviderError::SerdeJson(err) => {
+                        EtherProviderError::SerdeJson(err) => {
                             error!("SerdeJson: {}", err);
                             Err(String::from("JSON serialization error"))
                         }
-                        ProviderError::HexError(err) => {
+                        EtherProviderError::HexError(err) => {
                             error!("HexError: {}", err);
                             Err(format!("Hex Error: {}", err))
                         }
-                        ProviderError::HTTPError(err) => {
+                        EtherProviderError::HTTPError(err) => {
                             error!("HTTPError: {}", err);
                             Err(format!("HTTP Error: {}", err))
                         }
-                        ProviderError::CustomError(err) => {
+                        EtherProviderError::CustomError(err) => {
                             error!("CustomError: {}", err);
                             Err(format!("Custom Error: {}", err))
                         }
-                        ProviderError::UnsupportedRPC => Err(String::from("Invalid RPC call")),
-                        ProviderError::UnsupportedNodeClient => {
+                        EtherProviderError::UnsupportedRPC => Err(String::from("Invalid RPC call")),
+                        EtherProviderError::UnsupportedNodeClient => {
                             Err(String::from("Invalid Node client"))
                         }
-                        ProviderError::SignerUnavailable => {
+                        EtherProviderError::SignerUnavailable => {
                             Err(String::from("Signer is not available to this provider"))
                         }
                     }
