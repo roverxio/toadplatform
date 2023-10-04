@@ -1,10 +1,6 @@
-use ethers::middleware::SignerMiddleware;
-use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use ethers::utils::parse_ether;
-use ethers_signers::LocalWallet;
 use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -20,17 +16,12 @@ use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::balance_request::Balance;
 use crate::models::wallet::balance_response::BalanceResponse;
-use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::web3_client::Web3Client;
 use crate::provider::web3_provider::Web3Provider;
 use crate::CONFIG;
 
 #[derive(Clone)]
-pub struct AdminService {
-    pub paymaster_provider: PaymasterProvider,
-    pub entrypoint_provider: EntryPointProvider,
-    pub relayer_signer: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
-}
+pub struct AdminService;
 
 impl AdminService {
     pub async fn topup_paymaster_deposit(

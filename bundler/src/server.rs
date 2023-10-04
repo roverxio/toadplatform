@@ -25,7 +25,6 @@ use crate::models::config::server::Server;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::web3_client::Web3Client;
 use crate::routes::routes;
-use crate::services::admin_service::AdminService;
 use crate::services::hello_world_service::HelloWorldService;
 use crate::services::token_metadata_service::TokenMetadataService;
 use crate::services::transfer_service::TransferService;
@@ -37,7 +36,6 @@ pub struct ToadService {
     pub hello_world_service: HelloWorldService,
     pub wallet_service: WalletService,
     pub transfer_service: TransferService,
-    pub admin_service: AdminService,
     pub token_metadata_service: TokenMetadataService,
     pub web3_client: Web3Client,
     pub db_pool: Pool<Postgres>,
@@ -130,11 +128,6 @@ pub async fn init_services() -> ToadService {
         scw_owner_wallet: relayer_wallet.clone(),
         bundler: bundler.clone(),
     };
-    let admin_service = AdminService {
-        paymaster_provider: verify_paymaster_provider.clone(),
-        entrypoint_provider: entrypoint_provider.clone(),
-        relayer_signer: relayer_signer.clone(),
-    };
     let token_metadata_service = TokenMetadataService {
         token_metadata_dao: token_metadata_dao.clone(),
     };
@@ -143,7 +136,6 @@ pub async fn init_services() -> ToadService {
         hello_world_service,
         wallet_service,
         transfer_service,
-        admin_service,
         token_metadata_service,
         web3_client: Web3Client::new(client.clone()),
         db_pool: pool,
@@ -166,7 +158,6 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .app_data(Data::new(service.hello_world_service.clone()))
             .app_data(Data::new(service.wallet_service.clone()))
             .app_data(Data::new(service.transfer_service.clone()))
-            .app_data(Data::new(service.admin_service.clone()))
             .app_data(Data::new(service.token_metadata_service.clone()))
             .app_data(Data::new(service.web3_client.clone()))
             .app_data(Data::new(service.db_pool.clone()))
