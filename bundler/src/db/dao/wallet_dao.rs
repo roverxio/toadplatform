@@ -2,6 +2,8 @@ use bigdecimal::BigDecimal;
 use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
+use crate::errors::base::DatabaseError;
+
 #[derive(Clone)]
 pub struct WalletDao {
     pub pool: Pool<Postgres>,
@@ -47,7 +49,7 @@ impl WalletDao {
     }
 
     pub async fn create_wallet(
-        &self,
+        pool: &Pool<Postgres>,
         user_id: String,
         name: String,
         wallet_address: String,
@@ -55,7 +57,7 @@ impl WalletDao {
         external_user_id: String,
         salt: BigDecimal,
         deployed: bool,
-    ) {
+    ) -> Result<(), DatabaseError> {
         let query = query!(
             "INSERT INTO users (email, name, wallet_address, owner_address, salt, external_user_id, \
             deployed) VALUES ($1, $2, $3, $4, $5, $6, $7)",
@@ -67,13 +69,14 @@ impl WalletDao {
             external_user_id,
             deployed
         );
-        let result = query.execute(&self.pool).await;
-        if result.is_err() {
-            error!(
+        let result = query.execute(pool).await;
+        match result {
+            Ok(_) => Ok(()),
+            Err(_) => Err(DatabaseError(format!(
                 "Failed to create user: {}, err: {:?}",
                 user_id,
                 result.err()
-            );
+            ))),
         }
     }
 }
