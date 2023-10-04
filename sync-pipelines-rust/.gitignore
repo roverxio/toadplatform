@@ -1,0 +1,5 @@
+target/
+Config.toml
+erc20_last_sync_block.txt
+transaction_last_sync_block.txt
+logs/

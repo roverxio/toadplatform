@@ -1,0 +1,11 @@
+chain = "sepolia"
+native_currency = "sepoliaeth"
+transaction_id_prefix = "toad"
+
+[last_sync.files]
+token_transfers = "erc20_last_sync_block.txt"
+transactions = "transaction_last_sync_block.txt"
+
+[last_sync.block]
+token_transfers = 0
+transactions = 0
