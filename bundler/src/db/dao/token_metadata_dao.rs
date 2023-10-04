@@ -10,7 +10,7 @@ pub struct TokenMetadataDao {
 
 impl TokenMetadataDao {
     pub async fn add_metadata(
-        &self,
+        pool: &Pool<Postgres>,
         chain: String,
         currency: String,
         address: String,
@@ -38,13 +38,12 @@ impl TokenMetadataDao {
             chain_name,
             token_image_url
         );
-        let result = query.execute(&self.pool).await;
+        let result = query.execute(pool).await;
         match result {
             Ok(_) => Ok(()),
             Err(err) => Err(format!(
                 "Failed to create metadata: {}, err: {:?}",
-                chain,
-                result.err()
+                chain, err
             )),
         }
     }
