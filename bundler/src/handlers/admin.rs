@@ -2,7 +2,7 @@ use crate::CONFIG;
 use actix_web::web::{Data, Json, Path, Query};
 use actix_web::HttpRequest;
 
-use crate::errors::ApiError;
+use crate::errors::errors::ApiError;
 use crate::models::admin::add_metadata_request::AddMetadataRequest;
 use crate::models::admin::metadata_response::MetadataResponse;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
