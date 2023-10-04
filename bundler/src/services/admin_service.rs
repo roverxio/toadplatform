@@ -1,10 +1,9 @@
-use std::sync::Arc;
-
 use ethers::middleware::SignerMiddleware;
 use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use ethers::utils::parse_ether;
 use ethers_signers::LocalWallet;
+use std::sync::Arc;
 
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -127,7 +126,8 @@ impl AdminService {
                 metadata.get_chain_display_name(),
                 metadata.get_token_image_url(),
             )
-            .await;
+            .await
+            .map_err(|_| ApiError::InternalServer(String::from("Failed to create metadata")))?;
         let supported_currencies = self
             .metadata_dao
             .get_metadata_for_chain(metadata.get_chain_name(), None)

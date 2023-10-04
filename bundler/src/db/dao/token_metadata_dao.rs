@@ -20,7 +20,7 @@ impl TokenMetadataDao {
         chain_id: i32,
         chain_name: String,
         token_image_url: String,
-    ) {
+    ) -> Result<(), String> {
         let query = query!(
             "INSERT INTO token_metadata \
             (chain, symbol, contract_address, exponent, token_type, name, chain_id, chain_name,\
@@ -39,12 +39,13 @@ impl TokenMetadataDao {
             token_image_url
         );
         let result = query.execute(&self.pool).await;
-        if result.is_err() {
-            error!(
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(format!(
                 "Failed to create metadata: {}, err: {:?}",
                 chain,
                 result.err()
-            );
+            )),
         }
     }
 
