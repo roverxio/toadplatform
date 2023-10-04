@@ -208,7 +208,9 @@ impl TransferService {
         user: User,
     ) -> Result<Transaction, ApiError> {
         let transaction_and_exponent =
-            TransactionDao::get_transaction_by_id(db_pool, txn_id, user.wallet_address).await;
+            TransactionDao::get_transaction_by_id(db_pool, txn_id, user.wallet_address)
+                .await
+                .map_err(|_| ApiError::InternalServer(String::from("Failed to get")))?;
 
         Ok(Transaction::from(transaction_and_exponent))
     }
