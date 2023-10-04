@@ -11,6 +11,7 @@ use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
+use crate::contracts::verifying_paymaster_provider::VerifyingPaymasterProvider;
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::db::dao::transaction_dao::{TransactionDao, TransactionMetadata, UserTransaction};
 use crate::db::dao::user_operation_dao::UserOperationDao;
@@ -27,7 +28,6 @@ use crate::models::transfer::transfer_response::TransferResponse;
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::listeners::user_op_event_listener;
 use crate::provider::paymaster_provider::PaymasterProvider;
-use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -249,7 +249,9 @@ impl TransferService {
         let hash = self
             .verifying_paymaster_provider
             .get_hash(
-                get_verifying_paymaster_user_operation_payload(user_op0),
+                VerifyingPaymasterProvider::get_verifying_paymaster_user_operation_payload(
+                    user_op0,
+                ),
                 valid_until,
                 valid_after,
             )

@@ -32,6 +32,13 @@ impl Web3Client {
         )
     }
 
+    pub fn get_verifying_paymaster_provider(&self) -> SimpleAccount<Provider<Http>> {
+        SimpleAccountProvider::init_abi(
+            CONFIG.get_chain().verifying_paymaster_address,
+            self.client.clone(),
+        )
+    }
+
     pub fn get_scw_provider_by_address(&self, address: Address) -> SimpleAccount<Provider<Http>> {
         SimpleAccountProvider::init_abi(address, self.client.clone())
     }
