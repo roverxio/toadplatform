@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json, Query, ReqData};
-use actix_web::{Error, HttpRequest, HttpResponse};
+use actix_web::{HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 
 use crate::db::dao::wallet_dao::User;
@@ -66,7 +66,7 @@ pub async fn poll_transaction(
     pool: Data<Pool<Postgres>>,
     query: Query<PollTransactionParams>,
     user: ReqData<User>,
-) -> Result<HttpResponse, Error> {
+) -> Result<HttpResponse, TransactionError> {
     let transaction = TransferService::get_status(
         pool.get_ref(),
         query.transaction_id.clone(),
