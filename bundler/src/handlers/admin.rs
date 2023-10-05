@@ -9,7 +9,7 @@ use crate::models::response::base_response::BaseResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
 use crate::provider::helpers::get_user;
 use crate::provider::web3_client::Web3Client;
-use crate::services::admin_service::AdminService;
+use crate::services::AdminService;
 use crate::CONFIG;
 
 pub async fn topup_paymaster_deposit(
