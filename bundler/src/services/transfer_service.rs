@@ -19,7 +19,7 @@ use crate::errors::errors::ApiError;
 use crate::errors::TransactionError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::currency::Currency;
-use crate::models::transaction::transaction::Transaction;
+use crate::models::transaction::Transaction;
 use crate::models::transaction_type::TransactionType;
 use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
