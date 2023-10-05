@@ -28,7 +28,6 @@ use crate::provider::web3_client::Web3Client;
 use crate::routes::routes;
 use crate::services::admin_service::AdminService;
 use crate::services::hello_world_service::HelloWorldService;
-use crate::services::token_metadata_service::TokenMetadataService;
 use crate::services::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
 use crate::{CONFIG, PROVIDER};
@@ -39,7 +38,6 @@ pub struct ToadService {
     pub wallet_service: WalletService,
     pub transfer_service: TransferService,
     pub admin_service: AdminService,
-    pub token_metadata_service: TokenMetadataService,
     pub web3_client: Web3Client,
     pub db_pool: Pool<Postgres>,
 }
@@ -134,16 +132,12 @@ pub async fn init_services() -> ToadService {
         relayer_signer: relayer_signer.clone(),
         metadata_dao: token_metadata_dao.clone(),
     };
-    let token_metadata_service = TokenMetadataService {
-        token_metadata_dao: token_metadata_dao.clone(),
-    };
 
     ToadService {
         hello_world_service,
         wallet_service,
         transfer_service,
         admin_service,
-        token_metadata_service,
         web3_client: Web3Client::new(client.clone()),
         db_pool: pool,
     }
@@ -166,7 +160,6 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .app_data(Data::new(service.wallet_service.clone()))
             .app_data(Data::new(service.transfer_service.clone()))
             .app_data(Data::new(service.admin_service.clone()))
-            .app_data(Data::new(service.token_metadata_service.clone()))
             .app_data(Data::new(service.web3_client.clone()))
             .app_data(Data::new(service.db_pool.clone()))
     })
