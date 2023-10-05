@@ -5,7 +5,7 @@ use ethers::types::{Bytes, U256};
 use std::sync::Arc;
 
 use crate::errors::ProviderError;
-use crate::provider::web3_client::Web3Client;
+use crate::provider::Web3Client;
 
 abigen!(SimpleAccount, "abi/SimpleAccount.json");
 

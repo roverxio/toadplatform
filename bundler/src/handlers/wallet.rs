@@ -11,7 +11,7 @@ use crate::models::transaction::poll_transaction_params::PollTransactionParams;
 use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::balance_request::BalanceRequest;
 use crate::provider::helpers::{get_user_wallet, respond_json};
-use crate::provider::web3_client::Web3Client;
+use crate::provider::Web3Client;
 use crate::services::transfer_service::TransferService;
 use crate::services::BalanceService;
 use crate::services::WalletService;

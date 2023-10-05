@@ -10,7 +10,7 @@ use crate::db::dao::wallet_dao::User;
 use crate::errors::BalanceError;
 use crate::models::currency::Currency;
 use crate::models::wallet::balance_response::BalanceResponse;
-use crate::provider::web3_client::Web3Client;
+use crate::provider::Web3Client;
 use crate::PROVIDER;
 
 #[derive(Clone)]

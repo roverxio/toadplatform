@@ -6,7 +6,7 @@ use log::error;
 use std::sync::Arc;
 
 use crate::errors::ProviderError;
-use crate::provider::web3_client::Web3Client;
+use crate::provider::Web3Client;
 
 abigen!(ERC20, "abi/ERC20.json");
 
