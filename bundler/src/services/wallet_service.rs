@@ -20,7 +20,7 @@ use crate::services::mint_service::MintService;
 use crate::CONFIG;
 
 #[derive(Clone)]
-pub struct WalletService {}
+pub struct WalletService;
 
 impl WalletService {
     pub async fn get_wallet_address(
