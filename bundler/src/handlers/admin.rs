@@ -2,32 +2,34 @@ use actix_web::web::{Data, Json, Path, Query};
 use actix_web::{HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 
-use crate::errors::errors::ApiError;
 use crate::errors::AdminError;
 use crate::models::admin::add_metadata_request::AddMetadataRequest;
 use crate::models::admin::paymaster_topup::PaymasterTopup;
 use crate::models::response::base_response::BaseResponse;
-use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
-use crate::provider::helpers::{get_user, respond_json};
+use crate::provider::helpers::get_user;
 use crate::provider::web3_client::Web3Client;
 use crate::services::admin_service::AdminService;
 use crate::CONFIG;
 
 pub async fn topup_paymaster_deposit(
-    service: Data<AdminService>,
+    provider: Data<Web3Client>,
     body: Json<PaymasterTopup>,
     req: HttpRequest,
     paymaster: Path<String>,
-) -> Result<Json<BaseResponse<TransferResponse>>, ApiError> {
+) -> Result<HttpResponse, AdminError> {
     if is_not_admin(get_user(req)) {
-        return Err(ApiError::BadRequest("Invalid credentials".to_string()));
+        return Err(AdminError::Unauthorized);
     }
     let req = body.into_inner();
-    let response = service
-        .topup_paymaster_deposit(req.value, paymaster.clone(), req.metadata)
-        .await?;
-    respond_json(response)
+    let response = AdminService::topup_paymaster_deposit(
+        provider.as_ref(),
+        req.value,
+        paymaster.clone(),
+        req.metadata,
+    )
+    .await?;
+    Ok(HttpResponse::Ok().json(BaseResponse::init(response)))
 }
 
 pub async fn admin_get_balance(
