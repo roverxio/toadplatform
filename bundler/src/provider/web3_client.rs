@@ -10,6 +10,9 @@ use crate::contracts::simple_account_factory_provider::{
 };
 use crate::contracts::simple_account_provider::{SimpleAccount, SimpleAccountProvider};
 use crate::contracts::usdc_provider::{USDCProvider, ERC20};
+use crate::contracts::verifying_paymaster_provider::{
+    VerifyingPaymaster, VerifyingPaymasterProvider,
+};
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -33,8 +36,8 @@ impl Web3Client {
         )
     }
 
-    pub fn get_verifying_paymaster_provider(&self) -> SimpleAccount<Provider<Http>> {
-        SimpleAccountProvider::init_abi(
+    pub fn get_verifying_paymaster_provider(&self) -> VerifyingPaymaster<Provider<Http>> {
+        VerifyingPaymasterProvider::init_abi(
             CONFIG.get_chain().verifying_paymaster_address,
             self.client.clone(),
         )
