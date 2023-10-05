@@ -3,3 +3,5 @@ pub mod base;
 pub mod errors;
 pub mod metadata;
 pub mod wallet;
+
+pub use metadata::MetadataError;
