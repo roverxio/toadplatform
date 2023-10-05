@@ -14,7 +14,7 @@ use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
 use crate::provider::web3_client::Web3Client;
-use crate::services::mint_service::MintService;
+use crate::services::MintService;
 use crate::CONFIG;
 
 #[derive(Clone)]

@@ -8,4 +8,5 @@ pub mod transfer_service;
 pub mod wallet_service;
 
 pub use balance_service::BalanceService;
+pub use mint_service::MintService;
 pub use wallet_service::WalletService;
