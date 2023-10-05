@@ -11,10 +11,13 @@ pub struct TokenMetadataService {
 
 impl TokenMetadataService {
     pub async fn get_chain(&self) -> Result<MetadataResponse, ApiError> {
-        let supported_currencies = self
-            .token_metadata_dao
-            .get_metadata_for_chain(CONFIG.run_config.current_chain.clone(), None)
-            .await;
+        let supported_currencies = TokenMetadataDao::get_metadata_by_currency(
+            &self.token_metadata_dao.pool,
+            CONFIG.run_config.current_chain.clone(),
+            None,
+        )
+        .await
+        .map_err(|_| ApiError::InternalServer(String::from("Failed to get data")))?;
 
         Ok(MetadataResponse::new().to(
             supported_currencies,
