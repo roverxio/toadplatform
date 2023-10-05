@@ -1,8 +1,9 @@
-use crate::errors::base::{DatabaseError, ErrorResponse, ProviderError};
 use actix_web::http::StatusCode;
 use actix_web::{HttpResponse, ResponseError};
 use derive_more::Display;
 use log::error;
+
+use crate::errors::base::{DatabaseError, ErrorResponse, ProviderError};
 
 #[derive(Debug, Display)]
 pub enum BalanceError {
