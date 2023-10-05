@@ -9,7 +9,7 @@ use crate::errors::base::{DatabaseError, ErrorResponse, ProviderError};
 pub enum AdminError {
     Unauthorized,
     InvalidCurrency,
-    ValidationError,
+    ValidationError(String),
     Database(String),
     Provider(String),
 }
@@ -19,7 +19,7 @@ impl ResponseError for AdminError {
         match self {
             AdminError::Unauthorized => StatusCode::UNAUTHORIZED,
             AdminError::InvalidCurrency => StatusCode::BAD_REQUEST,
-            AdminError::ValidationError => StatusCode::BAD_REQUEST,
+            AdminError::ValidationError(_) => StatusCode::BAD_REQUEST,
             AdminError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
             AdminError::Provider(_) => StatusCode::INTERNAL_SERVER_ERROR,
         }
@@ -31,8 +31,8 @@ impl ResponseError for AdminError {
                 .json(ErrorResponse::from(String::from("Invalid credentials"))),
             AdminError::InvalidCurrency => HttpResponse::BadRequest()
                 .json(ErrorResponse::from(String::from("Invalid currency"))),
-            AdminError::ValidationError => {
-                HttpResponse::BadRequest().json(ErrorResponse::from(String::from("Invalid entity")))
+            AdminError::ValidationError(error) => {
+                HttpResponse::BadRequest().json(ErrorResponse::from(error.clone()))
             }
             AdminError::Database(error) => {
                 error!("{error}");
