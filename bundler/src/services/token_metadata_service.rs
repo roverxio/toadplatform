@@ -29,8 +29,7 @@ impl TokenMetadataService {
 
     pub async fn get_chain_v2(&self) -> Result<MetadataResponseV2, ApiError> {
         Ok(MetadataResponseV2::from_token_metadata(
-            self.token_metadata_dao
-                .get_metadata()
+            TokenMetadataDao::get_metadata(&self.token_metadata_dao.pool)
                 .await
                 .map_err(|_| ApiError::InternalServer(String::from("Failed to fetch data")))?,
         ))

@@ -91,12 +91,12 @@ impl TokenMetadataDao {
         }
     }
 
-    pub async fn get_metadata(&self) -> Result<Vec<TokenMetadata>, String> {
+    pub async fn get_metadata(pool: &Pool<Postgres>) -> Result<Vec<TokenMetadata>, String> {
         let query = query_as!(
             TokenMetadata,
             "SELECT * FROM token_metadata where is_supported = true"
         );
-        let result = query.fetch_all(&self.pool).await;
+        let result = query.fetch_all(pool).await;
 
         match result {
             Ok(metadata) => Ok(metadata),
