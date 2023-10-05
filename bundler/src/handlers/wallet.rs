@@ -9,7 +9,7 @@ use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
 use crate::models::transaction::poll_transaction_params::PollTransactionParams;
 use crate::models::transaction::transaction::Transaction;
-use crate::models::wallet::balance_request::BalanceRequest;
+use crate::models::wallet::BalanceRequest;
 use crate::provider::helpers::{get_user_wallet, respond_json};
 use crate::provider::Web3Client;
 use crate::services::transfer_service::TransferService;
