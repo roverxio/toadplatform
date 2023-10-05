@@ -1,7 +1,7 @@
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::errors::errors::ApiError;
-use crate::models::admin::metadata_response::MetadataResponse;
-use crate::models::admin::metadata_response_v2::MetadataResponseV2;
+use crate::models::admin::MetadataResponse;
+use crate::models::admin::MetadataResponseV2;
 use crate::CONFIG;
 
 #[derive(Clone)]
