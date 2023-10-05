@@ -91,7 +91,7 @@ impl TokenMetadataDao {
         }
     }
 
-    pub async fn get_metadata(&self) -> Vec<TokenMetadata> {
+    pub async fn get_metadata(&self) -> Result<Vec<TokenMetadata>, String> {
         let query = query_as!(
             TokenMetadata,
             "SELECT * FROM token_metadata where is_supported = true"
@@ -99,11 +99,8 @@ impl TokenMetadataDao {
         let result = query.fetch_all(&self.pool).await;
 
         match result {
-            Ok(metadata) => metadata,
-            Err(err) => {
-                error!("Failed to get metadata, err: {:?}", err);
-                vec![]
-            }
+            Ok(metadata) => Ok(metadata),
+            Err(err) => Err(format!("Failed to get metadata, err: {:?}", err)),
         }
     }
 }
