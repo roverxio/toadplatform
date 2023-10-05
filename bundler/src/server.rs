@@ -30,7 +30,7 @@ use crate::services::admin_service::AdminService;
 use crate::services::hello_world_service::HelloWorldService;
 use crate::services::token_metadata_service::TokenMetadataService;
 use crate::services::transfer_service::TransferService;
-use crate::services::wallet_service::WalletService;
+use crate::services::WalletService;
 use crate::{CONFIG, PROVIDER};
 
 #[derive(Clone)]

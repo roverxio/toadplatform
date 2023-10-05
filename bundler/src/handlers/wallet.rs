@@ -14,8 +14,8 @@ use crate::models::wallet::balance_request::BalanceRequest;
 use crate::provider::helpers::{get_user_wallet, respond_json};
 use crate::provider::web3_client::Web3Client;
 use crate::services::transfer_service::TransferService;
-use crate::services::wallet_service::WalletService;
 use crate::services::BalanceService;
+use crate::services::WalletService;
 
 pub async fn get_address(
     pool: Data<Pool<Postgres>>,
