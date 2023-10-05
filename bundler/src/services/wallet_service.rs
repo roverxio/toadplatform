@@ -9,8 +9,7 @@ use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvi
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
-use crate::errors::base::ProviderError;
-use crate::errors::WalletError;
+use crate::errors::{ProviderError, WalletError};
 use crate::models::transaction::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
