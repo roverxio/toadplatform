@@ -4,8 +4,8 @@ use sqlx::{Pool, Postgres};
 
 use crate::db::dao::wallet_dao::User;
 use crate::errors::errors::ApiError;
-use crate::errors::wallet::WalletError;
 use crate::errors::BalanceError;
+use crate::errors::WalletError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
 use crate::models::transaction::poll_transaction_params::PollTransactionParams;
