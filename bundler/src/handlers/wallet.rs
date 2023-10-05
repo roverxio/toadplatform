@@ -4,8 +4,8 @@ use sqlx::{Pool, Postgres};
 
 use crate::db::dao::wallet_dao::User;
 use crate::errors::balance::BalanceError;
-use crate::errors::transaction::TransactionError;
 use crate::errors::wallet::WalletError;
+use crate::errors::TransactionError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::list_transactions_params::ListTransactionsParams;
 use crate::models::transaction::poll_transaction_params::PollTransactionParams;
@@ -13,8 +13,8 @@ use crate::models::wallet::balance_request::BalanceRequest;
 use crate::provider::helpers::get_user_wallet;
 use crate::provider::web3_client::Web3Client;
 use crate::services::balance_service::BalanceService;
-use crate::services::transfer_service::TransferService;
 use crate::services::wallet_service::WalletService;
+use crate::services::TransferService;
 
 pub async fn get_address(
     pool: Data<Pool<Postgres>>,
