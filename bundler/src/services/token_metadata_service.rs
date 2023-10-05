@@ -1,7 +1,7 @@
 use sqlx::{Pool, Postgres};
 
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
-use crate::errors::errors::ApiError;
+use crate::errors::MetadataError;
 use crate::models::admin::metadata_response::MetadataResponse;
 use crate::models::admin::metadata_response_v2::MetadataResponseV2;
 use crate::CONFIG;
@@ -10,14 +10,13 @@ use crate::CONFIG;
 pub struct TokenMetadataService;
 
 impl TokenMetadataService {
-    pub async fn get_chain(pool: &Pool<Postgres>) -> Result<MetadataResponse, ApiError> {
+    pub async fn get_chain(pool: &Pool<Postgres>) -> Result<MetadataResponse, MetadataError> {
         let supported_currencies = TokenMetadataDao::get_metadata_by_currency(
             pool,
             CONFIG.run_config.current_chain.clone(),
             None,
         )
-        .await
-        .map_err(|_| ApiError::InternalServer(String::from("Failed to get data")))?;
+        .await?;
 
         Ok(MetadataResponse::new().to(
             supported_currencies,
@@ -27,11 +26,9 @@ impl TokenMetadataService {
         ))
     }
 
-    pub async fn get_chain_v2(pool: &Pool<Postgres>) -> Result<MetadataResponseV2, ApiError> {
+    pub async fn get_chain_v2(pool: &Pool<Postgres>) -> Result<MetadataResponseV2, MetadataError> {
         Ok(MetadataResponseV2::from_token_metadata(
-            TokenMetadataDao::get_metadata(pool)
-                .await
-                .map_err(|_| ApiError::InternalServer(String::from("Failed to fetch data")))?,
+            TokenMetadataDao::get_metadata(pool).await?,
         ))
     }
 }
