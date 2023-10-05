@@ -12,7 +12,7 @@ use crate::db::dao::wallet_dao::{User, WalletDao};
 use crate::errors::base::ProviderError;
 use crate::errors::wallet::WalletError;
 use crate::errors::TransactionError;
-use crate::models::transaction::transaction::Transaction;
+use crate::models::transaction::Transaction;
 use crate::models::wallet::address_response::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
 use crate::provider::web3_client::Web3Client;
