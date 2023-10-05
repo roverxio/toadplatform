@@ -3,13 +3,13 @@ use actix_web::{HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 
 use crate::errors::AdminError;
-use crate::models::admin::add_metadata_request::AddMetadataRequest;
-use crate::models::admin::paymaster_topup::PaymasterTopup;
+use crate::models::admin::AddMetadataRequest;
+use crate::models::admin::PaymasterTopup;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::wallet::balance_request::BalanceRequest;
 use crate::provider::helpers::get_user;
 use crate::provider::web3_client::Web3Client;
-use crate::services::admin_service::AdminService;
+use crate::services::AdminService;
 use crate::CONFIG;
 
 pub async fn topup_paymaster_deposit(
