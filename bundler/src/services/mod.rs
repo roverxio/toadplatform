@@ -6,3 +6,5 @@ pub mod mint_service;
 pub mod token_metadata_service;
 pub mod transfer_service;
 pub mod wallet_service;
+
+pub use transfer_service::TransferService;
