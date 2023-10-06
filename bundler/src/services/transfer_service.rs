@@ -273,28 +273,30 @@ impl TransferService {
         value: String,
         currency: String,
     ) -> Result<Bytes, String> {
-        match Currency::from_str(
-            self.token_metadata_dao
-                .get_metadata_for_chain(CONFIG.run_config.current_chain.clone(), Some(currency))
-                .await[0]
-                .token_type
-                .clone(),
-        ) {
-            Some(Currency::Erc20) => Ok(self
-                .simple_account_provider
-                .execute(
-                    CONFIG.get_chain().usdc_address,
-                    0.to_string(),
-                    self.usdc_provider
-                        .transfer(to.parse().unwrap(), value)
-                        .unwrap(),
-                )
-                .unwrap()),
-            Some(Currency::Native) => Ok(self
-                .simple_account_provider
-                .execute(to.parse().unwrap(), value, Bytes::from(vec![]))
-                .unwrap()),
-            None => Err("Currency not found".to_string()),
+        let metadata = TokenMetadataDao::get_metadata_by_currency(
+            &self.token_metadata_dao.pool,
+            CONFIG.run_config.current_chain.clone(),
+            Some(currency),
+        )
+        .await
+        .map_err(|_| String::from("Failed to get metadata"))?;
+        match Currency::from_str(metadata[0].token_type.clone()) {
+            Some(Currency::Erc20) => Ok(SimpleAccountProvider::execute(
+                self.simple_account_provider.abi.clone(),
+                CONFIG.get_chain().usdc_address,
+                0.to_string(),
+                USDCProvider::transfer(self.usdc_provider.abi.clone(), to.parse().unwrap(), value)
+                    .map_err(|err| ApiError::InternalServer(err))?,
+            )
+            .map_err(|err| ApiError::InternalServer(err))?),
+            Some(Currency::Native) => Ok(SimpleAccountProvider::execute(
+                self.simple_account_provider.abi.clone(),
+                to.parse().unwrap(),
+                value,
+                Bytes::from(vec![]),
+            )
+            .map_err(|err| ApiError::InternalServer(err))?),
+            None => Err(String::from("Currency not found")),
         }
     }
 }

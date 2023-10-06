@@ -23,16 +23,19 @@ impl SimpleAccountProvider {
         contract
     }
 
-    pub fn execute(&self, to: Address, value: String, data: Bytes) -> Result<Bytes, String> {
-        let data = self
-            .abi
+    pub fn execute(
+        abi: SimpleAccount<Provider<Http>>,
+        to: Address,
+        value: String,
+        data: Bytes,
+    ) -> Result<Bytes, String> {
+        let data = abi
             .execute(to, U256::from_dec_str(&value).unwrap(), data)
             .calldata();
-        if data.is_none() {
-            return Err("execute data failed".to_string());
+        match data {
+            Some(call_data) => Ok(call_data),
+            None => Err(String::from("execute data failed")),
         }
-
-        Ok(data.unwrap())
     }
 
     pub async fn get_deployer(

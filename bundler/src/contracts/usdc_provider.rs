@@ -21,16 +21,18 @@ impl USDCProvider {
         contract
     }
 
-    pub fn transfer(&self, to: Address, value: String) -> Result<Bytes, String> {
-        let data = self
-            .abi
+    pub fn transfer(
+        abi: ERC20<Provider<Http>>,
+        to: Address,
+        value: String,
+    ) -> Result<Bytes, String> {
+        let data = abi
             .transfer(to, U256::from_dec_str(&value).unwrap())
             .calldata();
-        if data.is_none() {
-            return Err("transfer data failed".to_string());
+        match data {
+            Some(call_data) => Ok(call_data),
+            None => Err(String::from("transfer data failed")),
         }
-
-        Ok(data.unwrap())
     }
 
     pub fn mint(client: &Web3Client, to: Address, value: String) -> Result<Bytes, String> {
