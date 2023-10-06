@@ -1,10 +1,11 @@
-use crate::models::contract_interaction::user_operation::UserOperation;
 use chrono::{DateTime, Utc};
 use log::error;
 use serde_json::Value;
 use sqlx::types::JsonValue;
 use sqlx::{query, query_as, Pool, Postgres};
 use std::default::Default;
+
+use crate::models::contract_interaction::user_operation::UserOperation;
 
 #[derive(Clone)]
 pub struct UserOperationDao {

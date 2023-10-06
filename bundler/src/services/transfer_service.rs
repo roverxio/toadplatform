@@ -6,16 +6,16 @@ use ethers_signers::{LocalWallet, Signer};
 use sqlx::{Pool, Postgres};
 use std::str::FromStr;
 
-use crate::bundler::bundler::Bundler;
+use crate::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
 use crate::contracts::verifying_paymaster_provider::VerifyingPaymasterProvider;
-use crate::db::dao::token_metadata_dao::TokenMetadataDao;
-use crate::db::dao::transaction_dao::{TransactionDao, TransactionMetadata, UserTransaction};
-use crate::db::dao::user_operation_dao::UserOperationDao;
-use crate::db::dao::wallet_dao::{User, WalletDao};
+use crate::db::dao::{
+    TokenMetadataDao, TransactionDao, TransactionMetadata, User, UserOperationDao, UserTransaction,
+    WalletDao,
+};
 use crate::errors::errors::ApiError;
 use crate::errors::TransactionError;
 use crate::models::contract_interaction::user_operation::UserOperation;

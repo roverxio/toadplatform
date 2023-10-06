@@ -5,7 +5,7 @@ use sqlx::{Pool, Postgres};
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::verifying_paymaster_provider::VerifyingPaymasterProvider;
-use crate::db::dao::token_metadata_dao::TokenMetadataDao;
+use crate::db::dao::TokenMetadataDao;
 use crate::errors::AdminError;
 use crate::models::admin::{AddMetadataRequest, MetadataResponse};
 use crate::models::metadata::Metadata;
@@ -13,8 +13,8 @@ use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::{Balance, BalanceResponse};
-use crate::provider::web3_client::Web3Client;
 use crate::provider::web3_provider::Web3Provider;
+use crate::provider::Web3Client;
 use crate::CONFIG;
 
 #[derive(Clone)]

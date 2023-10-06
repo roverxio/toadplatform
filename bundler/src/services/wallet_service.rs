@@ -7,8 +7,7 @@ use std::time::SystemTime;
 
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
-use crate::db::dao::transaction_dao::TransactionDao;
-use crate::db::dao::wallet_dao::{User, WalletDao};
+use crate::db::dao::{TransactionDao, User, WalletDao};
 use crate::errors::{ProviderError, TransactionError, WalletError};
 use crate::models::transaction::Transaction;
 use crate::models::wallet::AddressResponse;
