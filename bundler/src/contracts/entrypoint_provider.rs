@@ -24,11 +24,11 @@ impl EntryPointProvider {
         let contract: EntryPoint<Provider<Http>> = EntryPoint::new(address, client);
         contract
     }
-    pub async fn get_nonce(
-        abi: EntryPoint<Provider<Http>>,
-        sender: Address,
-    ) -> Result<U256, String> {
-        let result = abi.get_nonce(sender, U256::zero()).await;
+    pub async fn get_nonce(client: &Web3Client, sender: Address) -> Result<U256, String> {
+        let result = client
+            .get_entrypoint_provider()
+            .get_nonce(sender, U256::zero())
+            .await;
         match result {
             Ok(nonce) => Ok(nonce),
             Err(err) => Err(format!("Failed to get Nonce: {:?}", err)),

@@ -10,9 +10,7 @@ use crate::provider::Web3Client;
 abigen!(SimpleAccount, "abi/SimpleAccount.json");
 
 #[derive(Clone)]
-pub struct SimpleAccountProvider {
-    pub abi: SimpleAccount<Provider<Http>>,
-}
+pub struct SimpleAccountProvider;
 
 impl SimpleAccountProvider {
     pub fn init_abi(
@@ -24,12 +22,13 @@ impl SimpleAccountProvider {
     }
 
     pub fn execute(
-        abi: SimpleAccount<Provider<Http>>,
+        client: &Web3Client,
         to: Address,
         value: String,
         data: Bytes,
     ) -> Result<Bytes, String> {
-        let data = abi
+        let data = client
+            .get_scw_provider_by_address(Address::zero())
             .execute(to, U256::from_dec_str(&value).unwrap(), data)
             .calldata();
         match data {

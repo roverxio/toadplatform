@@ -11,9 +11,7 @@ use crate::provider::Web3Client;
 abigen!(ERC20, "abi/ERC20.json");
 
 #[derive(Clone)]
-pub struct USDCProvider {
-    pub abi: ERC20<Provider<Http>>,
-}
+pub struct USDCProvider;
 
 impl USDCProvider {
     pub fn init_abi(address: Address, client: Arc<Provider<Http>>) -> ERC20<Provider<Http>> {
@@ -21,12 +19,9 @@ impl USDCProvider {
         contract
     }
 
-    pub fn transfer(
-        abi: ERC20<Provider<Http>>,
-        to: Address,
-        value: String,
-    ) -> Result<Bytes, String> {
-        let data = abi
+    pub fn transfer(client: &Web3Client, to: Address, value: String) -> Result<Bytes, String> {
+        let data = client
+            .get_usdc_provider()
             .transfer(to, U256::from_dec_str(&value).unwrap())
             .calldata();
         match data {

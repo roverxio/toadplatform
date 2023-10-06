@@ -104,8 +104,7 @@ impl AdminService {
         .await?;
 
         let supported_currencies =
-            TokenMetadataDao::get_metadata_by_currency(pool, metadata.get_chain_name(), None)
-                .await?;
+            TokenMetadataDao::get_metadata_for_chain(pool, metadata.get_chain_name(), None).await?;
 
         let exponent_metadata = MetadataResponse::new().to(
             supported_currencies.clone(),

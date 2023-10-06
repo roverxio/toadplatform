@@ -64,4 +64,11 @@ impl Web3Client {
             .parse::<LocalWallet>()
             .unwrap()
     }
+
+    pub fn get_verifying_paymaster_wallet() -> LocalWallet {
+        std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY")
+            .expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set")
+            .parse::<LocalWallet>()
+            .unwrap()
+    }
 }

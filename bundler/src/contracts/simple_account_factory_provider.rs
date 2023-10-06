@@ -10,9 +10,7 @@ use crate::provider::Web3Client;
 abigen!(SimpleAccountFactory, "abi/SimpleAccountFactory.json");
 
 #[derive(Clone)]
-pub struct SimpleAccountFactoryProvider {
-    pub abi: SimpleAccountFactory<Provider<Http>>,
-}
+pub struct SimpleAccountFactoryProvider;
 
 impl SimpleAccountFactoryProvider {
     pub fn init_abi(
@@ -25,19 +23,22 @@ impl SimpleAccountFactoryProvider {
     }
 
     pub fn create_account(
-        abi: SimpleAccountFactory<Provider<Http>>,
+        client: &Web3Client,
         owner: Address,
         salt: U256,
     ) -> Result<Bytes, String> {
-        let data = abi.create_account(owner, salt).calldata();
+        let data = client
+            .get_factory_provider()
+            .create_account(owner, salt)
+            .calldata();
         match data {
             Some(call_data) => Ok(call_data),
             None => Err(String::from("create data failed")),
         }
     }
 
-    pub fn get_factory_address(abi: SimpleAccountFactory<Provider<Http>>) -> Address {
-        abi.address()
+    pub fn get_factory_address(client: &Web3Client) -> Address {
+        client.get_factory_provider().address()
     }
 
     pub async fn get_address(
