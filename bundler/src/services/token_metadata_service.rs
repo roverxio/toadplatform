@@ -2,8 +2,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::db::dao::token_metadata_dao::TokenMetadataDao;
 use crate::errors::MetadataError;
-use crate::models::admin::metadata_response::MetadataResponse;
-use crate::models::admin::metadata_response_v2::MetadataResponseV2;
+use crate::models::admin::{MetadataResponse, MetadataResponseV2};
 use crate::CONFIG;
 
 #[derive(Clone)]

@@ -4,7 +4,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::errors::MetadataError;
 use crate::models::response::base_response::BaseResponse;
-use crate::services::token_metadata_service::TokenMetadataService;
+use crate::services::TokenMetadataService;
 
 pub async fn get_metadata(pool: Data<Pool<Postgres>>) -> Result<HttpResponse, MetadataError> {
     let response = TokenMetadataService::get_chain(pool.get_ref()).await?;

@@ -7,7 +7,7 @@ use sqlx::types::JsonValue;
 use sqlx::{query, query_as, Error, Pool, Postgres};
 use std::default::Default;
 
-use crate::errors::base::DatabaseError;
+use crate::errors::DatabaseError;
 
 #[derive(Clone)]
 pub struct TransactionDao {

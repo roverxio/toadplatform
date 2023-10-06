@@ -3,7 +3,7 @@ use actix_web::{HttpResponse, ResponseError};
 use derive_more::Display;
 use log::error;
 
-use crate::errors::base::{DatabaseError, ErrorResponse};
+use crate::errors::{DatabaseError, ErrorResponse};
 
 #[derive(Debug, Display)]
 pub enum MetadataError {

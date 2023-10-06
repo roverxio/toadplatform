@@ -1,58 +1,65 @@
-use crate::CONFIG;
 use actix_web::web::{Data, Json, Path, Query};
-use actix_web::HttpRequest;
+use actix_web::{HttpRequest, HttpResponse};
+use sqlx::{Pool, Postgres};
 
-use crate::errors::errors::ApiError;
-use crate::models::admin::add_metadata_request::AddMetadataRequest;
-use crate::models::admin::metadata_response::MetadataResponse;
-use crate::models::admin::paymaster_topup::PaymasterTopup;
+use crate::errors::AdminError;
+use crate::models::admin::AddMetadataRequest;
+use crate::models::admin::PaymasterTopup;
 use crate::models::response::base_response::BaseResponse;
-use crate::models::transfer::transfer_response::TransferResponse;
-use crate::models::wallet::{BalanceRequest, BalanceResponse};
-use crate::provider::helpers::{get_user, respond_json};
-use crate::services::admin_service::AdminService;
+use crate::models::wallet::BalanceRequest;
+use crate::provider::helpers::get_user;
+use crate::provider::web3_client::Web3Client;
+use crate::services::AdminService;
+use crate::CONFIG;
 
 pub async fn topup_paymaster_deposit(
-    service: Data<AdminService>,
+    provider: Data<Web3Client>,
     body: Json<PaymasterTopup>,
     req: HttpRequest,
     paymaster: Path<String>,
-) -> Result<Json<BaseResponse<TransferResponse>>, ApiError> {
+) -> Result<HttpResponse, AdminError> {
     if is_not_admin(get_user(req)) {
-        return Err(ApiError::BadRequest("Invalid credentials".to_string()));
+        return Err(AdminError::Unauthorized);
     }
-    let req = body.into_inner();
-    let response = service
-        .topup_paymaster_deposit(req.value, paymaster.clone(), req.metadata)
-        .await?;
-    respond_json(response)
+    let paymaster_req = body.into_inner();
+    let response = AdminService::topup_paymaster_deposit(
+        provider.as_ref(),
+        paymaster_req.value,
+        paymaster.clone(),
+        paymaster_req.metadata,
+    )
+    .await?;
+    Ok(HttpResponse::Ok().json(BaseResponse::init(response)))
 }
 
 pub async fn admin_get_balance(
-    service: Data<AdminService>,
+    provider: Data<Web3Client>,
     body: Query<BalanceRequest>,
     req: HttpRequest,
     entity: Path<String>,
-) -> Result<Json<BaseResponse<BalanceResponse>>, ApiError> {
+) -> Result<HttpResponse, AdminError> {
     if is_not_admin(get_user(req)) {
-        return Err(ApiError::BadRequest("Invalid credentials".to_string()));
+        return Err(AdminError::Unauthorized);
     }
-    let response = service
-        .get_balance(entity.clone(), body.get_balance_request())
-        .await?;
-    respond_json(response)
+    let response = AdminService::get_balance(
+        provider.get_ref(),
+        entity.clone(),
+        body.get_balance_request(),
+    )
+    .await?;
+    Ok(HttpResponse::Ok().json(BaseResponse::init(response)))
 }
 
 pub async fn add_currency_metadata(
-    service: Data<AdminService>,
+    pool: Data<Pool<Postgres>>,
     body: Json<AddMetadataRequest>,
     req: HttpRequest,
-) -> Result<Json<BaseResponse<MetadataResponse>>, ApiError> {
+) -> Result<HttpResponse, AdminError> {
     if is_not_admin(get_user(req)) {
-        return Err(ApiError::BadRequest("Invalid credentials".to_string()));
+        return Err(AdminError::Unauthorized);
     }
-    let response = service.add_currency_metadata(body.into_inner()).await?;
-    respond_json(response)
+    let response = AdminService::add_currency_metadata(pool.get_ref(), body.into_inner()).await?;
+    Ok(HttpResponse::Ok().json(BaseResponse::init(response)))
 }
 
 fn is_not_admin(user: String) -> bool {

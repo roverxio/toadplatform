@@ -1,5 +1,4 @@
 use chrono::{DateTime, Utc};
-use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
 use crate::errors::DatabaseError;
@@ -11,7 +10,7 @@ pub struct TokenMetadataDao {
 
 impl TokenMetadataDao {
     pub async fn add_metadata(
-        &self,
+        pool: &Pool<Postgres>,
         chain: String,
         currency: String,
         address: String,
@@ -21,7 +20,7 @@ impl TokenMetadataDao {
         chain_id: i32,
         chain_name: String,
         token_image_url: String,
-    ) {
+    ) -> Result<(), DatabaseError> {
         let query = query!(
             "INSERT INTO token_metadata \
             (chain, symbol, contract_address, exponent, token_type, name, chain_id, chain_name,\
@@ -39,13 +38,13 @@ impl TokenMetadataDao {
             chain_name,
             token_image_url
         );
-        let result = query.execute(&self.pool).await;
-        if result.is_err() {
-            error!(
+        let result = query.execute(pool).await;
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to create metadata: {}, err: {:?}",
-                chain,
-                result.err()
-            );
+                chain, err
+            ))),
         }
     }
 

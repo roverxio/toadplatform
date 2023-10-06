@@ -1,10 +1,12 @@
-use crate::models::contract_interaction;
-use crate::CONFIG;
 use ethers::abi::Abi;
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
 use std::sync::Arc;
+
+use crate::errors::ProviderError;
+use crate::models::contract_interaction;
+use crate::provider::web3_client::Web3Client;
 
 abigen!(EntryPoint, "abi/Entrypoint.json");
 
@@ -18,12 +20,8 @@ impl EntryPointProvider {
         self.abi.abi()
     }
 
-    pub fn init_abi(
-        current_chain: &str,
-        client: Arc<Provider<Http>>,
-    ) -> EntryPoint<Provider<Http>> {
-        let contract: EntryPoint<Provider<Http>> =
-            EntryPoint::new(CONFIG.chains[current_chain].entrypoint_address, client);
+    pub fn init_abi(address: Address, client: Arc<Provider<Http>>) -> EntryPoint<Provider<Http>> {
+        let contract: EntryPoint<Provider<Http>> = EntryPoint::new(address, client);
         contract
     }
     pub async fn get_nonce(&self, sender: Address) -> Result<U256, String> {
@@ -34,12 +32,18 @@ impl EntryPointProvider {
         Ok(result.unwrap())
     }
 
-    pub async fn add_deposit(&self, address: Address) -> Result<Bytes, String> {
-        let data = self.abi.deposit_to(address).calldata();
-        if data.is_none() {
-            return Err(String::from("add deposit data failed"));
+    pub async fn add_deposit(
+        client: &Web3Client,
+        address: Address,
+    ) -> Result<Bytes, ProviderError> {
+        let data = client
+            .get_entrypoint_provider()
+            .deposit_to(address)
+            .calldata();
+        match data {
+            Some(call_data) => Ok(call_data),
+            None => Err(ProviderError(String::from("EP: Add deposit data failed"))),
         }
-        Ok(data.unwrap())
     }
 
     pub async fn handle_ops(
