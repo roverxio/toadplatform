@@ -85,28 +85,26 @@ impl TokenMetadataDao {
         };
         match result {
             Ok(currencies) => Ok(currencies),
-            Err(err) => {
-                error!("Failed to get currencies, err: {:?}", err);
-                Err(DatabaseError::ServerError(String::from(
-                    "Failed to get currencies",
-                )))
-            }
+            Err(err) => Err(DatabaseError::ServerError(format!(
+                "Failed to get currencies, err: {:?}",
+                err
+            ))),
         }
     }
 
-    pub async fn get_metadata(&self) -> Vec<TokenMetadata> {
+    pub async fn get_metadata(pool: &Pool<Postgres>) -> Result<Vec<TokenMetadata>, DatabaseError> {
         let query = query_as!(
             TokenMetadata,
             "SELECT * FROM token_metadata where is_supported = true"
         );
-        let result = query.fetch_all(&self.pool).await;
+        let result = query.fetch_all(pool).await;
 
         match result {
-            Ok(metadata) => metadata,
-            Err(err) => {
-                error!("Failed to get metadata, err: {:?}", err);
-                vec![]
-            }
+            Ok(metadata) => Ok(metadata),
+            Err(err) => Err(DatabaseError::ServerError(format!(
+                "Failed to get metadata, err: {:?}",
+                err
+            ))),
         }
     }
 }
