@@ -13,8 +13,8 @@ use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::models::wallet::{Balance, BalanceResponse};
-use crate::provider::web3_client::Web3Client;
 use crate::provider::web3_provider::Web3Provider;
+use crate::provider::Web3Client;
 use crate::CONFIG;
 
 #[derive(Clone)]
