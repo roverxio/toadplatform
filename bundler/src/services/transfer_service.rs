@@ -110,16 +110,17 @@ impl TransferService {
             CONFIG.get_chain().entrypoint_address,
             CONFIG.get_chain().chain_id,
         );
-        self.transaction_dao
-            .create_user_transaction(user_txn.clone())
-            .await;
-        self.user_operations_dao
-            .create_user_operation(
-                user_txn.transaction_id.clone(),
-                user_op0.clone(),
-                Status::INITIATED.to_string(),
-            )
-            .await;
+        TransactionDao::create_user_transaction(&self.transaction_dao.pool, user_txn.clone())
+            .await
+            .map_err(|err| ApiError::InternalServer(err))?;
+        UserOperationDao::create_user_operation(
+            &self.user_operations_dao.pool,
+            user_txn.transaction_id.clone(),
+            user_op0.clone(),
+            Status::INITIATED.to_string(),
+        )
+        .await
+        .map_err(|err| ApiError::InternalServer(err))?;
 
         Ok(TransferInitResponse {
             msg_hash: user_op_hash,
