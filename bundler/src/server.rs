@@ -10,7 +10,7 @@ use log::info;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
-use crate::bundler::bundler::Bundler;
+use crate::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
