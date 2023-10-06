@@ -30,6 +30,9 @@ impl ResponseError for MetadataError {
 
 impl From<DatabaseError> for MetadataError {
     fn from(error: DatabaseError) -> Self {
-        MetadataError::Database(error.0)
+        match error {
+            DatabaseError::NotFound => MetadataError::Database(String::from("Record not found")),
+            DatabaseError::ServerError(err) => MetadataError::Database(err),
+        }
     }
 }
