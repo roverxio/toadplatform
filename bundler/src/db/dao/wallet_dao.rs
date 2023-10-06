@@ -2,7 +2,7 @@ use bigdecimal::BigDecimal;
 use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
-use crate::errors::base::DatabaseError;
+use crate::errors::DatabaseError;
 
 #[derive(Clone)]
 pub struct WalletDao {
@@ -72,10 +72,9 @@ impl WalletDao {
         let result = query.execute(pool).await;
         match result {
             Ok(_) => Ok(()),
-            Err(_) => Err(DatabaseError(format!(
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to create user: {}, err: {:?}",
-                user_id,
-                result.err()
+                user_id, err
             ))),
         }
     }

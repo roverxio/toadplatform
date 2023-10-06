@@ -8,7 +8,10 @@ pub struct Error {
 }
 
 #[derive(Debug)]
-pub struct DatabaseError(pub String);
+pub enum DatabaseError {
+    NotFound,
+    ServerError(String),
+}
 
 #[derive(Debug)]
 pub struct ProviderError(pub String);

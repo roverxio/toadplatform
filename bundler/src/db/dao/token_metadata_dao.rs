@@ -1,7 +1,8 @@
-use crate::errors::base::DatabaseError;
 use chrono::{DateTime, Utc};
 use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
+
+use crate::errors::DatabaseError;
 
 #[derive(Clone)]
 pub struct TokenMetadataDao {
@@ -84,7 +85,7 @@ impl TokenMetadataDao {
         };
         match result {
             Ok(currencies) => Ok(currencies),
-            Err(err) => Err(DatabaseError(format!(
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to get currencies, err: {:?}",
                 err
             ))),
@@ -100,7 +101,7 @@ impl TokenMetadataDao {
 
         match result {
             Ok(metadata) => Ok(metadata),
-            Err(err) => Err(DatabaseError(format!(
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to get metadata, err: {:?}",
                 err
             ))),

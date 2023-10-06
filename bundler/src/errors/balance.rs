@@ -1,8 +1,9 @@
-use crate::errors::base::{DatabaseError, ErrorResponse, ProviderError};
 use actix_web::http::StatusCode;
 use actix_web::{HttpResponse, ResponseError};
 use derive_more::Display;
 use log::error;
+
+use crate::errors::{DatabaseError, ErrorResponse, ProviderError};
 
 #[derive(Debug, Display)]
 pub enum BalanceError {
@@ -45,7 +46,10 @@ impl ResponseError for BalanceError {
 
 impl From<DatabaseError> for BalanceError {
     fn from(error: DatabaseError) -> Self {
-        BalanceError::Database(error.0)
+        match error {
+            DatabaseError::NotFound => BalanceError::NotFound,
+            DatabaseError::ServerError(err) => BalanceError::Database(err),
+        }
     }
 }
 
