@@ -24,12 +24,15 @@ impl EntryPointProvider {
         let contract: EntryPoint<Provider<Http>> = EntryPoint::new(address, client);
         contract
     }
-    pub async fn get_nonce(&self, sender: Address) -> Result<U256, String> {
-        let result = self.abi.get_nonce(sender, U256::zero()).await;
-        if result.is_err() {
-            return Err(String::from("failed to get Nonce"));
+    pub async fn get_nonce(
+        abi: EntryPoint<Provider<Http>>,
+        sender: Address,
+    ) -> Result<U256, String> {
+        let result = abi.get_nonce(sender, U256::zero()).await;
+        match result {
+            Ok(nonce) => Ok(nonce),
+            Err(err) => Err(format!("Failed to get Nonce: {:?}", err)),
         }
-        Ok(result.unwrap())
     }
 
     pub async fn add_deposit(

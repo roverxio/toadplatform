@@ -83,8 +83,7 @@ impl TransferService {
         user_op0
             .paymaster_and_data(data.clone(), wallet_address.clone(), None)
             .nonce(
-                self.entrypoint_provider
-                    .get_nonce(wallet_address)
+                EntryPointProvider::get_nonce(self.entrypoint_provider.abi.clone(), wallet_address)
                     .await
                     .unwrap()
                     .low_u64(),
