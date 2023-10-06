@@ -26,14 +26,14 @@ impl SimpleAccountFactoryProvider {
         client: &Web3Client,
         owner: Address,
         salt: U256,
-    ) -> Result<Bytes, String> {
+    ) -> Result<Bytes, ProviderError> {
         let data = client
             .get_factory_provider()
             .create_account(owner, salt)
             .calldata();
         match data {
             Some(call_data) => Ok(call_data),
-            None => Err(String::from("create data failed")),
+            None => Err(ProviderError(String::from("create data failed"))),
         }
     }
 

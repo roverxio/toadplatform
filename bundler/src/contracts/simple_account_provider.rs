@@ -26,14 +26,14 @@ impl SimpleAccountProvider {
         to: Address,
         value: String,
         data: Bytes,
-    ) -> Result<Bytes, String> {
+    ) -> Result<Bytes, ProviderError> {
         let data = client
             .get_scw_provider_by_address(Address::zero())
             .execute(to, U256::from_dec_str(&value).unwrap(), data)
             .calldata();
         match data {
             Some(call_data) => Ok(call_data),
-            None => Err(String::from("execute data failed")),
+            None => Err(ProviderError(String::from("execute data failed"))),
         }
     }
 

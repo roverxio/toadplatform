@@ -41,14 +41,14 @@ impl VerifyingPaymasterProvider {
         user_operation: UserOperation,
         valid_until: u64,
         valid_after: u64,
-    ) -> Result<[u8; 32], String> {
+    ) -> Result<[u8; 32], ProviderError> {
         let response = client
             .get_verifying_paymaster_provider()
             .get_hash(user_operation, valid_until, valid_after)
             .await;
         match response {
             Ok(hash) => Ok(hash),
-            Err(err) => Err(format!("Paymaster: Hash: {:?}", err)),
+            Err(err) => Err(ProviderError(format!("Paymaster: Hash: {:?}", err))),
         }
     }
 

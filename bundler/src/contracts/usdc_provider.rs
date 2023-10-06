@@ -19,14 +19,18 @@ impl USDCProvider {
         contract
     }
 
-    pub fn transfer(client: &Web3Client, to: Address, value: String) -> Result<Bytes, String> {
+    pub fn transfer(
+        client: &Web3Client,
+        to: Address,
+        value: String,
+    ) -> Result<Bytes, ProviderError> {
         let data = client
             .get_usdc_provider()
             .transfer(to, U256::from_dec_str(&value).unwrap())
             .calldata();
         match data {
             Some(call_data) => Ok(call_data),
-            None => Err(String::from("transfer data failed")),
+            None => Err(ProviderError(String::from("transfer data failed"))),
         }
     }
 

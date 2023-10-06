@@ -17,7 +17,7 @@ use crate::db::dao::{
     WalletDao,
 };
 use crate::errors::errors::ApiError;
-use crate::errors::TransactionError;
+use crate::errors::{ProviderError, TransactionError, TransferError};
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::currency::Currency;
 use crate::models::transaction::Transaction;
@@ -48,18 +48,14 @@ impl TransferService {
         value: String,
         currency: String,
         user: User,
-    ) -> Result<TransferInitResponse, ApiError> {
+    ) -> Result<TransferInitResponse, TransferError> {
         if user.wallet_address.is_empty() {
-            return Err(ApiError::NotFound("Wallet not found".to_string()));
+            return Err(TransferError::NotFound);
         }
         let user_txn =
             Self::get_user_transaction(&to, &value, &currency, user.wallet_address.clone());
         let mut user_op0 = UserOperation::new();
-        user_op0.calldata(
-            Self::get_call_data(pool, provider, to, value, currency)
-                .await
-                .unwrap(),
-        );
+        user_op0.calldata(Self::get_call_data(pool, provider, to, value, currency).await?);
         if !user.deployed {
             user_op0.init_code(
                 SimpleAccountFactoryProvider::get_factory_address(provider),
@@ -67,8 +63,7 @@ impl TransferService {
                     provider,
                     user.owner_address.parse().unwrap(),
                     U256::from(user.salt.to_u64().unwrap()),
-                )
-                .map_err(|err| ApiError::InternalServer(err))?,
+                )?,
             );
         }
 
@@ -80,8 +75,7 @@ impl TransferService {
             .paymaster_and_data(data.clone(), wallet_address.clone(), None)
             .nonce(
                 EntryPointProvider::get_nonce(provider, wallet_address)
-                    .await
-                    .unwrap()
+                    .await?
                     .low_u64(),
             )
             .sender(wallet_address.clone());
@@ -90,14 +84,12 @@ impl TransferService {
             Web3Client::get_verifying_paymaster_wallet()
                 .sign_typed_data(&user_op0)
                 .await
-                .unwrap()
+                .map_err(|err| TransferError::Provider(err.to_string()))?
                 .to_vec(),
         ));
 
         let singed_hash =
-            Self::get_signed_hash(provider, user_op0.clone(), valid_until, valid_after)
-                .await
-                .map_err(|err| ApiError::InternalServer(err))?;
+            Self::get_signed_hash(provider, user_op0.clone(), valid_until, valid_after).await?;
         user_op0.paymaster_and_data(
             data,
             CONFIG.get_chain().verifying_paymaster_address,
@@ -108,17 +100,14 @@ impl TransferService {
             CONFIG.get_chain().entrypoint_address,
             CONFIG.get_chain().chain_id,
         );
-        TransactionDao::create_user_transaction(pool, user_txn.clone())
-            .await
-            .map_err(|err| ApiError::InternalServer(err))?;
+        TransactionDao::create_user_transaction(pool, user_txn.clone()).await?;
         UserOperationDao::create_user_operation(
             pool,
             user_txn.transaction_id.clone(),
             user_op0.clone(),
             Status::INITIATED.to_string(),
         )
-        .await
-        .map_err(|err| ApiError::InternalServer(err))?;
+        .await?;
 
         Ok(TransferInitResponse {
             msg_hash: user_op_hash,
@@ -244,7 +233,7 @@ impl TransferService {
         user_op0: UserOperation,
         valid_until: u64,
         valid_after: u64,
-    ) -> Result<Vec<u8>, String> {
+    ) -> Result<Vec<u8>, ProviderError> {
         let hash = VerifyingPaymasterProvider::get_hash(
             provider,
             VerifyingPaymasterProvider::get_verifying_paymaster_user_operation_payload(user_op0),
@@ -257,7 +246,7 @@ impl TransferService {
             .await;
         match result {
             Ok(signature) => Ok(signature.to_vec()),
-            Err(err) => Err(format!("Signing failed: {:?}", err)),
+            Err(err) => Err(ProviderError(format!("Signing failed: {:?}", err))),
         }
     }
 
@@ -267,14 +256,13 @@ impl TransferService {
         to: String,
         value: String,
         currency: String,
-    ) -> Result<Bytes, String> {
+    ) -> Result<Bytes, TransferError> {
         let metadata = TokenMetadataDao::get_metadata_for_chain(
             pool,
             CONFIG.run_config.current_chain.clone(),
             Some(currency),
         )
-        .await
-        .map_err(|_| String::from("Failed to get metadata"))?;
+        .await?;
         match Currency::from_str(metadata[0].token_type.clone()) {
             Some(Currency::Erc20) => Ok(SimpleAccountProvider::execute(
                 provider,
@@ -288,7 +276,7 @@ impl TransferService {
                 value,
                 Bytes::from(vec![]),
             )?),
-            None => Err(String::from("Currency not found")),
+            None => Err(TransferError::InvalidCurrency),
         }
     }
 }

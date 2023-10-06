@@ -5,6 +5,7 @@ use sqlx::types::JsonValue;
 use sqlx::{query, query_as, Pool, Postgres};
 use std::default::Default;
 
+use crate::errors::DatabaseError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 
 #[derive(Clone)]
@@ -18,15 +19,15 @@ impl UserOperationDao {
         transaction_id: String,
         user_operation: UserOperation,
         status: String,
-    ) -> Result<(), String> {
+    ) -> Result<(), DatabaseError> {
         let metadata: Value;
         match serde_json::to_value(user_operation) {
             Ok(data) => metadata = data,
             Err(err) => {
-                return Err(format!(
+                return Err(DatabaseError::ServerError(format!(
                     "UserOperation conversion failed: {}, err: {:?}",
                     transaction_id, err
-                ));
+                )));
             }
         }
         let query = query!(
@@ -39,10 +40,10 @@ impl UserOperationDao {
         let result = query.execute(pool).await;
         match result {
             Ok(_) => Ok(()),
-            Err(err) => Err(format!(
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to create user operation: {}, err: {:?}",
                 transaction_id, err
-            )),
+            ))),
         }
     }
 

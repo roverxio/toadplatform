@@ -46,15 +46,15 @@ impl TransactionDao {
     pub async fn create_user_transaction(
         pool: &Pool<Postgres>,
         txn: UserTransaction,
-    ) -> Result<(), String> {
+    ) -> Result<(), DatabaseError> {
         let metadata: Value;
         match serde_json::to_value(&txn.metadata) {
             Ok(data) => metadata = data,
             Err(err) => {
-                return Err(format!(
+                return Err(DatabaseError::ServerError(format!(
                     "Metadata conversion failed: {}, err: {:?}",
                     txn.transaction_id, err
-                ));
+                )));
             }
         }
         let query = query!(
@@ -74,10 +74,10 @@ impl TransactionDao {
         let result = query.execute(pool).await;
         match result {
             Ok(_) => Ok(()),
-            Err(err) => Err(format!(
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to create user transaction: {}, err: {:?}",
                 txn.transaction_id, err
-            )),
+            ))),
         }
     }
 

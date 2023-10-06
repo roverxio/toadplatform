@@ -3,6 +3,7 @@ use actix_web::{Error, HttpResponse};
 use sqlx::{Pool, Postgres};
 
 use crate::db::dao::User;
+use crate::errors::TransferError;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transfer::transfer_execute_request::TransferExecuteRequest;
 use crate::models::transfer::transfer_request::TransferRequest;
@@ -14,7 +15,7 @@ pub async fn init_transfer(
     provider: Data<Web3Client>,
     body: Json<TransferRequest>,
     user: ReqData<User>,
-) -> Result<HttpResponse, Error> {
+) -> Result<HttpResponse, TransferError> {
     let data = TransferService::init(
         pool.get_ref(),
         provider.get_ref(),
