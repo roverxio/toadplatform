@@ -3,17 +3,14 @@ use actix_web::{HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 
 use crate::db::dao::wallet_dao::User;
-use crate::errors::balance::BalanceError;
-use crate::errors::wallet::WalletError;
-use crate::errors::TransactionError;
+use crate::errors::{BalanceError, TransactionError, WalletError};
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transaction::{ListTransactionsParams, PollTransactionParams};
-use crate::models::wallet::balance_request::BalanceRequest;
+use crate::models::wallet::BalanceRequest;
 use crate::provider::helpers::get_user_wallet;
-use crate::provider::web3_client::Web3Client;
-use crate::services::balance_service::BalanceService;
-use crate::services::wallet_service::WalletService;
+use crate::provider::Web3Client;
 use crate::services::TransferService;
+use crate::services::{BalanceService, WalletService};
 
 pub async fn get_address(
     pool: Data<Pool<Postgres>>,

@@ -3,7 +3,7 @@ use actix_web::{HttpResponse, ResponseError};
 use derive_more::Display;
 use log::error;
 
-use crate::errors::base::{DatabaseError, ErrorResponse, ProviderError};
+use crate::errors::{DatabaseError, ErrorResponse, ProviderError};
 
 #[derive(Debug, Display)]
 pub enum WalletError {
