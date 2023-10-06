@@ -2,7 +2,6 @@ use actix_web::web;
 use actix_web::web::ServiceConfig;
 
 use crate::handlers::admin::{add_currency_metadata, admin_get_balance, topup_paymaster_deposit};
-use crate::handlers::hello_world::hello_world;
 use crate::handlers::metadata::{get_metadata, get_metadata_v2};
 use crate::handlers::transfer::{execute_transfer, init_transfer};
 use crate::handlers::wallet::{get_address, get_balance, list_transactions, poll_transaction};
@@ -36,7 +35,6 @@ pub fn routes(cfg: &mut ServiceConfig) {
                             .route("balance/{entity}", web::get().to(admin_get_balance))
                             .route("metadata", web::post().to(add_currency_metadata)),
                     )
-                    .route("hello", web::get().to(hello_world))
                     .route("metadata", web::get().to(get_metadata)),
             )
             .service(web::scope("v2").route("metadata", web::get().to(get_metadata_v2))),

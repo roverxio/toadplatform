@@ -22,13 +22,11 @@ use crate::models::config::server::Server;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::Web3Client;
 use crate::routes::routes;
-use crate::services::hello_world_service::HelloWorldService;
 use crate::services::TransferService;
 use crate::{CONFIG, PROVIDER};
 
 #[derive(Clone)]
 pub struct ToadService {
-    pub hello_world_service: HelloWorldService,
     pub transfer_service: TransferService,
     pub web3_client: Web3Client,
     pub db_pool: Pool<Postgres>,
@@ -97,7 +95,6 @@ pub async fn init_services() -> ToadService {
     };
 
     // Services
-    let hello_world_service = HelloWorldService {};
     let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
@@ -114,7 +111,6 @@ pub async fn init_services() -> ToadService {
     };
 
     ToadService {
-        hello_world_service,
         transfer_service,
         web3_client: Web3Client::new(client.clone()),
         db_pool: pool,
@@ -134,7 +130,6 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
         App::new()
             .wrap(Logger::default())
             .configure(routes)
-            .app_data(Data::new(service.hello_world_service.clone()))
             .app_data(Data::new(service.transfer_service.clone()))
             .app_data(Data::new(service.web3_client.clone()))
             .app_data(Data::new(service.db_pool.clone()))
