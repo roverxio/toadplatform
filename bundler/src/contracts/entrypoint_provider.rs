@@ -4,7 +4,7 @@ use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
 use std::sync::Arc;
 
-use crate::errors::base::ProviderError;
+use crate::errors::ProviderError;
 use crate::models::contract_interaction;
 use crate::provider::web3_client::Web3Client;
 

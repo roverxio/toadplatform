@@ -6,7 +6,7 @@ use crate::errors::AdminError;
 use crate::models::admin::AddMetadataRequest;
 use crate::models::admin::PaymasterTopup;
 use crate::models::response::base_response::BaseResponse;
-use crate::models::wallet::balance_request::BalanceRequest;
+use crate::models::wallet::BalanceRequest;
 use crate::provider::helpers::get_user;
 use crate::provider::web3_client::Web3Client;
 use crate::services::AdminService;

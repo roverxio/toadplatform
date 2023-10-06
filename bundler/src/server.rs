@@ -23,20 +23,16 @@ use crate::db::dao::user_operation_dao::UserOperationDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
 use crate::provider::paymaster_provider::PaymasterProvider;
-use crate::provider::web3_client::Web3Client;
+use crate::provider::Web3Client;
 use crate::routes::routes;
 use crate::services::hello_world_service::HelloWorldService;
-use crate::services::token_metadata_service::TokenMetadataService;
-use crate::services::transfer_service::TransferService;
-use crate::services::wallet_service::WalletService;
+use crate::services::TransferService;
 use crate::{CONFIG, PROVIDER};
 
 #[derive(Clone)]
 pub struct ToadService {
     pub hello_world_service: HelloWorldService,
-    pub wallet_service: WalletService,
     pub transfer_service: TransferService,
-    pub token_metadata_service: TokenMetadataService,
     pub web3_client: Web3Client,
     pub db_pool: Pool<Postgres>,
 }
@@ -105,9 +101,6 @@ pub async fn init_services() -> ToadService {
 
     // Services
     let hello_world_service = HelloWorldService {};
-    let wallet_service = WalletService {
-        transaction_dao: transaction_dao.clone(),
-    };
     let transfer_service = TransferService {
         wallet_dao: wallet_dao.clone(),
         transaction_dao: transaction_dao.clone(),
@@ -122,15 +115,10 @@ pub async fn init_services() -> ToadService {
         scw_owner_wallet: relayer_wallet.clone(),
         bundler: bundler.clone(),
     };
-    let token_metadata_service = TokenMetadataService {
-        token_metadata_dao: token_metadata_dao.clone(),
-    };
 
     ToadService {
         hello_world_service,
-        wallet_service,
         transfer_service,
-        token_metadata_service,
         web3_client: Web3Client::new(client.clone()),
         db_pool: pool,
     }
@@ -150,9 +138,7 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
             .wrap(Logger::default())
             .configure(routes)
             .app_data(Data::new(service.hello_world_service.clone()))
-            .app_data(Data::new(service.wallet_service.clone()))
             .app_data(Data::new(service.transfer_service.clone()))
-            .app_data(Data::new(service.token_metadata_service.clone()))
             .app_data(Data::new(service.web3_client.clone()))
             .app_data(Data::new(service.db_pool.clone()))
     })

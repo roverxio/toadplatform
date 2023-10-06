@@ -11,7 +11,7 @@ use serde_json::Value;
 use std::num::ParseIntError;
 use std::sync::Arc;
 
-use crate::errors::base::ProviderError;
+use crate::errors::ProviderError;
 use crate::PROVIDER;
 
 #[derive(Clone)]

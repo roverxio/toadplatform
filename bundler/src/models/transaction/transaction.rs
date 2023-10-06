@@ -1,7 +1,8 @@
-use crate::db::dao::transaction_dao::UserTransaction;
-use crate::provider::helpers::get_explorer_url;
 use bigdecimal::BigDecimal;
 use serde::{Deserialize, Serialize};
+
+use crate::db::dao::transaction_dao::UserTransaction;
+use crate::provider::helpers::get_explorer_url;
 
 #[derive(Serialize, Deserialize)]
 pub struct Transaction {

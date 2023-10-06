@@ -5,7 +5,7 @@ use ethers::types::U256;
 use ethers::utils::format_ether;
 use std::sync::Arc;
 
-use crate::errors::base::ProviderError;
+use crate::errors::ProviderError;
 use crate::models::contract_interaction;
 use crate::provider::web3_client::Web3Client;
 

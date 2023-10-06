@@ -1,7 +1,7 @@
 use actix_web::{HttpResponse, ResponseError};
 use derive_more::Display;
 
-use crate::errors::base::ErrorResponse;
+use crate::errors::ErrorResponse;
 
 #[derive(Debug, Display)]
 #[allow(dead_code)]

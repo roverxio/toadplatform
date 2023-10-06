@@ -3,7 +3,7 @@ use actix_web::{HttpResponse, ResponseError};
 use derive_more::Display;
 use log::error;
 
-use crate::errors::base::{DatabaseError, ErrorResponse, ProviderError};
+use crate::errors::{DatabaseError, ErrorResponse, ProviderError};
 
 #[derive(Debug, Display)]
 pub enum AdminError {
@@ -54,7 +54,10 @@ impl ResponseError for AdminError {
 
 impl From<DatabaseError> for AdminError {
     fn from(error: DatabaseError) -> Self {
-        AdminError::Database(error.0)
+        match error {
+            DatabaseError::NotFound => AdminError::Database(String::from("Record not found")),
+            DatabaseError::ServerError(err) => AdminError::Database(err),
+        }
     }
 }
 
