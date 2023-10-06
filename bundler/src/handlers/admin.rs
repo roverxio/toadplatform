@@ -3,8 +3,7 @@ use actix_web::{HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 
 use crate::errors::AdminError;
-use crate::models::admin::AddMetadataRequest;
-use crate::models::admin::PaymasterTopup;
+use crate::models::admin::{AddMetadataRequest, PaymasterTopup};
 use crate::models::response::base_response::BaseResponse;
 use crate::models::wallet::BalanceRequest;
 use crate::provider::helpers::get_user;
