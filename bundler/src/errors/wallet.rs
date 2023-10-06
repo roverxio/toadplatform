@@ -37,7 +37,10 @@ impl ResponseError for WalletError {
 
 impl From<DatabaseError> for WalletError {
     fn from(error: DatabaseError) -> Self {
-        WalletError::Database(error.0)
+        match error {
+            DatabaseError::NotFound => WalletError::Database(String::from("Record not found")),
+            DatabaseError::ServerError(err) => WalletError::Database(err),
+        }
     }
 }
 

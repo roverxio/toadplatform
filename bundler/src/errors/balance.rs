@@ -46,7 +46,10 @@ impl ResponseError for BalanceError {
 
 impl From<DatabaseError> for BalanceError {
     fn from(error: DatabaseError) -> Self {
-        BalanceError::Database(error.0)
+        match error {
+            DatabaseError::NotFound => BalanceError::NotFound,
+            DatabaseError::ServerError(err) => BalanceError::Database(err),
+        }
     }
 }
 

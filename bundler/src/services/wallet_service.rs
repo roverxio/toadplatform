@@ -9,8 +9,8 @@ use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvi
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
 use crate::db::dao::wallet_dao::{User, WalletDao};
-use crate::errors::{ProviderError, WalletError};
-use crate::models::transaction::transaction::Transaction;
+use crate::errors::{ProviderError, TransactionError, WalletError};
+use crate::models::transaction::Transaction;
 use crate::models::wallet::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
 use crate::provider::Web3Client;
@@ -18,9 +18,7 @@ use crate::services::MintService;
 use crate::CONFIG;
 
 #[derive(Clone)]
-pub struct WalletService {
-    pub transaction_dao: TransactionDao,
-}
+pub struct WalletService;
 
 impl WalletService {
     pub async fn get_wallet_address(
@@ -115,24 +113,22 @@ impl WalletService {
     }
 
     pub async fn list_transactions(
-        &self,
+        pool: &Pool<Postgres>,
         page_size: i64,
         id: Option<i32>,
         user: User,
-    ) -> Vec<Transaction> {
+    ) -> Result<Vec<Transaction>, TransactionError> {
         let row_id = id.unwrap_or(i32::MAX);
 
-        let mut transactions = Vec::new();
-        let result = self
-            .transaction_dao
-            .list_transactions(page_size, row_id, user.wallet_address)
-            .await;
+        let result =
+            TransactionDao::list_transactions(pool, page_size, row_id, user.wallet_address).await?;
 
-        for transaction_and_exponent in result {
-            transactions.push(Transaction::from(transaction_and_exponent))
-        }
+        let transactions = result
+            .iter()
+            .map(|txn| Transaction::from(txn.clone()))
+            .collect();
 
-        transactions
+        Ok(transactions)
     }
 }
 

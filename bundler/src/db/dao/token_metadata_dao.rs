@@ -87,7 +87,9 @@ impl TokenMetadataDao {
             Ok(currencies) => Ok(currencies),
             Err(err) => {
                 error!("Failed to get currencies, err: {:?}", err);
-                Err(DatabaseError(String::from("Failed to get currencies")))
+                Err(DatabaseError::ServerError(String::from(
+                    "Failed to get currencies",
+                )))
             }
         }
     }

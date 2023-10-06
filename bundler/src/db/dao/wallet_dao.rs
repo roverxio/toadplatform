@@ -72,10 +72,9 @@ impl WalletDao {
         let result = query.execute(pool).await;
         match result {
             Ok(_) => Ok(()),
-            Err(_) => Err(DatabaseError(format!(
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to create user: {}, err: {:?}",
-                user_id,
-                result.err()
+                user_id, err
             ))),
         }
     }
