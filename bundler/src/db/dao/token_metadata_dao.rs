@@ -1,7 +1,8 @@
-use crate::errors::base::DatabaseError;
 use chrono::{DateTime, Utc};
 use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
+
+use crate::errors::DatabaseError;
 
 #[derive(Clone)]
 pub struct TokenMetadataDao {

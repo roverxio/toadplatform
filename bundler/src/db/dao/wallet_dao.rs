@@ -2,7 +2,7 @@ use bigdecimal::BigDecimal;
 use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
-use crate::errors::base::DatabaseError;
+use crate::errors::DatabaseError;
 
 #[derive(Clone)]
 pub struct WalletDao {

@@ -24,13 +24,13 @@ use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::config::server::Server;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_abi;
-use crate::provider::web3_client::Web3Client;
+use crate::provider::Web3Client;
 use crate::routes::routes;
 use crate::services::admin_service::AdminService;
 use crate::services::hello_world_service::HelloWorldService;
 use crate::services::token_metadata_service::TokenMetadataService;
 use crate::services::transfer_service::TransferService;
-use crate::services::wallet_service::WalletService;
+use crate::services::WalletService;
 use crate::{CONFIG, PROVIDER};
 
 #[derive(Clone)]
