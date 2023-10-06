@@ -21,12 +21,12 @@ pub async fn topup_paymaster_deposit(
     if is_not_admin(get_user(req)) {
         return Err(AdminError::Unauthorized);
     }
-    let req = body.into_inner();
+    let paymaster_req = body.into_inner();
     let response = AdminService::topup_paymaster_deposit(
         provider.as_ref(),
-        req.value,
+        paymaster_req.value,
         paymaster.clone(),
-        req.metadata,
+        paymaster_req.metadata,
     )
     .await?;
     Ok(HttpResponse::Ok().json(BaseResponse::init(response)))
