@@ -64,13 +64,15 @@ impl TransferService {
         user_op0.calldata(self.get_call_data(to, value, currency).await.unwrap());
         if !user.deployed {
             user_op0.init_code(
-                self.simple_account_factory_provider.abi.address(),
-                self.simple_account_factory_provider
-                    .create_account(
-                        user.owner_address.parse().unwrap(),
-                        U256::from(user.salt.to_u64().unwrap()),
-                    )
-                    .unwrap(),
+                SimpleAccountFactoryProvider::get_factory_address(
+                    self.simple_account_factory_provider.abi.clone(),
+                ),
+                SimpleAccountFactoryProvider::create_account(
+                    self.simple_account_factory_provider.abi.clone(),
+                    user.owner_address.parse().unwrap(),
+                    U256::from(user.salt.to_u64().unwrap()),
+                )
+                .map_err(|err| ApiError::InternalServer(err))?,
             );
         }
 

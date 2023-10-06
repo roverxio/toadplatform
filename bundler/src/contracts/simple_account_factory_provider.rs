@@ -24,13 +24,20 @@ impl SimpleAccountFactoryProvider {
         contract
     }
 
-    pub fn create_account(&self, owner: Address, salt: U256) -> Result<Bytes, String> {
-        let data = self.abi.create_account(owner, salt).calldata();
-        if data.is_none() {
-            return Err("create data failed".to_string());
+    pub fn create_account(
+        abi: SimpleAccountFactory<Provider<Http>>,
+        owner: Address,
+        salt: U256,
+    ) -> Result<Bytes, String> {
+        let data = abi.create_account(owner, salt).calldata();
+        match data {
+            Some(call_data) => Ok(call_data),
+            None => Err(String::from("create data failed")),
         }
+    }
 
-        Ok(data.unwrap())
+    pub fn get_factory_address(abi: SimpleAccountFactory<Provider<Http>>) -> Address {
+        abi.address()
     }
 
     pub async fn get_address(
