@@ -1,7 +1,7 @@
-use crate::db::dao::wallet_dao::User;
 use actix_web::web::{Data, Json, ReqData};
 use actix_web::{Error, HttpResponse};
 
+use crate::db::dao::User;
 use crate::models::response::base_response::BaseResponse;
 use crate::models::transfer::transfer_execute_request::TransferExecuteRequest;
 use crate::models::transfer::transfer_request::TransferRequest;
