@@ -1,6 +1,5 @@
 pub mod bundler;
 pub mod helpers;
-pub mod lib;
 pub mod listeners;
 pub mod paymaster_provider;
 pub mod verifying_paymaster_helper;
