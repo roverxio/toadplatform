@@ -116,14 +116,6 @@ impl TransferService {
             .verification_gas_limit(estimated_gas.verification_gas_limit)
             .pre_verification_gas(estimated_gas.pre_verification_gas);
 
-        user_op0.signature(Bytes::from(
-            self.verifying_paymaster_wallet
-                .sign_typed_data(&user_op0)
-                .await
-                .unwrap()
-                .to_vec(),
-        ));
-
         let singed_hash = self
             .get_signed_hash(user_op0.clone(), valid_until, valid_after)
             .await;
