@@ -58,6 +58,13 @@ impl Web3Client {
         )
     }
 
+    pub fn get_bundler_signer(&self) -> SignerMiddleware<Arc<Provider<Http>>, LocalWallet> {
+        SignerMiddleware::new(
+            self.client.clone(),
+            Self::get_relayer_wallet().with_chain_id(CONFIG.get_chain().chain_id),
+        )
+    }
+
     pub fn get_relayer_wallet() -> LocalWallet {
         std::env::var("WALLET_PRIVATE_KEY")
             .expect("WALLET_PRIVATE_KEY must be set")

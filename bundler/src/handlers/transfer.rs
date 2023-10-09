@@ -28,19 +28,18 @@ pub async fn init_transfer(
 }
 
 pub async fn execute_transfer(
-    service: Data<TransferService>,
+    pool: Data<Pool<Postgres>>,
+    provider: Data<Web3Client>,
     body: Json<TransferExecuteRequest>,
     req: ReqData<User>,
 ) -> Result<HttpResponse, Error> {
-    let data = service
-        .execute(
-            body.transaction_id.clone(),
-            body.get_signature(),
-            req.into_inner(),
-        )
-        .await;
-    Ok(HttpResponse::Ok().json(BaseResponse {
-        data: data.unwrap(),
-        err: Default::default(),
-    }))
+    let data = TransferService::execute(
+        pool.get_ref(),
+        provider.get_ref(),
+        body.transaction_id.clone(),
+        body.get_signature(),
+        req.into_inner(),
+    )
+    .await?;
+    Ok(HttpResponse::Ok().json(BaseResponse::init(data)))
 }
