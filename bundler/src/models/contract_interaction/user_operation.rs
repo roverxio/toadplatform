@@ -95,6 +95,21 @@ impl UserOperation {
         self.signature = signature;
         self
     }
+
+    pub fn call_gas_limit(&mut self, call_gas_limit: u64) -> &mut UserOperation {
+        self.call_gas_limit = call_gas_limit;
+        self
+    }
+
+    pub fn verification_gas_limit(&mut self, verification_gas_limit: u64) -> &mut UserOperation {
+        self.verification_gas_limit = verification_gas_limit;
+        self
+    }
+
+    pub fn pre_verification_gas(&mut self, pre_verification_gas: u64) -> &mut UserOperation {
+        self.pre_verification_gas = pre_verification_gas;
+        self
+    }
 }
 
 #[derive(EthAbiCodec, EthAbiType)]

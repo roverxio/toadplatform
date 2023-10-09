@@ -1,10 +1,12 @@
+use std::str::FromStr;
+
 use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
+use log::{error, log};
 use sqlx::{Pool, Postgres};
-use std::str::FromStr;
 
 use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -25,6 +27,7 @@ use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_init_response::TransferInitResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
+use crate::provider::lib::{EstimateResult, Request, Response};
 use crate::provider::listeners::user_op_event_listener;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
@@ -78,7 +81,11 @@ impl TransferService {
         let valid_after: u64 = 4660;
         let data = encode(&vec![valid_until.into_token(), valid_after.into_token()]);
         user_op0
-            .paymaster_and_data(data.clone(), wallet_address.clone(), None)
+            .paymaster_and_data(
+                data.clone(),
+                CONFIG.get_chain().verifying_paymaster_address.clone(),
+                None,
+            )
             .nonce(
                 self.entrypoint_provider
                     .get_nonce(wallet_address)
@@ -87,6 +94,70 @@ impl TransferService {
                     .low_u64(),
             )
             .sender(wallet_address.clone());
+
+        user_op0.signature(Bytes::from(
+            self.verifying_paymaster_wallet
+                .sign_typed_data(&user_op0)
+                .await
+                .unwrap()
+                .to_vec(),
+        ));
+
+        let singed_hash = self
+            .get_signed_hash(user_op0.clone(), valid_until, valid_after)
+            .await;
+        user_op0.paymaster_and_data(
+            data.clone(),
+            CONFIG.get_chain().verifying_paymaster_address,
+            Some(singed_hash),
+        );
+
+        let val = crate::services::user_operation_other::UserOperation::default()
+            .sender(user_op0.sender.clone())
+            .nonce(U256::from(user_op0.nonce.clone()))
+            .init_code(user_op0.init_code.clone())
+            .call_data(user_op0.calldata.clone())
+            .call_gas_limit(U256::from(user_op0.call_gas_limit.clone()))
+            .verification_gas_limit(U256::from(user_op0.verification_gas_limit.clone()))
+            .pre_verification_gas(U256::from(user_op0.pre_verification_gas.clone()))
+            .max_fee_per_gas(U256::from(user_op0.max_fee_per_gas.clone()))
+            .max_priority_fee_per_gas(U256::from(user_op0.max_priority_fee_per_gas.clone()))
+            .paymaster_and_data(user_op0.paymaster_and_data.clone())
+            .signature(user_op0.signature.clone());
+
+        let value = serde_json::to_value(&val).unwrap();
+
+        let req_body = Request {
+            jsonrpc: "2.0".to_string(),
+            id: 1,
+            method: "eth_estimateUserOperationGas".to_string(),
+            params: vec![
+                value,
+                format!("{:?}", CONFIG.get_chain().entrypoint_address).into(),
+            ],
+        };
+        let post = reqwest::Client::builder()
+            .build()
+            .unwrap()
+            .post("http://127.0.0.1:3000")
+            .json(&req_body)
+            .send()
+            .await
+            .unwrap();
+        let res = post.text().await.unwrap();
+        let v = serde_json::from_str::<Response<EstimateResult>>(&res).unwrap();
+        if v.error.is_some() {
+            error!("could not estimate gas: {:?}", v.error);
+            return Err(ApiError::InternalServer(
+                "Failed to estimate gas".to_string(),
+            ));
+        }
+        let estimated_gas = v.result.unwrap();
+
+        user_op0
+            .call_gas_limit(estimated_gas.call_gas_limit.as_u64())
+            .verification_gas_limit(estimated_gas.verification_gas_limit.as_u64())
+            .pre_verification_gas(estimated_gas.pre_verification_gas.as_u64());
 
         user_op0.signature(Bytes::from(
             self.verifying_paymaster_wallet
@@ -159,44 +230,80 @@ impl TransferService {
         let mut user_operation = user_op.user_operation;
         user_operation.signature(signature);
 
-        let result = self
-            .bundler
-            .submit(user_operation.clone(), CONFIG.run_config.account_owner)
-            .await;
-        if result.is_err() {
+        let val = crate::services::user_operation_other::UserOperation::default()
+            .sender(user_operation.sender.clone())
+            .nonce(U256::from(user_operation.nonce.clone()))
+            .init_code(user_operation.init_code.clone())
+            .call_data(user_operation.calldata.clone())
+            .call_gas_limit(U256::from(user_operation.call_gas_limit.clone()))
+            .verification_gas_limit(U256::from(user_operation.verification_gas_limit.clone()))
+            .pre_verification_gas(U256::from(user_operation.pre_verification_gas.clone()))
+            .max_fee_per_gas(U256::from(user_operation.max_fee_per_gas.clone()))
+            .max_priority_fee_per_gas(U256::from(user_operation.max_priority_fee_per_gas.clone()))
+            .paymaster_and_data(user_operation.paymaster_and_data.clone())
+            .signature(user_operation.signature.clone());
+
+        let send_body = Request {
+            jsonrpc: "2.0".to_string(),
+            id: 1,
+            method: "eth_sendUserOperation".to_string(),
+            params: vec![
+                serde_json::to_value(&val).unwrap(),
+                format!("{:?}", CONFIG.get_chain().entrypoint_address).into(),
+            ],
+        };
+        let post = reqwest::Client::builder()
+            .build()
+            .unwrap()
+            .post("http://127.0.0.1:3000")
+            .json(&send_body)
+            .send()
+            .await
+            .unwrap();
+
+        let res = post.text().await.unwrap();
+
+        println!("res: {:?}", res);
+
+        let result = serde_json::from_str::<Response<String>>(&res).unwrap();
+
+        if result.error.is_some() {
+            error!("could not submit transaction: {:?}", result.error);
             self.transaction_dao
                 .update_user_transaction(transaction_id, None, Status::FAILED.to_string())
                 .await;
-            return Err(ApiError::BadRequest(result.err().unwrap()));
-        }
-        let txn_hash = result.unwrap();
-        self.transaction_dao
-            .update_user_transaction(transaction_id.clone(), None, Status::PENDING.to_string())
-            .await;
-        if !user.deployed {
-            self.wallet_dao
-                .update_wallet_deployed(user.external_user_id)
-                .await;
+            return Err(ApiError::InternalServer(
+                "Failed to submit transaction".to_string(),
+            ));
         }
 
+        self.transaction_dao
+            .update_user_transaction(transaction_id.clone(), None, Status::SUBMITTED.to_string())
+            .await;
+        /*        if !user.deployed {
+                    self.wallet_dao
+                        .update_wallet_deployed(user.external_user_id)
+                        .await;
+                }
+        */
         spawn(user_op_event_listener(
             self.transaction_dao.clone(),
+            self.wallet_dao.clone(),
             self.entrypoint_provider.clone(),
             user_operation.hash(
                 CONFIG.get_chain().entrypoint_address,
                 CONFIG.get_chain().chain_id,
             ),
             transaction_id.clone(),
+            user.deployed,
+            user.external_user_id,
         ));
-        self.user_operations_dao
-            .update_user_operation_status(transaction_id.clone(), Status::SUCCESS.to_string())
-            .await;
 
         Ok(TransferResponse {
             transaction: TransactionResponse {
-                transaction_hash: txn_hash.clone(),
+                transaction_hash: "".to_string(),
                 status: Status::PENDING.to_string(),
-                explorer: get_explorer_url(&txn_hash),
+                explorer: get_explorer_url(""),
             },
             transaction_id,
         })

@@ -112,18 +112,20 @@ impl TransactionDao {
         match txn_hash {
             None => {
                 query = query!(
-                    "UPDATE user_transactions set status = $1 where transaction_id = $2",
+                    "UPDATE user_transactions set status = $1, updated_at = $2 where transaction_id = $3",
                     status,
+                    Utc::now(),
                     txn_id,
                 );
             }
             Some(value) => {
                 query = query!(
                     "UPDATE user_transactions \
-                    set status = $1, metadata = jsonb_set(metadata, '{transaction_hash}', $2) \
-                    where transaction_id = $3",
+                    set status = $1, metadata = jsonb_set(metadata, '{transaction_hash}', $2), \
+                    updated_at = $3 where transaction_id = $4",
                     status,
                     Value::String(value),
+                    Utc::now(),
                     txn_id,
                 );
             }

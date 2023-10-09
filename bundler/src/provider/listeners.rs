@@ -1,16 +1,21 @@
-use crate::contracts::entrypoint_provider::EntryPointProvider;
-use crate::db::dao::transaction_dao::TransactionDao;
-use crate::models::transfer::status::Status::{FAILED, SUCCESS};
-use crate::{CONFIG, PROVIDER};
 use ethers::abi::RawLog;
 use ethers::providers::Middleware;
 use ethers::types::{Filter, H256};
 
+use crate::contracts::entrypoint_provider::EntryPointProvider;
+use crate::db::dao::transaction_dao::TransactionDao;
+use crate::db::dao::wallet_dao::WalletDao;
+use crate::models::transfer::status::Status::{FAILED, SUCCESS};
+use crate::{CONFIG, PROVIDER};
+
 pub async fn user_op_event_listener(
     transaction_dao: TransactionDao,
+    wallet_dao: WalletDao,
     entrypoint_provider: EntryPointProvider,
     user_op_hash: [u8; 32],
     txn_id: String,
+    wallet_deployed: bool,
+    external_user_id: String,
 ) {
     let event = entrypoint_provider
         .abi()
@@ -50,4 +55,8 @@ pub async fn user_op_event_listener(
     transaction_dao
         .update_user_transaction(txn_id, Some(txn_hash), status.to_string())
         .await;
+
+    if success && !wallet_deployed {
+        wallet_dao.update_wallet_deployed(external_user_id).await;
+    }
 }
