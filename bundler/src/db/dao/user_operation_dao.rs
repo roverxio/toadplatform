@@ -47,7 +47,7 @@ impl UserOperationDao {
     pub async fn get_user_operation(
         pool: &Pool<Postgres>,
         transaction_id: String,
-    ) -> Result<UserOperationRecord, String> {
+    ) -> Result<UserOperationRecord, DatabaseError> {
         let query = query_as!(
             UserOperationRecord,
             "SELECT * from user_operations where transaction_id = $1",
@@ -56,7 +56,10 @@ impl UserOperationDao {
         let result = query.fetch_one(pool).await;
         match result {
             Ok(row) => Ok(row),
-            Err(error) => Err(format!("Failed to fetch user operation: {:?}", error)),
+            Err(error) => Err(DatabaseError::ServerError(format!(
+                "Failed to fetch user operation: {:?}",
+                error
+            ))),
         }
     }
 
@@ -64,7 +67,7 @@ impl UserOperationDao {
         pool: &Pool<Postgres>,
         transaction_id: String,
         status: String,
-    ) -> Result<(), String> {
+    ) -> Result<(), DatabaseError> {
         let query = query!(
             "UPDATE user_operations SET status = $1 where transaction_id = $2",
             status,
@@ -73,10 +76,10 @@ impl UserOperationDao {
         let result = query.execute(pool).await;
         match result {
             Ok(_) => Ok(()),
-            Err(err) => Err(format!(
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to update user operation status: {}, err: {:?}",
                 transaction_id, err
-            )),
+            ))),
         }
     }
 }

@@ -1,6 +1,7 @@
 use ethers::types::Address;
 
 use crate::contracts::entrypoint_provider::EntryPointProvider;
+use crate::errors::ProviderError;
 use crate::models::contract_interaction;
 use crate::provider::web3_provider::Web3Provider;
 use crate::provider::Web3Client;
@@ -14,10 +15,10 @@ impl Bundler {
         provider: &Web3Client,
         user_op: contract_interaction::UserOperation,
         beneficiary: Address,
-    ) -> Result<String, String> {
+    ) -> Result<String, ProviderError> {
         let call_data = EntryPointProvider::handle_ops(provider, user_op, beneficiary).await;
         if call_data.is_err() {
-            return Err(String::from("failed to transfer"));
+            return Err(ProviderError(String::from("failed to transfer")));
         }
         Web3Provider::execute(
             provider.get_bundler_signer(),
@@ -27,5 +28,6 @@ impl Bundler {
             provider.get_entrypoint_provider().abi(),
         )
         .await
+        .map_err(|err| ProviderError(err))
     }
 }

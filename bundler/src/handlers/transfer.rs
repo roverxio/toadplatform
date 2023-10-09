@@ -1,5 +1,5 @@
 use actix_web::web::{Data, Json, ReqData};
-use actix_web::{Error, HttpResponse};
+use actix_web::HttpResponse;
 use sqlx::{Pool, Postgres};
 
 use crate::db::dao::User;
@@ -32,7 +32,7 @@ pub async fn execute_transfer(
     provider: Data<Web3Client>,
     body: Json<TransferExecuteRequest>,
     req: ReqData<User>,
-) -> Result<HttpResponse, Error> {
+) -> Result<HttpResponse, TransferError> {
     let data = TransferService::execute(
         pool.get_ref(),
         provider.get_ref(),

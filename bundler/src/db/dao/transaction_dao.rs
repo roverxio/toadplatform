@@ -113,7 +113,7 @@ impl TransactionDao {
         txn_id: String,
         txn_hash: Option<String>,
         status: String,
-    ) -> Result<(), String> {
+    ) -> Result<(), DatabaseError> {
         let query;
         match txn_hash {
             None => {
@@ -137,10 +137,10 @@ impl TransactionDao {
         let result = query.execute(pool).await;
         match result {
             Ok(_) => Ok(()),
-            Err(err) => Err(format!(
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to update user transaction: {}, err: {:?}",
                 txn_id, err
-            )),
+            ))),
         }
     }
 }

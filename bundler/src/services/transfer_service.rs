@@ -16,7 +16,6 @@ use crate::db::dao::{
     TokenMetadataDao, TransactionDao, TransactionMetadata, User, UserOperationDao, UserTransaction,
     WalletDao,
 };
-use crate::errors::errors::ApiError;
 use crate::errors::{ProviderError, TransactionError, TransferError};
 use crate::models::contract_interaction::UserOperation;
 use crate::models::transaction::Transaction;
@@ -115,26 +114,21 @@ impl TransferService {
         transaction_id: String,
         signature: Bytes,
         user: User,
-    ) -> Result<TransferResponse, ApiError> {
+    ) -> Result<TransferResponse, TransferError> {
         if user.wallet_address.is_empty() {
-            return Err(ApiError::NotFound("Wallet not found".to_string()));
+            return Err(TransferError::NotFound);
         }
-        let user_op = UserOperationDao::get_user_operation(pool, transaction_id.clone())
-            .await
-            .map_err(|err| ApiError::InternalServer(err))?;
+        let user_op = UserOperationDao::get_user_operation(pool, transaction_id.clone()).await?;
 
-        if user_op.transaction_id == "".to_string()
-            || user_op.status != Status::INITIATED.to_string()
-        {
-            return Err(ApiError::NotFound("Transaction not found".to_string()));
+        if user_op.transaction_id.is_empty() || user_op.status != Status::INITIATED.to_string() {
+            return Err(TransferError::TxnNotFound);
         }
         UserOperationDao::update_user_operation_status(
             pool,
             transaction_id.clone(),
             Status::PENDING.to_string(),
         )
-        .await
-        .map_err(|err| ApiError::BadRequest(err))?;
+        .await?;
 
         let mut user_operation = user_op.user_operation;
         user_operation.signature(signature);
@@ -145,31 +139,30 @@ impl TransferService {
             CONFIG.run_config.account_owner,
         )
         .await;
-        if result.is_err() {
-            TransactionDao::update_user_transaction(
-                pool,
-                transaction_id,
-                None,
-                Status::FAILED.to_string(),
-            )
-            .await
-            .map_err(|err| ApiError::BadRequest(err))?;
-            return Err(ApiError::BadRequest(result.err().unwrap()));
+        let txn_hash;
+        match result {
+            Ok(hash) => txn_hash = hash,
+            Err(err) => {
+                TransactionDao::update_user_transaction(
+                    pool,
+                    transaction_id,
+                    None,
+                    Status::FAILED.to_string(),
+                )
+                .await?;
+                return Err(TransferError::from(err));
+            }
         }
-        let txn_hash = result.unwrap();
         TransactionDao::update_user_transaction(
             pool,
             transaction_id.clone(),
             None,
             Status::PENDING.to_string(),
         )
-        .await
-        .map_err(|err| ApiError::BadRequest(err))?;
+        .await?;
 
         if !user.deployed {
-            WalletDao::update_wallet_deployed(pool, user.external_user_id)
-                .await
-                .map_err(|err| ApiError::InternalServer(err))?;
+            WalletDao::update_wallet_deployed(pool, user.external_user_id).await?;
         }
 
         spawn(user_op_event_listener(
@@ -186,8 +179,7 @@ impl TransferService {
             transaction_id.clone(),
             Status::SUCCESS.to_string(),
         )
-        .await
-        .map_err(|err| ApiError::InternalServer(err))?;
+        .await?;
 
         Ok(TransferResponse {
             transaction: TransactionResponse {

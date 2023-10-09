@@ -11,7 +11,7 @@ impl WalletDao {
     pub async fn update_wallet_deployed(
         pool: &Pool<Postgres>,
         user_id: String,
-    ) -> Result<(), String> {
+    ) -> Result<(), DatabaseError> {
         let query = query!(
             "UPDATE users SET deployed = $1 WHERE external_user_id = $2",
             true,
@@ -20,10 +20,10 @@ impl WalletDao {
         let result = query.execute(pool).await;
         match result {
             Ok(_) => Ok(()),
-            Err(err) => Err(format!(
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to update deployed status for user: {}, err: {:?}",
                 user_id, err
-            )),
+            ))),
         }
     }
 

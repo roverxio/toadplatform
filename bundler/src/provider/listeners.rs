@@ -50,5 +50,7 @@ pub async fn user_op_event_listener(
 
     let status = if success { SUCCESS } else { FAILED };
 
-    TransactionDao::update_user_transaction(&pool, txn_id, Some(txn_hash), status.to_string()).await
+    TransactionDao::update_user_transaction(&pool, txn_id, Some(txn_hash), status.to_string())
+        .await
+        .map_err(|_| String::from("Listener: Failed to update database"))
 }
