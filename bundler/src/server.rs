@@ -11,7 +11,6 @@ use ethers_signers::{LocalWallet, Signer};
 use log::info;
 use sqlx::{Pool, Postgres};
 
-use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
@@ -76,12 +75,6 @@ pub async fn init_services() -> ToadService {
             .clone()
             .with_chain_id(CONFIG.get_chain().chain_id),
     );
-    let bundler_signer = SignerMiddleware::new(
-        client.clone(),
-        relayer_wallet
-            .clone()
-            .with_chain_id(CONFIG.get_chain().chain_id),
-    );
 
     //daos
     let pool = DatabaseConnection::init().await;
@@ -96,10 +89,6 @@ pub async fn init_services() -> ToadService {
     };
     let entrypoint_provider = EntryPointProvider {
         abi: entrypoint.clone(),
-    };
-    let bundler = Bundler {
-        signer: bundler_signer.clone(),
-        entrypoint: entrypoint_provider.clone(),
     };
     let usdc_provider = USDCProvider { abi: erc20.clone() };
     let simple_account_provider = SimpleAccountProvider {
@@ -126,7 +115,6 @@ pub async fn init_services() -> ToadService {
         verifying_paymaster_provider: verify_paymaster_provider.clone(),
         verifying_paymaster_wallet: verifying_paymaster_wallet.clone(),
         scw_owner_wallet: relayer_wallet.clone(),
-        bundler: bundler.clone(),
     };
     let admin_service = AdminService {
         paymaster_provider: verify_paymaster_provider.clone(),

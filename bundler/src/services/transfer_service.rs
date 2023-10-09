@@ -5,10 +5,9 @@ use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
-use log::{error, log};
+use log::error;
 use sqlx::{Pool, Postgres};
 
-use crate::bundler::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
@@ -46,7 +45,6 @@ pub struct TransferService {
     pub verifying_paymaster_provider: PaymasterProvider,
     pub verifying_paymaster_wallet: LocalWallet,
     pub scw_owner_wallet: LocalWallet,
-    pub bundler: Bundler,
 }
 
 impl TransferService {
@@ -262,9 +260,6 @@ impl TransferService {
             .unwrap();
 
         let res = post.text().await.unwrap();
-
-        println!("res: {:?}", res);
-
         let result = serde_json::from_str::<Response<String>>(&res).unwrap();
 
         if result.error.is_some() {
@@ -280,12 +275,6 @@ impl TransferService {
         self.transaction_dao
             .update_user_transaction(transaction_id.clone(), None, Status::SUBMITTED.to_string())
             .await;
-        /*        if !user.deployed {
-                    self.wallet_dao
-                        .update_wallet_deployed(user.external_user_id)
-                        .await;
-                }
-        */
         spawn(user_op_event_listener(
             self.transaction_dao.clone(),
             self.wallet_dao.clone(),

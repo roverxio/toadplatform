@@ -1,4 +1,3 @@
-use crate::models::contract_interaction;
 use crate::CONFIG;
 use ethers::abi::Abi;
 use ethers::contract::abigen;
@@ -40,42 +39,5 @@ impl EntryPointProvider {
             return Err(String::from("add deposit data failed"));
         }
         Ok(data.unwrap())
-    }
-
-    pub async fn handle_ops(
-        &self,
-        user_op: contract_interaction::user_operation::UserOperation,
-        beneficiary: Address,
-    ) -> Result<Bytes, String> {
-        let data = self
-            .abi
-            .handle_ops(
-                vec![self.get_entry_point_user_operation_payload(user_op)],
-                beneficiary,
-            )
-            .calldata();
-        if data.is_none() {
-            return Err(String::from("handle ops data failed"));
-        }
-        Ok(data.unwrap())
-    }
-
-    fn get_entry_point_user_operation_payload(
-        &self,
-        user_op: contract_interaction::user_operation::UserOperation,
-    ) -> UserOperation {
-        UserOperation {
-            sender: user_op.sender,
-            nonce: U256::from(user_op.nonce),
-            init_code: user_op.init_code,
-            call_data: user_op.calldata,
-            call_gas_limit: U256::from(user_op.call_gas_limit),
-            verification_gas_limit: U256::from(user_op.verification_gas_limit),
-            pre_verification_gas: U256::from(user_op.pre_verification_gas),
-            max_fee_per_gas: U256::from(user_op.max_fee_per_gas),
-            max_priority_fee_per_gas: U256::from(user_op.max_priority_fee_per_gas),
-            signature: user_op.signature,
-            paymaster_and_data: user_op.paymaster_and_data,
-        }
     }
 }
