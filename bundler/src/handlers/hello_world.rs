@@ -1,14 +1,9 @@
-use actix_web::web::{Data, Json};
+use actix_web::{Error, HttpResponse};
 
-use crate::errors::errors::ApiError;
-use crate::models::hello_world::HelloWorld;
 use crate::models::response::BaseResponse;
-use crate::provider::helpers::respond_json;
-use crate::services::hello_world_service::HelloWorldService;
+use crate::services::HelloWorldService;
 
-pub async fn hello_world(
-    service: Data<HelloWorldService>,
-) -> Result<Json<BaseResponse<HelloWorld>>, ApiError> {
-    let hello = service.hello_world()?;
-    respond_json(hello)
+pub async fn hello_world() -> Result<HttpResponse, Error> {
+    let hello = HelloWorldService::hello_world()?;
+    Ok(HttpResponse::Ok().json(BaseResponse::init(hello)))
 }

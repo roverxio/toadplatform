@@ -11,12 +11,10 @@ use crate::db::connection::DatabaseConnection;
 use crate::models::config::server::Server;
 use crate::provider::Web3Client;
 use crate::routes::routes;
-use crate::services::hello_world_service::HelloWorldService;
 use crate::{CONFIG, PROVIDER};
 
 #[derive(Clone)]
 pub struct ToadService {
-    pub hello_world_service: HelloWorldService,
     pub web3_client: Web3Client,
     pub db_pool: Pool<Postgres>,
 }
@@ -28,7 +26,6 @@ pub async fn init_services() -> ToadService {
     let client = Arc::new(PROVIDER.clone());
 
     ToadService {
-        hello_world_service: HelloWorldService {},
         web3_client: Web3Client::new(client.clone()),
         db_pool: DatabaseConnection::init().await,
     }
@@ -47,7 +44,6 @@ pub async fn run(service: ToadService, server: Server) -> std::io::Result<()> {
         App::new()
             .wrap(Logger::default())
             .configure(routes)
-            .app_data(Data::new(service.hello_world_service.clone()))
             .app_data(Data::new(service.web3_client.clone()))
             .app_data(Data::new(service.db_pool.clone()))
     })

@@ -1,11 +1,12 @@
-use crate::errors::errors::ApiError;
-use crate::models::hello_world::HelloWorld;
+use actix_web::Error;
+
+use crate::models::HelloWorld;
 
 #[derive(Clone)]
-pub struct HelloWorldService {}
+pub struct HelloWorldService;
 
 impl HelloWorldService {
-    pub fn hello_world(&self) -> Result<HelloWorld, ApiError> {
+    pub fn hello_world() -> Result<HelloWorld, Error> {
         Ok(HelloWorld {
             name: "Hello world!".to_string(),
         })
