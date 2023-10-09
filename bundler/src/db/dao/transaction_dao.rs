@@ -9,9 +9,7 @@ use std::default::Default;
 use crate::errors::DatabaseError;
 
 #[derive(Clone)]
-pub struct TransactionDao {
-    pub pool: Pool<Postgres>,
-}
+pub struct TransactionDao;
 
 impl TransactionDao {
     pub async fn list_transactions(

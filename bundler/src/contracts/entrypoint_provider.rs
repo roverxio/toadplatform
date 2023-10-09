@@ -10,9 +10,7 @@ use crate::provider::Web3Client;
 abigen!(EntryPoint, "abi/Entrypoint.json");
 
 #[derive(Clone)]
-pub struct EntryPointProvider {
-    pub abi: EntryPoint<Provider<Http>>,
-}
+pub struct EntryPointProvider;
 
 impl EntryPointProvider {
     pub fn init_abi(address: Address, client: Arc<Provider<Http>>) -> EntryPoint<Provider<Http>> {

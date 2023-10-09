@@ -31,13 +31,7 @@ use crate::provider::Web3Client;
 use crate::CONFIG;
 
 #[derive(Clone)]
-pub struct TransferService {
-    pub wallet_dao: WalletDao,
-    pub transaction_dao: TransactionDao,
-    pub user_operations_dao: UserOperationDao,
-    pub entrypoint_provider: EntryPointProvider,
-    pub bundler: Bundler,
-}
+pub struct TransferService;
 
 impl TransferService {
     pub async fn init(

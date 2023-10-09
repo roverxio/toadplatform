@@ -1,8 +1,4 @@
-use ethers::middleware::SignerMiddleware;
-use ethers::providers::{Http, Provider};
 use ethers::types::Address;
-use ethers_signers::LocalWallet;
-use std::sync::Arc;
 
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::models::contract_interaction;
@@ -11,10 +7,7 @@ use crate::provider::Web3Client;
 use crate::CONFIG;
 
 #[derive(Clone)]
-pub struct Bundler {
-    pub signer: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
-    pub entrypoint: EntryPointProvider,
-}
+pub struct Bundler;
 
 impl Bundler {
     pub async fn submit(

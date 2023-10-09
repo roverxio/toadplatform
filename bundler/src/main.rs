@@ -1,5 +1,7 @@
 use ethers::providers::{Http, Provider};
 use lazy_static::lazy_static;
+use log::error;
+use std::process::exit;
 
 use crate::models::config::server::Server;
 use crate::models::config::settings::Settings;
@@ -26,7 +28,14 @@ lazy_static! {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    let service = init_services().await;
+    let service;
+    match init_services().await {
+        Ok(ser) => service = ser,
+        Err(err) => {
+            error!("{}", err);
+            exit(1);
+        }
+    }
     run(
         service.clone(),
         Server {

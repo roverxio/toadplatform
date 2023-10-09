@@ -8,9 +8,7 @@ use crate::errors::DatabaseError;
 use crate::models::contract_interaction::UserOperation;
 
 #[derive(Clone)]
-pub struct UserOperationDao {
-    pub pool: Pool<Postgres>,
-}
+pub struct UserOperationDao;
 
 impl UserOperationDao {
     pub async fn create_user_operation(

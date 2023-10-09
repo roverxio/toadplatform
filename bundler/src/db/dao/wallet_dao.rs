@@ -5,9 +5,7 @@ use sqlx::{query, query_as, Error, Pool, Postgres};
 use crate::errors::DatabaseError;
 
 #[derive(Clone)]
-pub struct WalletDao {
-    pub pool: Pool<Postgres>,
-}
+pub struct WalletDao;
 
 impl WalletDao {
     pub async fn update_wallet_deployed(
