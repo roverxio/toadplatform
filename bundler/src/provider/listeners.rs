@@ -4,6 +4,7 @@ use ethers::types::{Filter, H256};
 
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::dao::transaction_dao::TransactionDao;
+use crate::db::dao::user_operation_dao::UserOperationDao;
 use crate::db::dao::wallet_dao::WalletDao;
 use crate::models::transfer::status::Status::{FAILED, SUCCESS};
 use crate::{CONFIG, PROVIDER};
@@ -11,6 +12,7 @@ use crate::{CONFIG, PROVIDER};
 pub async fn user_op_event_listener(
     transaction_dao: TransactionDao,
     wallet_dao: WalletDao,
+    user_operations_dao: UserOperationDao,
     entrypoint_provider: EntryPointProvider,
     user_op_hash: [u8; 32],
     txn_id: String,
@@ -53,7 +55,11 @@ pub async fn user_op_event_listener(
     let status = if success { SUCCESS } else { FAILED };
 
     transaction_dao
-        .update_user_transaction(txn_id, Some(txn_hash), status.to_string())
+        .update_user_transaction(txn_id.clone(), Some(txn_hash), status.to_string())
+        .await;
+
+    user_operations_dao
+        .update_user_operation_status(txn_id, status.to_string())
         .await;
 
     if success && !wallet_deployed {

@@ -68,8 +68,9 @@ impl UserOperationDao {
         status: String,
     ) -> bool {
         let query = query!(
-            "UPDATE user_operations SET status = $1 where transaction_id = $2",
+            "UPDATE user_operations SET status = $1, updated_at = $2 where transaction_id = $3",
             status,
+            Utc::now(),
             transaction_id
         );
         let result = query.execute(&self.pool).await;

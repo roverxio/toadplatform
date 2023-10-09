@@ -6,4 +6,3 @@ pub mod mint_service;
 pub mod token_metadata_service;
 pub mod transfer_service;
 pub mod wallet_service;
-mod user_operation_other;

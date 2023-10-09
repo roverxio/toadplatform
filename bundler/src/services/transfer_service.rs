@@ -61,7 +61,7 @@ impl TransferService {
         let user_txn =
             self.get_user_transaction(&to, &value, &currency, user.wallet_address.clone());
         let mut user_op0 = UserOperation::new();
-        user_op0.calldata(self.get_call_data(to, value, currency).await.unwrap());
+        user_op0.call_data(self.get_call_data(to, value, currency).await.unwrap());
         if !user.deployed {
             user_op0.init_code(
                 self.simple_account_factory_provider.abi.address(),
@@ -110,20 +110,7 @@ impl TransferService {
             Some(singed_hash),
         );
 
-        let val = crate::services::user_operation_other::UserOperation::default()
-            .sender(user_op0.sender.clone())
-            .nonce(U256::from(user_op0.nonce.clone()))
-            .init_code(user_op0.init_code.clone())
-            .call_data(user_op0.calldata.clone())
-            .call_gas_limit(U256::from(user_op0.call_gas_limit.clone()))
-            .verification_gas_limit(U256::from(user_op0.verification_gas_limit.clone()))
-            .pre_verification_gas(U256::from(user_op0.pre_verification_gas.clone()))
-            .max_fee_per_gas(U256::from(user_op0.max_fee_per_gas.clone()))
-            .max_priority_fee_per_gas(U256::from(user_op0.max_priority_fee_per_gas.clone()))
-            .paymaster_and_data(user_op0.paymaster_and_data.clone())
-            .signature(user_op0.signature.clone());
-
-        let value = serde_json::to_value(&val).unwrap();
+        let value = serde_json::to_value(&user_op0).unwrap();
 
         let req_body = Request {
             jsonrpc: "2.0".to_string(),
@@ -144,6 +131,7 @@ impl TransferService {
             .unwrap();
         let res = post.text().await.unwrap();
         let v = serde_json::from_str::<Response<EstimateResult>>(&res).unwrap();
+        println!("{:?}", v);
         if v.error.is_some() {
             error!("could not estimate gas: {:?}", v.error);
             return Err(ApiError::InternalServer(
@@ -153,9 +141,9 @@ impl TransferService {
         let estimated_gas = v.result.unwrap();
 
         user_op0
-            .call_gas_limit(estimated_gas.call_gas_limit.as_u64())
-            .verification_gas_limit(estimated_gas.verification_gas_limit.as_u64())
-            .pre_verification_gas(estimated_gas.pre_verification_gas.as_u64());
+            .call_gas_limit(estimated_gas.call_gas_limit)
+            .verification_gas_limit(estimated_gas.verification_gas_limit)
+            .pre_verification_gas(estimated_gas.pre_verification_gas);
 
         user_op0.signature(Bytes::from(
             self.verifying_paymaster_wallet
@@ -228,25 +216,12 @@ impl TransferService {
         let mut user_operation = user_op.user_operation;
         user_operation.signature(signature);
 
-        let val = crate::services::user_operation_other::UserOperation::default()
-            .sender(user_operation.sender.clone())
-            .nonce(U256::from(user_operation.nonce.clone()))
-            .init_code(user_operation.init_code.clone())
-            .call_data(user_operation.calldata.clone())
-            .call_gas_limit(U256::from(user_operation.call_gas_limit.clone()))
-            .verification_gas_limit(U256::from(user_operation.verification_gas_limit.clone()))
-            .pre_verification_gas(U256::from(user_operation.pre_verification_gas.clone()))
-            .max_fee_per_gas(U256::from(user_operation.max_fee_per_gas.clone()))
-            .max_priority_fee_per_gas(U256::from(user_operation.max_priority_fee_per_gas.clone()))
-            .paymaster_and_data(user_operation.paymaster_and_data.clone())
-            .signature(user_operation.signature.clone());
-
         let send_body = Request {
             jsonrpc: "2.0".to_string(),
             id: 1,
             method: "eth_sendUserOperation".to_string(),
             params: vec![
-                serde_json::to_value(&val).unwrap(),
+                serde_json::to_value(&user_operation).unwrap(),
                 format!("{:?}", CONFIG.get_chain().entrypoint_address).into(),
             ],
         };
@@ -278,6 +253,7 @@ impl TransferService {
         spawn(user_op_event_listener(
             self.transaction_dao.clone(),
             self.wallet_dao.clone(),
+            self.user_operations_dao.clone(),
             self.entrypoint_provider.clone(),
             user_operation.hash(
                 CONFIG.get_chain().entrypoint_address,
