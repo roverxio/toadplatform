@@ -55,10 +55,10 @@ impl EntryPointProvider {
                 beneficiary,
             )
             .calldata();
-        if data.is_none() {
-            return Err(ProviderError(String::from("handle ops data failed")));
+        match data {
+            Some(call_data) => Ok(call_data),
+            None => Err(ProviderError(String::from("handle ops data failed"))),
         }
-        Ok(data.unwrap())
     }
 
     fn get_entry_point_user_operation_payload(
