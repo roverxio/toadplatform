@@ -17,20 +17,21 @@ pub struct Bundler {
 
 impl Bundler {
     pub async fn submit(
-        &self,
+        signer: SignerMiddleware<Arc<Provider<Http>>, LocalWallet>,
+        entrypoint: EntryPointProvider,
         user_op: contract_interaction::user_operation::UserOperation,
         beneficiary: Address,
     ) -> Result<String, String> {
-        let call_data = self.entrypoint.handle_ops(user_op, beneficiary).await;
+        let call_data = entrypoint.handle_ops(user_op, beneficiary).await;
         if call_data.is_err() {
             return Err(String::from("failed to transfer"));
         }
         Web3Provider::execute(
-            self.signer.clone(),
+            signer.clone(),
             CONFIG.get_chain().entrypoint_address,
             String::from("0"),
             call_data.unwrap(),
-            self.entrypoint.abi(),
+            entrypoint.abi(),
         )
         .await
     }

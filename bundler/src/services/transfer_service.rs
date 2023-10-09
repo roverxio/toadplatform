@@ -147,10 +147,13 @@ impl TransferService {
         let mut user_operation = user_op.user_operation;
         user_operation.signature(signature);
 
-        let result = self
-            .bundler
-            .submit(user_operation.clone(), CONFIG.run_config.account_owner)
-            .await;
+        let result = Bundler::submit(
+            self.bundler.signer.clone(),
+            self.bundler.entrypoint.clone(),
+            user_operation.clone(),
+            CONFIG.run_config.account_owner,
+        )
+        .await;
         if result.is_err() {
             TransactionDao::update_user_transaction(
                 &self.transaction_dao.pool,
