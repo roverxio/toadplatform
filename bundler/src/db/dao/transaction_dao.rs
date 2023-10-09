@@ -1,6 +1,5 @@
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
-use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::types::JsonValue;
@@ -10,9 +9,7 @@ use std::default::Default;
 use crate::errors::DatabaseError;
 
 #[derive(Clone)]
-pub struct TransactionDao {
-    pub pool: Pool<Postgres>,
-}
+pub struct TransactionDao;
 
 impl TransactionDao {
     pub async fn list_transactions(
@@ -112,11 +109,11 @@ impl TransactionDao {
     }
 
     pub async fn update_user_transaction(
-        &self,
+        pool: &Pool<Postgres>,
         txn_id: String,
         txn_hash: Option<String>,
         status: String,
-    ) {
+    ) -> Result<(), DatabaseError> {
         let query;
         match txn_hash {
             None => {
@@ -137,13 +134,13 @@ impl TransactionDao {
                 );
             }
         }
-        let result = query.execute(&self.pool).await;
-        if result.is_err() {
-            error!(
+        let result = query.execute(pool).await;
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to update user transaction: {}, err: {:?}",
-                txn_id,
-                result.err()
-            );
+                txn_id, err
+            ))),
         }
     }
 }

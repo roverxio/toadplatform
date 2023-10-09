@@ -16,7 +16,6 @@ use crate::db::dao::{
     TokenMetadataDao, TransactionDao, TransactionMetadata, User, UserOperationDao, UserTransaction,
     WalletDao,
 };
-use crate::errors::errors::ApiError;
 use crate::errors::{ProviderError, TransactionError, TransferError};
 use crate::models::contract_interaction::UserOperation;
 use crate::models::transaction::Transaction;
@@ -31,13 +30,7 @@ use crate::provider::Web3Client;
 use crate::CONFIG;
 
 #[derive(Clone)]
-pub struct TransferService {
-    pub wallet_dao: WalletDao,
-    pub transaction_dao: TransactionDao,
-    pub user_operations_dao: UserOperationDao,
-    pub entrypoint_provider: EntryPointProvider,
-    pub bundler: Bundler,
-}
+pub struct TransferService;
 
 impl TransferService {
     pub async fn init(
@@ -116,69 +109,77 @@ impl TransferService {
     }
 
     pub async fn execute(
-        &self,
+        pool: &Pool<Postgres>,
+        provider: &Web3Client,
         transaction_id: String,
         signature: Bytes,
         user: User,
-    ) -> Result<TransferResponse, ApiError> {
+    ) -> Result<TransferResponse, TransferError> {
         if user.wallet_address.is_empty() {
-            return Err(ApiError::NotFound("Wallet not found".to_string()));
+            return Err(TransferError::NotFound);
         }
-        let user_op = self
-            .user_operations_dao
-            .get_user_operation(transaction_id.clone())
-            .await;
+        let user_op = UserOperationDao::get_user_operation(pool, transaction_id.clone()).await?;
 
-        if user_op.transaction_id == "".to_string()
-            || user_op.status != Status::INITIATED.to_string()
-        {
-            return Err(ApiError::NotFound("Transaction not found".to_string()));
+        if user_op.transaction_id.is_empty() || user_op.status != Status::INITIATED.to_string() {
+            return Err(TransferError::TxnNotFound);
         }
-        if !self
-            .user_operations_dao
-            .update_user_operation_status(transaction_id.clone(), Status::PENDING.to_string())
-            .await
-        {
-            return Err(ApiError::BadRequest(
-                "Failed to update user operation status".to_string(),
-            ));
-        }
+        UserOperationDao::update_user_operation_status(
+            pool,
+            transaction_id.clone(),
+            Status::PENDING.to_string(),
+        )
+        .await?;
 
         let mut user_operation = user_op.user_operation;
         user_operation.signature(signature);
 
-        let result = self
-            .bundler
-            .submit(user_operation.clone(), CONFIG.run_config.account_owner)
-            .await;
-        if result.is_err() {
-            self.transaction_dao
-                .update_user_transaction(transaction_id, None, Status::FAILED.to_string())
-                .await;
-            return Err(ApiError::BadRequest(result.err().unwrap()));
+        let result = Bundler::submit(
+            provider,
+            user_operation.clone(),
+            CONFIG.run_config.account_owner,
+        )
+        .await;
+        let txn_hash;
+        match result {
+            Ok(hash) => txn_hash = hash,
+            Err(err) => {
+                TransactionDao::update_user_transaction(
+                    pool,
+                    transaction_id,
+                    None,
+                    Status::FAILED.to_string(),
+                )
+                .await?;
+                return Err(TransferError::from(err));
+            }
         }
-        let txn_hash = result.unwrap();
-        self.transaction_dao
-            .update_user_transaction(transaction_id.clone(), None, Status::PENDING.to_string())
-            .await;
+        TransactionDao::update_user_transaction(
+            pool,
+            transaction_id.clone(),
+            None,
+            Status::PENDING.to_string(),
+        )
+        .await?;
+
         if !user.deployed {
-            self.wallet_dao
-                .update_wallet_deployed(user.external_user_id)
-                .await;
+            WalletDao::update_wallet_deployed(pool, user.external_user_id).await?;
         }
 
         spawn(user_op_event_listener(
-            self.transaction_dao.clone(),
-            self.entrypoint_provider.clone(),
+            pool.clone(),
+            provider.clone(),
             user_operation.hash(
                 CONFIG.get_chain().entrypoint_address,
                 CONFIG.get_chain().chain_id,
             ),
             transaction_id.clone(),
         ));
-        self.user_operations_dao
-            .update_user_operation_status(transaction_id.clone(), Status::SUCCESS.to_string())
-            .await;
+        UserOperationDao::update_user_operation_status(
+            pool,
+            transaction_id.clone(),
+            Status::SUCCESS.to_string(),
+        )
+        .await?;
 
         Ok(TransferResponse {
             transaction: TransactionResponse {

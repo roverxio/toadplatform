@@ -53,7 +53,7 @@ impl VerifyingPaymasterProvider {
     }
 
     pub fn get_verifying_paymaster_user_operation_payload(
-        user_op: contract_interaction::user_operation::UserOperation,
+        user_op: contract_interaction::UserOperation,
     ) -> UserOperation {
         UserOperation {
             sender: user_op.sender,

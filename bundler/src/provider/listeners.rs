@@ -1,22 +1,24 @@
 use ethers::abi::RawLog;
 use ethers::providers::Middleware;
 use ethers::types::{Filter, H256};
+use sqlx::{Pool, Postgres};
 
-use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::dao::TransactionDao;
 use crate::models::transfer::Status::{FAILED, SUCCESS};
+use crate::provider::Web3Client;
 use crate::{CONFIG, PROVIDER};
 
 pub async fn user_op_event_listener(
-    transaction_dao: TransactionDao,
-    entrypoint_provider: EntryPointProvider,
+    pool: Pool<Postgres>,
+    client: Web3Client,
     user_op_hash: [u8; 32],
     txn_id: String,
-) {
-    let event = entrypoint_provider
+) -> Result<(), String> {
+    let provider = client.get_entrypoint_provider();
+    let event = provider
         .abi()
         .event("UserOperationEvent")
-        .unwrap();
+        .map_err(|_| String::from("Failed to get event"))?;
 
     let filter = Filter::new()
         .address(CONFIG.get_chain().entrypoint_address)
@@ -48,7 +50,7 @@ pub async fn user_op_event_listener(
 
     let status = if success { SUCCESS } else { FAILED };
 
-    transaction_dao
-        .update_user_transaction(txn_id, Some(txn_hash), status.to_string())
-        .await;
+    TransactionDao::update_user_transaction(&pool, txn_id, Some(txn_hash), status.to_string())
+        .await
+        .map_err(|_| String::from("Listener: Failed to update database"))
 }

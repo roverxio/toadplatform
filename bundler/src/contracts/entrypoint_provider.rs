@@ -1,4 +1,3 @@
-use ethers::abi::Abi;
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Address, Bytes, U256};
@@ -11,15 +10,9 @@ use crate::provider::Web3Client;
 abigen!(EntryPoint, "abi/Entrypoint.json");
 
 #[derive(Clone)]
-pub struct EntryPointProvider {
-    pub abi: EntryPoint<Provider<Http>>,
-}
+pub struct EntryPointProvider;
 
 impl EntryPointProvider {
-    pub fn abi(&self) -> &Abi {
-        self.abi.abi()
-    }
-
     pub fn init_abi(address: Address, client: Arc<Provider<Http>>) -> EntryPoint<Provider<Http>> {
         let contract: EntryPoint<Provider<Http>> = EntryPoint::new(address, client);
         contract
@@ -51,26 +44,25 @@ impl EntryPointProvider {
     }
 
     pub async fn handle_ops(
-        &self,
-        user_op: contract_interaction::user_operation::UserOperation,
+        client: &Web3Client,
+        user_op: contract_interaction::UserOperation,
         beneficiary: Address,
-    ) -> Result<Bytes, String> {
-        let data = self
-            .abi
+    ) -> Result<Bytes, ProviderError> {
+        let data = client
+            .get_entrypoint_provider()
             .handle_ops(
-                vec![self.get_entry_point_user_operation_payload(user_op)],
+                vec![Self::get_entry_point_user_operation_payload(user_op)],
                 beneficiary,
             )
             .calldata();
-        if data.is_none() {
-            return Err(String::from("handle ops data failed"));
+        match data {
+            Some(call_data) => Ok(call_data),
+            None => Err(ProviderError(String::from("handle ops data failed"))),
         }
-        Ok(data.unwrap())
     }
 
     fn get_entry_point_user_operation_payload(
-        &self,
-        user_op: contract_interaction::user_operation::UserOperation,
+        user_op: contract_interaction::UserOperation,
     ) -> UserOperation {
         UserOperation {
             sender: user_op.sender,
