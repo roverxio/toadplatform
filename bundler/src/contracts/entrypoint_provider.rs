@@ -24,6 +24,7 @@ impl EntryPointProvider {
         let contract: EntryPoint<Provider<Http>> = EntryPoint::new(address, client);
         contract
     }
+
     pub async fn get_nonce(client: &Web3Client, sender: Address) -> Result<U256, ProviderError> {
         let result = client
             .get_entrypoint_provider()

@@ -1,5 +1,6 @@
-use crate::models::transfer::status::Status;
 use serde::Serialize;
+
+use crate::models::transfer::Status;
 
 #[derive(Serialize)]
 pub struct TransactionResponse {

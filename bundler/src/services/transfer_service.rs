@@ -22,10 +22,9 @@ use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::models::currency::Currency;
 use crate::models::transaction::Transaction;
 use crate::models::transaction_type::TransactionType;
-use crate::models::transfer::status::Status;
-use crate::models::transfer::transaction_response::TransactionResponse;
-use crate::models::transfer::transfer_init_response::TransferInitResponse;
-use crate::models::transfer::transfer_response::TransferResponse;
+use crate::models::transfer::{
+    Status, TransactionResponse, TransferInitResponse, TransferResponse,
+};
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::listeners::user_op_event_listener;
 use crate::provider::Web3Client;
