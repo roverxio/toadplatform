@@ -1,6 +1,5 @@
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
-use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::types::JsonValue;
@@ -112,11 +111,11 @@ impl TransactionDao {
     }
 
     pub async fn update_user_transaction(
-        &self,
+        pool: &Pool<Postgres>,
         txn_id: String,
         txn_hash: Option<String>,
         status: String,
-    ) {
+    ) -> Result<(), String> {
         let query;
         match txn_hash {
             None => {
@@ -137,13 +136,13 @@ impl TransactionDao {
                 );
             }
         }
-        let result = query.execute(&self.pool).await;
-        if result.is_err() {
-            error!(
+        let result = query.execute(pool).await;
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(format!(
                 "Failed to update user transaction: {}, err: {:?}",
-                txn_id,
-                result.err()
-            );
+                txn_id, err
+            )),
         }
     }
 }

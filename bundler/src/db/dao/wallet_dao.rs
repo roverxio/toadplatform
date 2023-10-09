@@ -10,19 +10,22 @@ pub struct WalletDao {
 }
 
 impl WalletDao {
-    pub async fn update_wallet_deployed(&self, user_id: String) {
+    pub async fn update_wallet_deployed(
+        pool: &Pool<Postgres>,
+        user_id: String,
+    ) -> Result<(), String> {
         let query = query!(
             "UPDATE users SET deployed = $1 WHERE external_user_id = $2",
             true,
             user_id
         );
-        let result = query.execute(&self.pool).await;
-        if result.is_err() {
-            error!(
+        let result = query.execute(pool).await;
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(format!(
                 "Failed to update deployed status for user: {}, err: {:?}",
-                user_id,
-                result.err()
-            );
+                user_id, err
+            )),
         }
     }
 

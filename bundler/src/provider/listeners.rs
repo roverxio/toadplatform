@@ -12,7 +12,7 @@ pub async fn user_op_event_listener(
     entrypoint_provider: EntryPointProvider,
     user_op_hash: [u8; 32],
     txn_id: String,
-) {
+) -> Result<(), String> {
     let event = entrypoint_provider
         .abi()
         .event("UserOperationEvent")
@@ -48,7 +48,11 @@ pub async fn user_op_event_listener(
 
     let status = if success { SUCCESS } else { FAILED };
 
-    transaction_dao
-        .update_user_transaction(txn_id, Some(txn_hash), status.to_string())
-        .await;
+    TransactionDao::update_user_transaction(
+        &transaction_dao.pool,
+        txn_id,
+        Some(txn_hash),
+        status.to_string(),
+    )
+    .await
 }
