@@ -16,10 +16,7 @@ impl Bundler {
         user_op: contract_interaction::UserOperation,
         beneficiary: Address,
     ) -> Result<String, ProviderError> {
-        let call_data = EntryPointProvider::handle_ops(provider, user_op, beneficiary).await;
-        if call_data.is_err() {
-            return Err(ProviderError(String::from("failed to transfer")));
-        }
+        let call_data = EntryPointProvider::handle_ops(provider, user_op, beneficiary).await?;
         Web3Provider::execute(
             provider.get_bundler_signer(),
             CONFIG.get_chain().entrypoint_address,

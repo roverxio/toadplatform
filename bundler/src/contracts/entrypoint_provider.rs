@@ -47,7 +47,7 @@ impl EntryPointProvider {
         client: &Web3Client,
         user_op: contract_interaction::UserOperation,
         beneficiary: Address,
-    ) -> Result<Bytes, String> {
+    ) -> Result<Bytes, ProviderError> {
         let data = client
             .get_entrypoint_provider()
             .handle_ops(
@@ -56,13 +56,13 @@ impl EntryPointProvider {
             )
             .calldata();
         if data.is_none() {
-            return Err(String::from("handle ops data failed"));
+            return Err(ProviderError(String::from("handle ops data failed")));
         }
         Ok(data.unwrap())
     }
 
     fn get_entry_point_user_operation_payload(
-        user_op: contract_interaction::user_operation::UserOperation,
+        user_op: contract_interaction::UserOperation,
     ) -> UserOperation {
         UserOperation {
             sender: user_op.sender,
