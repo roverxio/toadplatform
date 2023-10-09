@@ -2,7 +2,7 @@ use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
-use ethers_signers::{LocalWallet, Signer};
+use ethers_signers::Signer;
 use sqlx::{Pool, Postgres};
 use std::str::FromStr;
 
@@ -17,60 +17,52 @@ use crate::db::dao::{
     WalletDao,
 };
 use crate::errors::errors::ApiError;
-use crate::errors::TransactionError;
-use crate::models::contract_interaction::user_operation::UserOperation;
-use crate::models::currency::Currency;
+use crate::errors::{ProviderError, TransactionError, TransferError};
+use crate::models::contract_interaction::UserOperation;
 use crate::models::transaction::Transaction;
-use crate::models::transaction_type::TransactionType;
-use crate::models::transfer::status::Status;
-use crate::models::transfer::transaction_response::TransactionResponse;
-use crate::models::transfer::transfer_init_response::TransferInitResponse;
-use crate::models::transfer::transfer_response::TransferResponse;
+use crate::models::transfer::{
+    Status, TransactionResponse, TransferInitResponse, TransferResponse,
+};
+use crate::models::Currency;
+use crate::models::TransactionType;
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::listeners::user_op_event_listener;
-use crate::provider::paymaster_provider::PaymasterProvider;
+use crate::provider::Web3Client;
 use crate::CONFIG;
 
 #[derive(Clone)]
 pub struct TransferService {
     pub wallet_dao: WalletDao,
     pub transaction_dao: TransactionDao,
-    pub token_metadata_dao: TokenMetadataDao,
     pub user_operations_dao: UserOperationDao,
-    pub usdc_provider: USDCProvider,
     pub entrypoint_provider: EntryPointProvider,
-    pub simple_account_provider: SimpleAccountProvider,
-    pub simple_account_factory_provider: SimpleAccountFactoryProvider,
-    pub verifying_paymaster_provider: PaymasterProvider,
-    pub verifying_paymaster_wallet: LocalWallet,
-    pub scw_owner_wallet: LocalWallet,
     pub bundler: Bundler,
 }
 
 impl TransferService {
     pub async fn init(
-        &self,
+        pool: &Pool<Postgres>,
+        provider: &Web3Client,
         to: String,
         value: String,
         currency: String,
         user: User,
-    ) -> Result<TransferInitResponse, ApiError> {
+    ) -> Result<TransferInitResponse, TransferError> {
         if user.wallet_address.is_empty() {
-            return Err(ApiError::NotFound("Wallet not found".to_string()));
+            return Err(TransferError::NotFound);
         }
         let user_txn =
-            self.get_user_transaction(&to, &value, &currency, user.wallet_address.clone());
+            Self::get_user_transaction(&to, &value, &currency, user.wallet_address.clone());
         let mut user_op0 = UserOperation::new();
-        user_op0.calldata(self.get_call_data(to, value, currency).await.unwrap());
+        user_op0.calldata(Self::get_call_data(pool, provider, to, value, currency).await?);
         if !user.deployed {
             user_op0.init_code(
-                self.simple_account_factory_provider.abi.address(),
-                self.simple_account_factory_provider
-                    .create_account(
-                        user.owner_address.parse().unwrap(),
-                        U256::from(user.salt.to_u64().unwrap()),
-                    )
-                    .unwrap(),
+                SimpleAccountFactoryProvider::get_factory_address(provider),
+                SimpleAccountFactoryProvider::create_account(
+                    provider,
+                    user.owner_address.parse().unwrap(),
+                    U256::from(user.salt.to_u64().unwrap()),
+                )?,
             );
         }
 
@@ -81,25 +73,22 @@ impl TransferService {
         user_op0
             .paymaster_and_data(data.clone(), wallet_address.clone(), None)
             .nonce(
-                self.entrypoint_provider
-                    .get_nonce(wallet_address)
-                    .await
-                    .unwrap()
+                EntryPointProvider::get_nonce(provider, wallet_address)
+                    .await?
                     .low_u64(),
             )
             .sender(wallet_address.clone());
 
         user_op0.signature(Bytes::from(
-            self.verifying_paymaster_wallet
+            Web3Client::get_verifying_paymaster_wallet()
                 .sign_typed_data(&user_op0)
                 .await
-                .unwrap()
+                .map_err(|err| TransferError::Provider(err.to_string()))?
                 .to_vec(),
         ));
 
-        let singed_hash = self
-            .get_signed_hash(user_op0.clone(), valid_until, valid_after)
-            .await;
+        let singed_hash =
+            Self::get_signed_hash(provider, user_op0.clone(), valid_until, valid_after).await?;
         user_op0.paymaster_and_data(
             data,
             CONFIG.get_chain().verifying_paymaster_address,
@@ -110,16 +99,14 @@ impl TransferService {
             CONFIG.get_chain().entrypoint_address,
             CONFIG.get_chain().chain_id,
         );
-        self.transaction_dao
-            .create_user_transaction(user_txn.clone())
-            .await;
-        self.user_operations_dao
-            .create_user_operation(
-                user_txn.transaction_id.clone(),
-                user_op0.clone(),
-                Status::INITIATED.to_string(),
-            )
-            .await;
+        TransactionDao::create_user_transaction(pool, user_txn.clone()).await?;
+        UserOperationDao::create_user_operation(
+            pool,
+            user_txn.transaction_id.clone(),
+            user_op0.clone(),
+            Status::INITIATED.to_string(),
+        )
+        .await?;
 
         Ok(TransferInitResponse {
             msg_hash: user_op_hash,
@@ -214,14 +201,13 @@ impl TransferService {
         Ok(Transaction::from(transaction))
     }
 
-    fn get_transaction_metadata(&self) -> TransactionMetadata {
+    fn get_transaction_metadata() -> TransactionMetadata {
         let mut txn_metadata = TransactionMetadata::new();
         txn_metadata.chain(CONFIG.run_config.current_chain.clone());
         txn_metadata
     }
 
     fn get_user_transaction(
-        &self,
         to: &String,
         value: &String,
         currency: &String,
@@ -237,62 +223,59 @@ impl TransferService {
             .currency(currency.clone())
             .transaction_type(TransactionType::Debit.to_string())
             .status(Status::INITIATED.to_string())
-            .metadata(self.get_transaction_metadata());
+            .metadata(Self::get_transaction_metadata());
         user_txn
     }
 
     async fn get_signed_hash(
-        &self,
+        provider: &Web3Client,
         user_op0: UserOperation,
         valid_until: u64,
         valid_after: u64,
-    ) -> Vec<u8> {
-        let hash = self
-            .verifying_paymaster_provider
-            .get_hash(
-                VerifyingPaymasterProvider::get_verifying_paymaster_user_operation_payload(
-                    user_op0,
-                ),
-                valid_until,
-                valid_after,
-            )
-            .await
-            .unwrap();
-        self.verifying_paymaster_wallet
+    ) -> Result<Vec<u8>, ProviderError> {
+        let hash = VerifyingPaymasterProvider::get_hash(
+            provider,
+            VerifyingPaymasterProvider::get_verifying_paymaster_user_operation_payload(user_op0),
+            valid_until,
+            valid_after,
+        )
+        .await?;
+        let result = Web3Client::get_verifying_paymaster_wallet()
             .sign_message(hash)
-            .await
-            .unwrap()
-            .to_vec()
+            .await;
+        match result {
+            Ok(signature) => Ok(signature.to_vec()),
+            Err(err) => Err(ProviderError(format!("Signing failed: {:?}", err))),
+        }
     }
 
     async fn get_call_data(
-        &self,
+        pool: &Pool<Postgres>,
+        provider: &Web3Client,
         to: String,
         value: String,
         currency: String,
-    ) -> Result<Bytes, String> {
-        match Currency::from_str(
-            self.token_metadata_dao
-                .get_metadata_for_chain(CONFIG.run_config.current_chain.clone(), Some(currency))
-                .await[0]
-                .token_type
-                .clone(),
-        ) {
-            Some(Currency::Erc20) => Ok(self
-                .simple_account_provider
-                .execute(
-                    CONFIG.get_chain().usdc_address,
-                    0.to_string(),
-                    self.usdc_provider
-                        .transfer(to.parse().unwrap(), value)
-                        .unwrap(),
-                )
-                .unwrap()),
-            Some(Currency::Native) => Ok(self
-                .simple_account_provider
-                .execute(to.parse().unwrap(), value, Bytes::from(vec![]))
-                .unwrap()),
-            None => Err("Currency not found".to_string()),
+    ) -> Result<Bytes, TransferError> {
+        let metadata = TokenMetadataDao::get_metadata_for_chain(
+            pool,
+            CONFIG.run_config.current_chain.clone(),
+            Some(currency),
+        )
+        .await?;
+        match Currency::from_str(metadata[0].token_type.clone()) {
+            Some(Currency::Erc20) => Ok(SimpleAccountProvider::execute(
+                provider,
+                CONFIG.get_chain().usdc_address,
+                0.to_string(),
+                USDCProvider::transfer(provider, to.parse().unwrap(), value)?,
+            )?),
+            Some(Currency::Native) => Ok(SimpleAccountProvider::execute(
+                provider,
+                to.parse().unwrap(),
+                value,
+                Bytes::from(vec![]),
+            )?),
+            None => Err(TransferError::InvalidCurrency),
         }
     }
 }

@@ -4,7 +4,7 @@ use ethers::types::{Filter, H256};
 
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::db::dao::TransactionDao;
-use crate::models::transfer::status::Status::{FAILED, SUCCESS};
+use crate::models::transfer::Status::{FAILED, SUCCESS};
 use crate::{CONFIG, PROVIDER};
 
 pub async fn user_op_event_listener(

@@ -7,8 +7,8 @@ use sqlx::{Pool, Postgres};
 use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::dao::{TokenMetadataDao, User};
 use crate::errors::BalanceError;
-use crate::models::currency::Currency;
 use crate::models::wallet::BalanceResponse;
+use crate::models::Currency;
 use crate::provider::Web3Client;
 use crate::PROVIDER;
 
@@ -30,7 +30,7 @@ impl BalanceService {
         }
         let wallet_address: Address = user.wallet_address.parse().unwrap();
         let metadata =
-            TokenMetadataDao::get_metadata_by_currency(pool, chain.clone(), Some(currency.clone()))
+            TokenMetadataDao::get_metadata_for_chain(pool, chain.clone(), Some(currency.clone()))
                 .await?;
         if metadata.is_empty() {
             return Err(BalanceError::InvalidCurrency);

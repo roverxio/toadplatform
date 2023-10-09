@@ -11,7 +11,7 @@ use rand::Rng;
 use serde::Serialize;
 
 use crate::errors::errors::ApiError;
-use crate::models::response::base_response::BaseResponse;
+use crate::models::response::BaseResponse;
 use crate::{CONFIG, PROVIDER};
 
 pub fn respond_json<T>(data: T) -> Result<Json<BaseResponse<T>>, ApiError>
