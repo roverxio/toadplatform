@@ -5,7 +5,6 @@ use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::{LocalWallet, Signer};
-use log::error;
 use sqlx::{Pool, Postgres};
 
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -25,8 +24,8 @@ use crate::models::transfer::status::Status;
 use crate::models::transfer::transaction_response::TransactionResponse;
 use crate::models::transfer::transfer_init_response::TransferInitResponse;
 use crate::models::transfer::transfer_response::TransferResponse;
+use crate::provider::bundler::{estimate_gas, submit_transaction};
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
-use crate::provider::lib::{EstimateResult, Request, Response};
 use crate::provider::listeners::user_op_event_listener;
 use crate::provider::paymaster_provider::PaymasterProvider;
 use crate::provider::verifying_paymaster_helper::get_verifying_paymaster_user_operation_payload;
@@ -110,35 +109,7 @@ impl TransferService {
             Some(singed_hash),
         );
 
-        let value = serde_json::to_value(&user_op0).unwrap();
-
-        let req_body = Request {
-            jsonrpc: "2.0".to_string(),
-            id: 1,
-            method: "eth_estimateUserOperationGas".to_string(),
-            params: vec![
-                value,
-                format!("{:?}", CONFIG.get_chain().entrypoint_address).into(),
-            ],
-        };
-        let post = reqwest::Client::builder()
-            .build()
-            .unwrap()
-            .post("http://127.0.0.1:3000")
-            .json(&req_body)
-            .send()
-            .await
-            .unwrap();
-        let res = post.text().await.unwrap();
-        let v = serde_json::from_str::<Response<EstimateResult>>(&res).unwrap();
-        println!("{:?}", v);
-        if v.error.is_some() {
-            error!("could not estimate gas: {:?}", v.error);
-            return Err(ApiError::InternalServer(
-                "Failed to estimate gas".to_string(),
-            ));
-        }
-        let estimated_gas = v.result.unwrap();
+        let estimated_gas = estimate_gas(user_op0.clone()).await.unwrap();
 
         user_op0
             .call_gas_limit(estimated_gas.call_gas_limit)
@@ -216,29 +187,8 @@ impl TransferService {
         let mut user_operation = user_op.user_operation;
         user_operation.signature(signature);
 
-        let send_body = Request {
-            jsonrpc: "2.0".to_string(),
-            id: 1,
-            method: "eth_sendUserOperation".to_string(),
-            params: vec![
-                serde_json::to_value(&user_operation).unwrap(),
-                format!("{:?}", CONFIG.get_chain().entrypoint_address).into(),
-            ],
-        };
-        let post = reqwest::Client::builder()
-            .build()
-            .unwrap()
-            .post("http://127.0.0.1:3000")
-            .json(&send_body)
-            .send()
-            .await
-            .unwrap();
-
-        let res = post.text().await.unwrap();
-        let result = serde_json::from_str::<Response<String>>(&res).unwrap();
-
-        if result.error.is_some() {
-            error!("could not submit transaction: {:?}", result.error);
+        let result = submit_transaction(user_operation.clone()).await;
+        if result.is_err() {
             self.transaction_dao
                 .update_user_transaction(transaction_id, None, Status::FAILED.to_string())
                 .await;
