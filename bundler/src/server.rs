@@ -21,18 +21,17 @@ pub struct ToadService {
     pub db_pool: Pool<Postgres>,
 }
 
-pub async fn init_services() -> Result<ToadService, String> {
+pub async fn init_services() -> ToadService {
     init_logging();
     info!("Starting server...");
 
     let client = Arc::new(PROVIDER.clone());
-    let pool = DatabaseConnection::init().await?;
 
-    Ok(ToadService {
+    ToadService {
         hello_world_service: HelloWorldService {},
         web3_client: Web3Client::new(client.clone()),
-        db_pool: pool,
-    })
+        db_pool: DatabaseConnection::init().await,
+    }
 }
 
 fn init_logging() {

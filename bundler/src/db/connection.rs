@@ -1,18 +1,20 @@
-use sqlx::{PgPool, Pool, Postgres};
+use log::warn;
+use sqlx::{PgPool, Postgres};
+use std::process::exit;
 
 pub struct DatabaseConnection;
 
 impl DatabaseConnection {
-    pub async fn init() -> Result<Pool<Postgres>, String> {
+    pub async fn init() -> sqlx::Pool<Postgres> {
         let database_url: String;
         match std::env::var("DATABASE_URL") {
             Ok(url) => database_url = url,
-            Err(_) => return Err(String::from("env DATABASE_URL not set")),
+            Err(_) => {
+                warn!("env DATABASE_URL not set");
+                exit(1)
+            }
         }
         let connection = PgPool::connect(&database_url).await;
-        match connection {
-            Ok(db_pool) => Ok(db_pool),
-            Err(err) => Err(format!("Failed to connect to db: {:?}", err)),
-        }
+        connection.unwrap()
     }
 }
