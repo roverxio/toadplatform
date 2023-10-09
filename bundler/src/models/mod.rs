@@ -9,3 +9,7 @@ pub mod transaction;
 pub mod transaction_type;
 pub mod transfer;
 pub mod wallet;
+
+pub use currency::Currency;
+pub use metadata::Metadata;
+pub use transaction_type::TransactionType;

@@ -4,7 +4,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::db::dao::User;
 use crate::errors::TransferError;
-use crate::models::response::base_response::BaseResponse;
+use crate::models::response::BaseResponse;
 use crate::models::transfer::{TransferExecuteRequest, TransferRequest};
 use crate::provider::Web3Client;
 use crate::services::TransferService;

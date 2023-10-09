@@ -7,8 +7,8 @@ use sqlx::{Pool, Postgres};
 use crate::contracts::usdc_provider::USDCProvider;
 use crate::db::dao::{TokenMetadataDao, User};
 use crate::errors::BalanceError;
-use crate::models::currency::Currency;
 use crate::models::wallet::BalanceResponse;
+use crate::models::Currency;
 use crate::provider::Web3Client;
 use crate::PROVIDER;
 

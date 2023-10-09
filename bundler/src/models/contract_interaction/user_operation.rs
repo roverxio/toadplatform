@@ -1,4 +1,3 @@
-use crate::CONFIG;
 use ethers::abi::AbiEncode;
 use ethers::contract::{Eip712, EthAbiType};
 use ethers::prelude::EthAbiCodec;
@@ -6,6 +5,8 @@ use ethers::types::{Address, Bytes, H256};
 use ethers::utils::keccak256;
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
+
+use crate::CONFIG;
 
 #[derive(Clone, Default, Debug, EthAbiType, Eip712, Serialize, Deserialize)]
 pub struct UserOperation {

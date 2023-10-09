@@ -18,13 +18,13 @@ use crate::db::dao::{
 };
 use crate::errors::errors::ApiError;
 use crate::errors::{ProviderError, TransactionError, TransferError};
-use crate::models::contract_interaction::user_operation::UserOperation;
-use crate::models::currency::Currency;
+use crate::models::contract_interaction::UserOperation;
 use crate::models::transaction::Transaction;
-use crate::models::transaction_type::TransactionType;
 use crate::models::transfer::{
     Status, TransactionResponse, TransferInitResponse, TransferResponse,
 };
+use crate::models::Currency;
+use crate::models::TransactionType;
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::listeners::user_op_event_listener;
 use crate::provider::Web3Client;

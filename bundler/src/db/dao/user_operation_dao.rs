@@ -6,7 +6,7 @@ use sqlx::{query, query_as, Pool, Postgres};
 use std::default::Default;
 
 use crate::errors::DatabaseError;
-use crate::models::contract_interaction::user_operation::UserOperation;
+use crate::models::contract_interaction::UserOperation;
 
 #[derive(Clone)]
 pub struct UserOperationDao {
