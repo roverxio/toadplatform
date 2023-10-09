@@ -21,7 +21,7 @@ impl Bundler {
             provider.get_bundler_signer(),
             CONFIG.get_chain().entrypoint_address,
             String::from("0"),
-            call_data.unwrap(),
+            call_data,
             provider.get_entrypoint_provider().abi(),
         )
         .await
