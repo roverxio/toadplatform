@@ -60,19 +60,6 @@ On successful deployment, you can find the deployed contract addresses, `signer/
 pkill -f anvil
 ```
 
-## Deployment against geth dev node
-Pre-requisites:
-1. Have a geth node running
-2. Have a wallet with some ether in it
-3. Have access to the wallet's private key
-
-The script `script/deploy.sh` uses `script/DeployLocal.s.sh` to deploy contracts. It cannot be used to deploy the contracts against a geth dev node. It will complain that create2 is not available. To deploy against a geth node, use the following steps:
-1. Update env variable `PRIVATE_KEY` with `export PRIVATE_KEY=<private key of the wallet>`
-2. Navigate to `contracts/script/`
-3. Run `forge script script/DeployLocalGeth.s.sol --rpc-url http://localhost:8545` (replace the rpc url with the url of your geth dev node if necessary)
-
-This won't give deterministic addresses for the contracts, but the addresses can be found in the output of the command.
-
 
 ### Running the Relay/Bundler
 1. Set up a postgres database
