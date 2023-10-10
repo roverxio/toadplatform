@@ -1,28 +1,26 @@
 use ethers::abi::RawLog;
 use ethers::providers::Middleware;
 use ethers::types::{Filter, H256};
+use sqlx::{Pool, Postgres};
 
-use crate::contracts::entrypoint_provider::EntryPointProvider;
-use crate::db::dao::transaction_dao::TransactionDao;
-use crate::db::dao::user_operation_dao::UserOperationDao;
-use crate::db::dao::wallet_dao::WalletDao;
-use crate::models::transfer::status::Status::{FAILED, SUCCESS};
+use crate::db::dao::{TransactionDao, UserOperationDao, WalletDao};
+use crate::models::transfer::Status::{FAILED, SUCCESS};
+use crate::provider::Web3Client;
 use crate::{CONFIG, PROVIDER};
 
 pub async fn user_op_event_listener(
-    transaction_dao: TransactionDao,
-    wallet_dao: WalletDao,
-    user_operations_dao: UserOperationDao,
-    entrypoint_provider: EntryPointProvider,
+    pool: Pool<Postgres>,
+    client: Web3Client,
     user_op_hash: [u8; 32],
     txn_id: String,
     wallet_deployed: bool,
     external_user_id: String,
-) {
-    let event = entrypoint_provider
+) -> Result<(), String> {
+    let provider = client.get_entrypoint_provider();
+    let event = provider
         .abi()
         .event("UserOperationEvent")
-        .unwrap();
+        .map_err(|_| String::from("Failed to get event"))?;
 
     let filter = Filter::new()
         .address(CONFIG.get_chain().entrypoint_address)
@@ -54,15 +52,23 @@ pub async fn user_op_event_listener(
 
     let status = if success { SUCCESS } else { FAILED };
 
-    transaction_dao
-        .update_user_transaction(txn_id.clone(), Some(txn_hash), status.to_string())
-        .await;
+    TransactionDao::update_user_transaction(
+        &pool,
+        txn_id.clone(),
+        Some(txn_hash),
+        status.to_string(),
+    )
+    .await
+    .map_err(|_| String::from("Listener: Failed to update transaction"))?;
 
-    user_operations_dao
-        .update_user_operation_status(txn_id, status.to_string())
-        .await;
+    UserOperationDao::update_user_operation_status(&pool, txn_id, status.to_string())
+        .await
+        .map_err(|_| String::from("Listener: Failed to update user op"))?;
 
     if success && !wallet_deployed {
-        wallet_dao.update_wallet_deployed(external_user_id).await;
+        WalletDao::update_wallet_deployed(&pool, external_user_id)
+            .await
+            .map_err(|_| String::from("Listener: Failed to update user state"))?;
     }
+    Ok(())
 }

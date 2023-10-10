@@ -1,4 +1,3 @@
-use crate::CONFIG;
 use ethers::abi::AbiEncode;
 use ethers::contract::Eip712;
 use ethers::{
@@ -8,6 +7,8 @@ use ethers::{
 };
 use serde::{Deserialize, Serialize};
 use std::ops::Deref;
+
+use crate::CONFIG;
 
 /// Transaction type for ERC-4337 account abstraction
 #[derive(Clone, Debug, Default, Serialize, Deserialize, EthAbiCodec, EthAbiType, Eip712)]

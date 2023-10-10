@@ -1,5 +1,6 @@
-use crate::models::transfer::transaction_response::TransactionResponse;
 use serde::Serialize;
+
+use crate::models::transfer::TransactionResponse;
 
 #[derive(Serialize)]
 pub struct TransferResponse {

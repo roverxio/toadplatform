@@ -3,11 +3,11 @@ use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
-use crate::errors::errors::ApiError;
+use crate::errors::ProviderError;
 use crate::models::contract_interaction::user_operation::UserOperation;
 use crate::CONFIG;
 
-pub async fn estimate_gas(user_op0: UserOperation) -> Result<EstimateResult, ApiError> {
+pub async fn estimate_gas(user_op0: UserOperation) -> Result<EstimateResult, ProviderError> {
     let req_body = Request {
         jsonrpc: "2.0".to_string(),
         id: 1,
@@ -22,14 +22,12 @@ pub async fn estimate_gas(user_op0: UserOperation) -> Result<EstimateResult, Api
         serde_json::from_str::<Response<EstimateResult>>(&post.text().await.unwrap()).unwrap();
     if result.error.is_some() {
         error!("could not estimate gas: {:?}", result.error);
-        return Err(ApiError::InternalServer(
-            "Failed to estimate gas".to_string(),
-        ));
+        return Err(ProviderError("Failed to estimate gas".to_string()));
     }
     Ok(result.result.unwrap())
 }
 
-pub async fn submit_transaction(user_operation: UserOperation) -> Result<String, ApiError> {
+pub async fn submit_transaction(user_operation: UserOperation) -> Result<String, ProviderError> {
     let send_body = Request {
         jsonrpc: "2.0".to_string(),
         id: 1,
@@ -45,9 +43,7 @@ pub async fn submit_transaction(user_operation: UserOperation) -> Result<String,
     let result = serde_json::from_str::<Response<String>>(&res).unwrap();
 
     if result.error.is_some() {
-        return Err(ApiError::InternalServer(
-            "Failed to submit transaction".to_string(),
-        ));
+        return Err(ProviderError("Failed to submit transaction".to_string()));
     }
     Ok(result.result.unwrap())
 }

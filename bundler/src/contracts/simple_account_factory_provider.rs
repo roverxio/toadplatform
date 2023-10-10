@@ -4,15 +4,13 @@ use ethers::providers::{Http, Provider};
 use ethers::types::{Bytes, U256};
 use std::sync::Arc;
 
-use crate::errors::base::ProviderError;
-use crate::provider::web3_client::Web3Client;
+use crate::errors::ProviderError;
+use crate::provider::Web3Client;
 
 abigen!(SimpleAccountFactory, "abi/SimpleAccountFactory.json");
 
 #[derive(Clone)]
-pub struct SimpleAccountFactoryProvider {
-    pub abi: SimpleAccountFactory<Provider<Http>>,
-}
+pub struct SimpleAccountFactoryProvider;
 
 impl SimpleAccountFactoryProvider {
     pub fn init_abi(
@@ -24,13 +22,23 @@ impl SimpleAccountFactoryProvider {
         contract
     }
 
-    pub fn create_account(&self, owner: Address, salt: U256) -> Result<Bytes, String> {
-        let data = self.abi.create_account(owner, salt).calldata();
-        if data.is_none() {
-            return Err("create data failed".to_string());
+    pub fn create_account(
+        client: &Web3Client,
+        owner: Address,
+        salt: U256,
+    ) -> Result<Bytes, ProviderError> {
+        let data = client
+            .get_factory_provider()
+            .create_account(owner, salt)
+            .calldata();
+        match data {
+            Some(call_data) => Ok(call_data),
+            None => Err(ProviderError(String::from("create data failed"))),
         }
+    }
 
-        Ok(data.unwrap())
+    pub fn get_factory_address(client: &Web3Client) -> Address {
+        client.get_factory_provider().address()
     }
 
     pub async fn get_address(

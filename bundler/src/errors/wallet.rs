@@ -3,7 +3,7 @@ use actix_web::{HttpResponse, ResponseError};
 use derive_more::Display;
 use log::error;
 
-use crate::errors::base::{DatabaseError, ErrorResponse, ProviderError};
+use crate::errors::{DatabaseError, ErrorResponse, ProviderError};
 
 #[derive(Debug, Display)]
 pub enum WalletError {
@@ -37,7 +37,10 @@ impl ResponseError for WalletError {
 
 impl From<DatabaseError> for WalletError {
     fn from(error: DatabaseError) -> Self {
-        WalletError::Database(error.0)
+        match error {
+            DatabaseError::NotFound => WalletError::Database(String::from("Record not found")),
+            DatabaseError::ServerError(err) => WalletError::Database(err),
+        }
     }
 }
 

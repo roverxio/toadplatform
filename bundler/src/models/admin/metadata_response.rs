@@ -1,6 +1,7 @@
-use crate::db::dao::token_metadata_dao::TokenMetadata;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+
+use crate::db::dao::TokenMetadata;
 
 #[derive(Default, Deserialize, Serialize, Debug)]
 pub struct MetadataResponse {

@@ -1,5 +1,3 @@
-use crate::models::config::env::ENV;
-use crate::CONFIG;
 use jwks_client::keyset::KeyStore;
 use rs_firebase_admin_sdk::auth::User;
 use rs_firebase_admin_sdk::{
@@ -7,6 +5,9 @@ use rs_firebase_admin_sdk::{
     App, CustomServiceAccount, GcpCredentials,
 };
 use serde::Deserialize;
+
+use crate::models::config::env::ENV;
+use crate::CONFIG;
 
 pub struct AuthService;
 

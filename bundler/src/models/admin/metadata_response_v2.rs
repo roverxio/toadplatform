@@ -1,8 +1,7 @@
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
-
-use crate::db::dao::token_metadata_dao::TokenMetadata;
+use crate::db::dao::TokenMetadata;
 use crate::CONFIG;
 
 #[derive(Clone, Default, Serialize, Deserialize)]

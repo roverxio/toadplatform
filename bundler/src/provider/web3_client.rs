@@ -4,11 +4,15 @@ use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
 use std::sync::Arc;
 
+use crate::contracts::entrypoint_provider::{EntryPoint, EntryPointProvider};
 use crate::contracts::simple_account_factory_provider::{
     SimpleAccountFactory, SimpleAccountFactoryProvider,
 };
 use crate::contracts::simple_account_provider::{SimpleAccount, SimpleAccountProvider};
 use crate::contracts::usdc_provider::{USDCProvider, ERC20};
+use crate::contracts::verifying_paymaster_provider::{
+    VerifyingPaymaster, VerifyingPaymasterProvider,
+};
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -32,6 +36,17 @@ impl Web3Client {
         )
     }
 
+    pub fn get_verifying_paymaster_provider(&self) -> VerifyingPaymaster<Provider<Http>> {
+        VerifyingPaymasterProvider::init_abi(
+            CONFIG.get_chain().verifying_paymaster_address,
+            self.client.clone(),
+        )
+    }
+
+    pub fn get_entrypoint_provider(&self) -> EntryPoint<Provider<Http>> {
+        EntryPointProvider::init_abi(CONFIG.get_chain().entrypoint_address, self.client.clone())
+    }
+
     pub fn get_scw_provider_by_address(&self, address: Address) -> SimpleAccount<Provider<Http>> {
         SimpleAccountProvider::init_abi(address, self.client.clone())
     }
@@ -43,9 +58,16 @@ impl Web3Client {
         )
     }
 
-    fn get_relayer_wallet() -> LocalWallet {
+    pub fn get_relayer_wallet() -> LocalWallet {
         std::env::var("WALLET_PRIVATE_KEY")
             .expect("WALLET_PRIVATE_KEY must be set")
+            .parse::<LocalWallet>()
+            .unwrap()
+    }
+
+    pub fn get_verifying_paymaster_wallet() -> LocalWallet {
+        std::env::var("VERIFYING_PAYMASTER_PRIVATE_KEY")
+            .expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set")
             .parse::<LocalWallet>()
             .unwrap()
     }
