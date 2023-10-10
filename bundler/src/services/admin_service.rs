@@ -8,11 +8,9 @@ use crate::contracts::verifying_paymaster_provider::VerifyingPaymasterProvider;
 use crate::db::dao::TokenMetadataDao;
 use crate::errors::AdminError;
 use crate::models::admin::{AddMetadataRequest, MetadataResponse};
-use crate::models::metadata::Metadata;
-use crate::models::transfer::status::Status;
-use crate::models::transfer::transaction_response::TransactionResponse;
-use crate::models::transfer::transfer_response::TransferResponse;
+use crate::models::transfer::{Status, TransactionResponse, TransferResponse};
 use crate::models::wallet::{Balance, BalanceResponse};
+use crate::models::Metadata;
 use crate::provider::web3_provider::Web3Provider;
 use crate::provider::Web3Client;
 use crate::CONFIG;
@@ -104,8 +102,7 @@ impl AdminService {
         .await?;
 
         let supported_currencies =
-            TokenMetadataDao::get_metadata_by_currency(pool, metadata.get_chain_name(), None)
-                .await?;
+            TokenMetadataDao::get_metadata_for_chain(pool, metadata.get_chain_name(), None).await?;
 
         let exponent_metadata = MetadataResponse::new().to(
             supported_currencies.clone(),

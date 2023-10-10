@@ -4,9 +4,7 @@ use sqlx::{query, query_as, Error, Pool, Postgres};
 use crate::errors::DatabaseError;
 
 #[derive(Clone)]
-pub struct TokenMetadataDao {
-    pub pool: Pool<Postgres>,
-}
+pub struct TokenMetadataDao;
 
 impl TokenMetadataDao {
     pub async fn add_metadata(
@@ -49,16 +47,6 @@ impl TokenMetadataDao {
     }
 
     pub async fn get_metadata_for_chain(
-        &self,
-        chain: String,
-        currency: Option<String>,
-    ) -> Vec<TokenMetadata> {
-        Self::get_metadata_by_currency(&self.pool, chain, currency)
-            .await
-            .unwrap()
-    }
-
-    pub async fn get_metadata_by_currency(
         pool: &Pool<Postgres>,
         chain: String,
         currency: Option<String>,

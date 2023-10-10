@@ -10,7 +10,7 @@ pub struct TokenMetadataService;
 
 impl TokenMetadataService {
     pub async fn get_chain(pool: &Pool<Postgres>) -> Result<MetadataResponse, MetadataError> {
-        let supported_currencies = TokenMetadataDao::get_metadata_by_currency(
+        let supported_currencies = TokenMetadataDao::get_metadata_for_chain(
             pool,
             CONFIG.run_config.current_chain.clone(),
             None,

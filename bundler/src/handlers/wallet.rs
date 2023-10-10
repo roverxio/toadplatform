@@ -4,7 +4,7 @@ use sqlx::{Pool, Postgres};
 
 use crate::db::dao::User;
 use crate::errors::{BalanceError, TransactionError, WalletError};
-use crate::models::response::base_response::BaseResponse;
+use crate::models::response::BaseResponse;
 use crate::models::transaction::{ListTransactionsParams, PollTransactionParams};
 use crate::models::wallet::BalanceRequest;
 use crate::provider::helpers::get_user_wallet;

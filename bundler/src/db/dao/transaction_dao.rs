@@ -1,6 +1,5 @@
 use bigdecimal::BigDecimal;
 use chrono::{DateTime, Utc};
-use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use sqlx::types::JsonValue;
@@ -10,9 +9,7 @@ use std::default::Default;
 use crate::errors::DatabaseError;
 
 #[derive(Clone)]
-pub struct TransactionDao {
-    pub pool: Pool<Postgres>,
-}
+pub struct TransactionDao;
 
 impl TransactionDao {
     pub async fn list_transactions(
@@ -43,16 +40,18 @@ impl TransactionDao {
         }
     }
 
-    pub async fn create_user_transaction(&self, txn: UserTransaction) {
+    pub async fn create_user_transaction(
+        pool: &Pool<Postgres>,
+        txn: UserTransaction,
+    ) -> Result<(), DatabaseError> {
         let metadata: Value;
         match serde_json::to_value(&txn.metadata) {
             Ok(data) => metadata = data,
             Err(err) => {
-                error!(
+                return Err(DatabaseError::ServerError(format!(
                     "Metadata conversion failed: {}, err: {:?}",
                     txn.transaction_id, err
-                );
-                return;
+                )));
             }
         }
         let query = query!(
@@ -69,13 +68,13 @@ impl TransactionDao {
             txn.status.clone(),
             metadata
         );
-        let result = query.execute(&self.pool).await;
-        if result.is_err() {
-            error!(
+        let result = query.execute(pool).await;
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to create user transaction: {}, err: {:?}",
-                txn.transaction_id,
-                result.err()
-            );
+                txn.transaction_id, err
+            ))),
         }
     }
 
@@ -110,11 +109,11 @@ impl TransactionDao {
     }
 
     pub async fn update_user_transaction(
-        &self,
+        pool: &Pool<Postgres>,
         txn_id: String,
         txn_hash: Option<String>,
         status: String,
-    ) {
+    ) -> Result<(), DatabaseError> {
         let query;
         match txn_hash {
             None => {
@@ -135,13 +134,13 @@ impl TransactionDao {
                 );
             }
         }
-        let result = query.execute(&self.pool).await;
-        if result.is_err() {
-            error!(
+        let result = query.execute(pool).await;
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to update user transaction: {}, err: {:?}",
-                txn_id,
-                result.err()
-            );
+                txn_id, err
+            ))),
         }
     }
 }

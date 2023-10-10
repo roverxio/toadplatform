@@ -36,8 +36,24 @@ impl VerifyingPaymasterProvider {
         }
     }
 
+    pub async fn get_hash(
+        client: &Web3Client,
+        user_operation: UserOperation,
+        valid_until: u64,
+        valid_after: u64,
+    ) -> Result<[u8; 32], ProviderError> {
+        let response = client
+            .get_verifying_paymaster_provider()
+            .get_hash(user_operation, valid_until, valid_after)
+            .await;
+        match response {
+            Ok(hash) => Ok(hash),
+            Err(err) => Err(ProviderError(format!("Paymaster: Hash: {:?}", err))),
+        }
+    }
+
     pub fn get_verifying_paymaster_user_operation_payload(
-        user_op: contract_interaction::user_operation::UserOperation,
+        user_op: contract_interaction::UserOperation,
     ) -> UserOperation {
         UserOperation {
             sender: user_op.sender,
