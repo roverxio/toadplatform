@@ -43,6 +43,7 @@ pub async fn submit_transaction(user_operation: UserOperation) -> Result<String,
     let result = serde_json::from_str::<Response<String>>(&res).unwrap();
 
     if result.error.is_some() {
+        error!("could not submit transaction: {:?}", result.error);
         return Err(ProviderError("Failed to submit transaction".to_string()));
     }
     Ok(result.result.unwrap())
