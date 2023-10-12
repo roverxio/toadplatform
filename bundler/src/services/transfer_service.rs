@@ -47,30 +47,7 @@ impl TransferService {
         if user.wallet_address.is_empty() {
             return Err(TransferError::NotFound);
         }
-
-        // check user's balance
-        let balance = BalanceService::get_balance(
-            pool,
-            CONFIG.run_config.current_chain.clone(),
-            currency.clone(),
-            provider,
-            user.wallet_address.parse().unwrap(),
-        )
-        .await;
-        match balance {
-            Ok((bal, _)) => {
-                if bal < U256::from_str(&value).unwrap() {
-                    error!("Insufficient balance");
-                    return Err(TransferError::InsufficientBalance);
-                }
-            }
-            Err(error) => {
-                return Err(TransferError::Provider(String::from(format!(
-                    "Error fetching balance {:?}",
-                    error
-                ))));
-            }
-        }
+        has_balance(pool, provider, &user, &currency, &value).await?;
 
         let user_txn =
             Self::get_user_transaction(&to, &value, &currency, user.wallet_address.clone());
@@ -307,4 +284,36 @@ impl TransferService {
             None => Err(TransferError::InvalidCurrency),
         }
     }
+}
+
+async fn has_balance(
+    pool: &Pool<Postgres>,
+    provider: &Web3Client,
+    user: &User,
+    currency: &String,
+    value: &String,
+) -> Result<(), TransferError> {
+    let balance = BalanceService::get_balance(
+        pool,
+        CONFIG.run_config.current_chain.clone(),
+        currency.clone(),
+        provider,
+        user.wallet_address.parse().unwrap(),
+    )
+    .await;
+    match balance {
+        Ok((bal, _)) => {
+            if bal < U256::from_str(&value).unwrap() {
+                error!("Insufficient balance");
+                return Err(TransferError::InsufficientBalance);
+            }
+        }
+        Err(error) => {
+            return Err(TransferError::Provider(String::from(format!(
+                "Error fetching balance {:?}",
+                error
+            ))));
+        }
+    }
+    Ok(())
 }
