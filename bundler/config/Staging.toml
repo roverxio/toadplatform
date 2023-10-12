@@ -23,7 +23,7 @@ usdc_address = "0xFa38B962562DF7F9eeD9d8Db3cC261053EFC263B"
 entrypoint_address = "0x53D5E11475f4158dA8f0f3B46C69C717EE1b57b4"
 verifying_paymaster_address = "0xe76cF38641112f77A474c467546Fb4b812e4d0F8"
 currency = "SepoliaETH"
-bundler_url = "https://bundler.toad.cash/sepolia"
+bundler_url = "https://baldr.toad.cash/sepolia"
 
 [chains.base_goerli]
 chain_id = 84531
@@ -34,7 +34,7 @@ usdc_address = "0x7e9b4b2B597DA00C5e7b2E95Dc34c408a7173B17"
 currency = "ETH"
 entrypoint_address = "0x5277533753B1AfE41FDEB7E7Baf46c242A38dEf7"
 verifying_paymaster_address = "0x12Ee5b8ddD68DCF899B7e4776E0114fee55cBcDa"
-bundler_url = "https://bundler.toad.cash/base_goerli"
+bundler_url = "https://baldr.toad.cash/base_goerli"
 
 [chains.goerli]
 chain_id = 5
