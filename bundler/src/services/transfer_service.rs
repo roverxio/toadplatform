@@ -1,10 +1,12 @@
+use std::str::FromStr;
+
 use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::Signer;
+use log::error;
 use sqlx::{Pool, Postgres};
-use std::str::FromStr;
 
 use crate::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -27,6 +29,7 @@ use crate::models::TransactionType;
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::listeners::user_op_event_listener;
 use crate::provider::Web3Client;
+use crate::services::BalanceService;
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -44,6 +47,31 @@ impl TransferService {
         if user.wallet_address.is_empty() {
             return Err(TransferError::NotFound);
         }
+
+        // check user's balance
+        let balance = BalanceService::get_balance(
+            pool,
+            CONFIG.run_config.current_chain.clone(),
+            currency.clone(),
+            provider,
+            user.wallet_address.parse().unwrap(),
+        )
+        .await;
+        match balance {
+            Ok((bal, _)) => {
+                if bal < U256::from_str(&value).unwrap() {
+                    error!("Insufficient balance");
+                    return Err(TransferError::InsufficientBalance);
+                }
+            }
+            Err(error) => {
+                return Err(TransferError::Provider(String::from(format!(
+                    "Error fetching balance {:?}",
+                    error
+                ))));
+            }
+        }
+
         let user_txn =
             Self::get_user_transaction(&to, &value, &currency, user.wallet_address.clone());
         let mut user_op0 = UserOperation::new();

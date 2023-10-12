@@ -9,6 +9,7 @@ use crate::errors::{DatabaseError, ErrorResponse, ProviderError};
 pub enum TransferError {
     NotFound,
     TxnNotFound,
+    InsufficientBalance,
     InvalidCurrency,
     Provider(String),
     Database(String),
@@ -19,6 +20,7 @@ impl ResponseError for TransferError {
         match self {
             TransferError::NotFound => StatusCode::NOT_FOUND,
             TransferError::TxnNotFound => StatusCode::NOT_FOUND,
+            TransferError::InsufficientBalance => StatusCode::BAD_REQUEST,
             TransferError::InvalidCurrency => StatusCode::BAD_REQUEST,
             TransferError::Database(_) => StatusCode::INTERNAL_SERVER_ERROR,
             TransferError::Provider(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -32,6 +34,9 @@ impl ResponseError for TransferError {
             }
             TransferError::TxnNotFound => HttpResponse::NotFound()
                 .json(ErrorResponse::from(String::from("Transaction not found"))),
+            TransferError::InsufficientBalance => HttpResponse::BadRequest().json(
+                ErrorResponse::from(String::from("Insufficient balance to perform transfer")),
+            ),
             TransferError::InvalidCurrency => HttpResponse::BadRequest()
                 .json(ErrorResponse::from(String::from("Invalid chain/currency"))),
             TransferError::Database(error) => {
