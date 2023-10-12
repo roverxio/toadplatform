@@ -293,6 +293,10 @@ async fn has_balance(
     currency: &String,
     value: &String,
 ) -> Result<(), TransferError> {
+    if U256::from_str(value).unwrap() == U256::from(0) {
+        return Err(TransferError::InvalidAmount);
+    }
+
     let balance = BalanceService::get_balance(
         pool,
         CONFIG.run_config.current_chain.clone(),
