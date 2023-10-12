@@ -101,7 +101,6 @@ impl TransferService {
             .call_gas_limit(estimated_gas.call_gas_limit)
             .verification_gas_limit(estimated_gas.verification_gas_limit)
             .pre_verification_gas(estimated_gas.pre_verification_gas);
-        println!("user_op0: {:?}", user_op0);
 
         let singed_hash =
             Self::get_signed_hash(provider, user_op0.clone(), valid_until, valid_after).await?;
