@@ -91,12 +91,17 @@ impl TransferService {
             Some(singed_hash),
         );
 
+        let (gas_price, priority_fee) = provider.estimate_eip1559_fees().await?;
+        user_op0
+            .max_priority_fee_per_gas(priority_fee)
+            .max_fee_per_gas(gas_price);
         let estimated_gas = estimate_gas(user_op0.clone()).await?;
 
         user_op0
             .call_gas_limit(estimated_gas.call_gas_limit)
             .verification_gas_limit(estimated_gas.verification_gas_limit)
             .pre_verification_gas(estimated_gas.pre_verification_gas);
+        println!("user_op0: {:?}", user_op0);
 
         let singed_hash =
             Self::get_signed_hash(provider, user_op0.clone(), valid_until, valid_after).await?;

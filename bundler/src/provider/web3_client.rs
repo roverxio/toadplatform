@@ -1,7 +1,9 @@
 use ethers::middleware::SignerMiddleware;
-use ethers::providers::{Http, Provider};
+use ethers::prelude::U256;
+use ethers::providers::{Http, Middleware, Provider};
 use ethers::types::Address;
 use ethers_signers::{LocalWallet, Signer};
+use log::error;
 use std::sync::Arc;
 
 use crate::contracts::entrypoint_provider::{EntryPoint, EntryPointProvider};
@@ -13,6 +15,7 @@ use crate::contracts::usdc_provider::{USDCProvider, ERC20};
 use crate::contracts::verifying_paymaster_provider::{
     VerifyingPaymaster, VerifyingPaymasterProvider,
 };
+use crate::errors::ProviderError;
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -70,5 +73,16 @@ impl Web3Client {
             .expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set")
             .parse::<LocalWallet>()
             .unwrap()
+    }
+
+    pub async fn estimate_eip1559_fees(&self) -> Result<(U256, U256), ProviderError> {
+        let x = self.client.estimate_eip1559_fees(None).await;
+        match x {
+            Ok((gas_price, priority_fee)) => Ok((gas_price, priority_fee)),
+            Err(_) => {
+                error!("Failed to estimate eip1559 gas");
+                Err(ProviderError("Failed to estimate eip1559 gas".to_string()))
+            }
+        }
     }
 }

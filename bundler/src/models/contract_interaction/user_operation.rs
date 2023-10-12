@@ -113,6 +113,19 @@ impl UserOperation {
         self
     }
 
+    pub fn max_fee_per_gas(&mut self, max_fee_per_gas: U256) -> &mut UserOperation {
+        self.max_fee_per_gas = max_fee_per_gas;
+        self
+    }
+
+    pub fn max_priority_fee_per_gas(
+        &mut self,
+        max_priority_fee_per_gas: U256,
+    ) -> &mut UserOperation {
+        self.max_priority_fee_per_gas = max_priority_fee_per_gas;
+        self
+    }
+
     /// Sets the paymaster and data of the user operation
     pub fn paymaster_and_data(
         &mut self,
