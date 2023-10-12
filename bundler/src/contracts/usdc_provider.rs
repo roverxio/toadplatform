@@ -1,5 +1,3 @@
-use crate::errors::base::ProviderError;
-use crate::provider::web3_client::Web3Client;
 use ethers::abi::Address;
 use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
@@ -7,12 +5,13 @@ use ethers::types::{Bytes, U256};
 use log::error;
 use std::sync::Arc;
 
+use crate::errors::ProviderError;
+use crate::provider::Web3Client;
+
 abigen!(ERC20, "abi/ERC20.json");
 
 #[derive(Clone)]
-pub struct USDCProvider {
-    pub abi: ERC20<Provider<Http>>,
-}
+pub struct USDCProvider;
 
 impl USDCProvider {
     pub fn init_abi(address: Address, client: Arc<Provider<Http>>) -> ERC20<Provider<Http>> {
@@ -20,16 +19,19 @@ impl USDCProvider {
         contract
     }
 
-    pub fn transfer(&self, to: Address, value: String) -> Result<Bytes, String> {
-        let data = self
-            .abi
+    pub fn transfer(
+        client: &Web3Client,
+        to: Address,
+        value: String,
+    ) -> Result<Bytes, ProviderError> {
+        let data = client
+            .get_usdc_provider()
             .transfer(to, U256::from_dec_str(&value).unwrap())
             .calldata();
-        if data.is_none() {
-            return Err("transfer data failed".to_string());
+        match data {
+            Some(call_data) => Ok(call_data),
+            None => Err(ProviderError(String::from("transfer data failed"))),
         }
-
-        Ok(data.unwrap())
     }
 
     pub fn mint(client: &Web3Client, to: Address, value: String) -> Result<Bytes, String> {

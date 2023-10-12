@@ -1,21 +1,15 @@
-use actix_web::web::{Data, Json, Query, ReqData};
-use actix_web::{Error, HttpRequest, HttpResponse};
+use actix_web::web::{Data, Query, ReqData};
+use actix_web::{HttpRequest, HttpResponse};
 use sqlx::{Pool, Postgres};
 
-use crate::db::dao::wallet_dao::User;
-use crate::errors::balance::BalanceError;
-use crate::errors::errors::ApiError;
-use crate::errors::wallet::WalletError;
-use crate::models::response::base_response::BaseResponse;
-use crate::models::transaction::list_transactions_params::ListTransactionsParams;
-use crate::models::transaction::poll_transaction_params::PollTransactionParams;
-use crate::models::transaction::transaction::Transaction;
-use crate::models::wallet::balance_request::BalanceRequest;
-use crate::provider::helpers::{get_user_wallet, respond_json};
-use crate::provider::web3_client::Web3Client;
-use crate::services::balance_service::BalanceService;
-use crate::services::transfer_service::TransferService;
-use crate::services::wallet_service::WalletService;
+use crate::db::dao::User;
+use crate::errors::{BalanceError, TransactionError, WalletError};
+use crate::models::response::BaseResponse;
+use crate::models::transaction::{ListTransactionsParams, PollTransactionParams};
+use crate::models::wallet::BalanceRequest;
+use crate::provider::helpers::get_user_wallet;
+use crate::provider::Web3Client;
+use crate::services::{BalanceService, TransferService, WalletService};
 
 pub async fn get_address(
     pool: Data<Pool<Postgres>>,
@@ -52,36 +46,32 @@ pub async fn get_balance(
 }
 
 pub async fn list_transactions(
-    service: Data<WalletService>,
+    pool: Data<Pool<Postgres>>,
     query: Query<ListTransactionsParams>,
     user: ReqData<User>,
-) -> Result<Json<BaseResponse<Vec<Transaction>>>, ApiError> {
+) -> Result<HttpResponse, TransactionError> {
     let query_params = query.into_inner();
-    let data = service
-        .list_transactions(
-            query_params.page_size.unwrap_or(10),
-            query_params.id,
-            user.into_inner(),
-        )
-        .await;
-    respond_json(data)
+    let data = WalletService::list_transactions(
+        pool.get_ref(),
+        query_params.page_size.unwrap_or(10),
+        query_params.id,
+        user.into_inner(),
+    )
+    .await?;
+    Ok(HttpResponse::Ok().json(BaseResponse::init(data)))
 }
 
 pub async fn poll_transaction(
-    db_pool: Data<Pool<Postgres>>,
+    pool: Data<Pool<Postgres>>,
     query: Query<PollTransactionParams>,
     user: ReqData<User>,
-) -> Result<HttpResponse, Error> {
+) -> Result<HttpResponse, TransactionError> {
     let transaction = TransferService::get_status(
-        db_pool.get_ref(),
+        pool.get_ref(),
         query.transaction_id.clone(),
         user.into_inner(),
     )
-    .await
-    .unwrap();
+    .await?;
 
-    Ok(HttpResponse::Ok().json(BaseResponse {
-        data: transaction,
-        err: Default::default(),
-    }))
+    Ok(HttpResponse::Ok().json(BaseResponse::init(transaction)))
 }

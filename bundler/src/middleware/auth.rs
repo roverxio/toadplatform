@@ -10,7 +10,7 @@ use std::future::{ready, Future, Ready};
 use std::pin::Pin;
 use std::sync::Arc;
 
-use crate::db::dao::wallet_dao::WalletDao;
+use crate::db::dao::WalletDao;
 use crate::errors::errors::ApiError;
 use crate::services::auth_service::AuthService;
 
@@ -99,7 +99,7 @@ where
             .await;
             if db_user.is_none() {
                 debug!("Probably a new user. Not found on db, but exists on firebase");
-                db_user = Some(crate::db::dao::wallet_dao::User::from(user.unwrap()));
+                db_user = Some(crate::db::dao::User::from(user.unwrap()));
             }
 
             // Insert db_user into req's extensions

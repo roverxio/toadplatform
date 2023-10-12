@@ -1,16 +1,14 @@
-use crate::errors::base::DatabaseError;
 use chrono::{DateTime, Utc};
-use log::error;
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
+use crate::errors::DatabaseError;
+
 #[derive(Clone)]
-pub struct TokenMetadataDao {
-    pub pool: Pool<Postgres>,
-}
+pub struct TokenMetadataDao;
 
 impl TokenMetadataDao {
     pub async fn add_metadata(
-        &self,
+        pool: &Pool<Postgres>,
         chain: String,
         currency: String,
         address: String,
@@ -20,7 +18,7 @@ impl TokenMetadataDao {
         chain_id: i32,
         chain_name: String,
         token_image_url: String,
-    ) {
+    ) -> Result<(), DatabaseError> {
         let query = query!(
             "INSERT INTO token_metadata \
             (chain, symbol, contract_address, exponent, token_type, name, chain_id, chain_name,\
@@ -38,27 +36,17 @@ impl TokenMetadataDao {
             chain_name,
             token_image_url
         );
-        let result = query.execute(&self.pool).await;
-        if result.is_err() {
-            error!(
+        let result = query.execute(pool).await;
+        match result {
+            Ok(_) => Ok(()),
+            Err(err) => Err(DatabaseError::ServerError(format!(
                 "Failed to create metadata: {}, err: {:?}",
-                chain,
-                result.err()
-            );
+                chain, err
+            ))),
         }
     }
 
     pub async fn get_metadata_for_chain(
-        &self,
-        chain: String,
-        currency: Option<String>,
-    ) -> Vec<TokenMetadata> {
-        Self::get_metadata_by_currency(&self.pool, chain, currency)
-            .await
-            .unwrap()
-    }
-
-    pub async fn get_metadata_by_currency(
         pool: &Pool<Postgres>,
         chain: String,
         currency: Option<String>,
@@ -84,26 +72,26 @@ impl TokenMetadataDao {
         };
         match result {
             Ok(currencies) => Ok(currencies),
-            Err(err) => {
-                error!("Failed to get currencies, err: {:?}", err);
-                Err(DatabaseError(String::from("Failed to get currencies")))
-            }
+            Err(err) => Err(DatabaseError::ServerError(format!(
+                "Failed to get currencies, err: {:?}",
+                err
+            ))),
         }
     }
 
-    pub async fn get_metadata(&self) -> Vec<TokenMetadata> {
+    pub async fn get_metadata(pool: &Pool<Postgres>) -> Result<Vec<TokenMetadata>, DatabaseError> {
         let query = query_as!(
             TokenMetadata,
             "SELECT * FROM token_metadata where is_supported = true"
         );
-        let result = query.fetch_all(&self.pool).await;
+        let result = query.fetch_all(pool).await;
 
         match result {
-            Ok(metadata) => metadata,
-            Err(err) => {
-                error!("Failed to get metadata, err: {:?}", err);
-                vec![]
-            }
+            Ok(metadata) => Ok(metadata),
+            Err(err) => Err(DatabaseError::ServerError(format!(
+                "Failed to get metadata, err: {:?}",
+                err
+            ))),
         }
     }
 }

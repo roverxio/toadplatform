@@ -1,6 +1,6 @@
 use serde::Serialize;
 
-use crate::errors::base::Error;
+use crate::errors::Error;
 
 #[derive(Serialize)]
 pub struct BaseResponse<T> {

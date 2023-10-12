@@ -2,7 +2,7 @@ use log::warn;
 use sqlx::{PgPool, Postgres};
 use std::process::exit;
 
-pub struct DatabaseConnection {}
+pub struct DatabaseConnection;
 
 impl DatabaseConnection {
     pub async fn init() -> sqlx::Pool<Postgres> {

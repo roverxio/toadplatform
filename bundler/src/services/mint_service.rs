@@ -3,8 +3,8 @@ use log::{error, info};
 
 use crate::contracts::usdc_provider::USDCProvider;
 use crate::models::config::env::ENV;
-use crate::provider::web3_client::Web3Client;
 use crate::provider::web3_provider::Web3Provider;
+use crate::provider::Web3Client;
 use crate::CONFIG;
 
 #[derive(Clone)]

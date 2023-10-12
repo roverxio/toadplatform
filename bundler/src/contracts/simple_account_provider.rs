@@ -4,15 +4,13 @@ use ethers::providers::{Http, Provider};
 use ethers::types::{Bytes, U256};
 use std::sync::Arc;
 
-use crate::errors::base::ProviderError;
-use crate::provider::web3_client::Web3Client;
+use crate::errors::ProviderError;
+use crate::provider::Web3Client;
 
 abigen!(SimpleAccount, "abi/SimpleAccount.json");
 
 #[derive(Clone)]
-pub struct SimpleAccountProvider {
-    pub abi: SimpleAccount<Provider<Http>>,
-}
+pub struct SimpleAccountProvider;
 
 impl SimpleAccountProvider {
     pub fn init_abi(
@@ -23,16 +21,20 @@ impl SimpleAccountProvider {
         contract
     }
 
-    pub fn execute(&self, to: Address, value: String, data: Bytes) -> Result<Bytes, String> {
-        let data = self
-            .abi
+    pub fn execute(
+        client: &Web3Client,
+        to: Address,
+        value: String,
+        data: Bytes,
+    ) -> Result<Bytes, ProviderError> {
+        let data = client
+            .get_scw_provider_by_address(Address::zero())
             .execute(to, U256::from_dec_str(&value).unwrap(), data)
             .calldata();
-        if data.is_none() {
-            return Err("execute data failed".to_string());
+        match data {
+            Some(call_data) => Ok(call_data),
+            None => Err(ProviderError(String::from("execute data failed"))),
         }
-
-        Ok(data.unwrap())
     }
 
     pub async fn get_deployer(
