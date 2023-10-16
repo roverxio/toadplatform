@@ -23,7 +23,7 @@ usdc_address = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 currency = "ETH"
 entrypoint_address = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 verifying_paymaster_address = "0x4B27F464b50bB4f41222d7f01B5320D3aFC54986"
-bundler_url = "https://bundler.toad.cash/base"
+bundler_url = "https://baldr.toad.cash/bundler_base"
 
 [default_gas]
 call_gas_limit = 90153
