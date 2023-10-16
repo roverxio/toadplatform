@@ -78,17 +78,6 @@ impl UserOperation {
         self
     }
 
-    /// Sets the init code of the user operation
-    pub fn init_code(
-        &mut self,
-        factory_address: Address,
-        create_account_payload: Bytes,
-    ) -> &mut UserOperation {
-        self.init_code =
-            Bytes::from([factory_address.as_bytes(), create_account_payload.as_ref()].concat());
-        self
-    }
-
     /// Sets the call data of the user operation
     pub fn call_data(&mut self, call_data: Bytes) -> &mut UserOperation {
         self.call_data = call_data;

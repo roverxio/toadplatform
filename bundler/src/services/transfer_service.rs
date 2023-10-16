@@ -5,16 +5,19 @@ use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::Signer;
-use log::error;
+use log::{error, info};
 use sqlx::{Pool, Postgres};
 
 use crate::contracts::entrypoint_provider::EntryPointProvider;
-use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
+use crate::contracts::simple_account_factory_provider::{
+    SimpleAccountFactoryProvider, SIMPLEACCOUNTFACTORY_ABI,
+};
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
 use crate::contracts::verifying_paymaster_provider::VerifyingPaymasterProvider;
 use crate::db::dao::{
     TokenMetadataDao, TransactionDao, TransactionMetadata, User, UserOperationDao, UserTransaction,
+    WalletDao,
 };
 use crate::errors::{ProviderError, TransactionError, TransferError};
 use crate::models::contract_interaction::UserOperation;
@@ -27,6 +30,7 @@ use crate::models::TransactionType;
 use crate::provider::bundler::{estimate_gas, submit_transaction};
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::listeners::user_op_event_listener;
+use crate::provider::web3_provider::Web3Provider;
 use crate::provider::Web3Client;
 use crate::services::BalanceService;
 use crate::CONFIG;
@@ -53,14 +57,35 @@ impl TransferService {
         let mut user_op0 = UserOperation::new();
         user_op0.call_data(Self::get_call_data(pool, provider, to, value, currency).await?);
         if !user.deployed {
-            user_op0.init_code(
+            info!("Deploying simple account factory");
+            let create_account = SimpleAccountFactoryProvider::create_account(
+                provider,
+                user.owner_address.parse().unwrap(),
+                U256::from(user.salt.to_u64().unwrap()),
+            )?;
+            let deploy_scw = Web3Provider::execute(
+                provider.get_relayer_signer(),
                 SimpleAccountFactoryProvider::get_factory_address(provider),
-                SimpleAccountFactoryProvider::create_account(
-                    provider,
-                    user.owner_address.parse().unwrap(),
-                    U256::from(user.salt.to_u64().unwrap()),
-                )?,
-            );
+                0.to_string(),
+                create_account,
+                &SIMPLEACCOUNTFACTORY_ABI.clone(),
+            )
+            .await;
+            match deploy_scw {
+                Ok(_) => {
+                    WalletDao::update_wallet_deployed(pool, user.external_user_id)
+                        .await
+                        .map_err(|err| {
+                            TransferError::Provider(format!("Failed to update wallet: {:?}", err))
+                        })?;
+                }
+                Err(err) => {
+                    error!("Failed to deploy simple account factory: {:?}", err);
+                    return Err(TransferError::Provider(
+                        "Failed to deploy simple account factory".to_string(),
+                    ));
+                }
+            }
         }
 
         let wallet_address: Address = user.wallet_address.parse().unwrap();
