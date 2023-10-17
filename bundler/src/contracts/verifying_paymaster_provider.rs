@@ -7,7 +7,7 @@ use std::sync::Arc;
 
 use crate::errors::ProviderError;
 use crate::models::contract_interaction;
-use crate::provider::Web3Client;
+use crate::provider::*;
 
 abigen!(VerifyingPaymaster, "abi/VerifyingPaymaster.json");
 
@@ -22,9 +22,8 @@ impl VerifyingPaymasterProvider {
         contract
     }
 
-    pub async fn get_deposit(client: &Web3Client) -> Result<String, ProviderError> {
-        let response = client
-            .get_verifying_paymaster_provider()
+    pub async fn get_deposit(client: &Arc<Provider<Http>>) -> Result<String, ProviderError> {
+        let response = Web3Client::get_verifying_paymaster_provider(client.clone())
             .get_deposit()
             .await;
         match response {
@@ -37,13 +36,12 @@ impl VerifyingPaymasterProvider {
     }
 
     pub async fn get_hash(
-        client: &Web3Client,
+        client: &Arc<Provider<Http>>,
         user_operation: UserOperation,
         valid_until: u64,
         valid_after: u64,
     ) -> Result<[u8; 32], ProviderError> {
-        let response = client
-            .get_verifying_paymaster_provider()
+        let response = Web3Client::get_verifying_paymaster_provider(client.clone())
             .get_hash(user_operation, valid_until, valid_after)
             .await;
         match response {

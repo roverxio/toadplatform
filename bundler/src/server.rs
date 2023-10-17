@@ -3,13 +3,13 @@ use actix_web::web::Data;
 use actix_web::{App, HttpServer};
 use dotenvy::dotenv;
 use env_logger::{init_from_env, Env};
+use ethers::providers::{Http, Provider};
 use log::info;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
 use crate::db::connection::DatabaseConnection;
 use crate::models::config::server::Server;
-use crate::provider::Web3Client;
 use crate::routes::routes;
 use crate::services::hello_world_service::HelloWorldService;
 use crate::{CONFIG, PROVIDER};
@@ -17,7 +17,7 @@ use crate::{CONFIG, PROVIDER};
 #[derive(Clone)]
 pub struct ToadService {
     pub hello_world_service: HelloWorldService,
-    pub web3_client: Web3Client,
+    pub web3_client: Arc<Provider<Http>>,
     pub db_pool: Pool<Postgres>,
 }
 
@@ -25,11 +25,9 @@ pub async fn init_services() -> ToadService {
     init_logging();
     info!("Starting server...");
 
-    let client = Arc::new(PROVIDER.clone());
-
     ToadService {
         hello_world_service: HelloWorldService {},
-        web3_client: Web3Client::new(client.clone()),
+        web3_client: Arc::new(PROVIDER.clone()),
         db_pool: DatabaseConnection::init().await,
     }
 }

@@ -1,10 +1,13 @@
 use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
+use ethers::prelude::Http;
+use ethers::providers::Provider;
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::Signer;
 use sqlx::{Pool, Postgres};
 use std::str::FromStr;
+use std::sync::Arc;
 
 use crate::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -26,7 +29,7 @@ use crate::models::Currency;
 use crate::models::TransactionType;
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::listeners::user_op_event_listener;
-use crate::provider::Web3Client;
+use crate::provider::*;
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -35,7 +38,7 @@ pub struct TransferService;
 impl TransferService {
     pub async fn init(
         pool: &Pool<Postgres>,
-        provider: &Web3Client,
+        provider: &Arc<Provider<Http>>,
         to: String,
         value: String,
         currency: String,
@@ -47,12 +50,12 @@ impl TransferService {
         let user_txn =
             Self::get_user_transaction(&to, &value, &currency, user.wallet_address.clone());
         let mut user_op0 = UserOperation::new();
-        user_op0.calldata(Self::get_call_data(pool, provider, to, value, currency).await?);
+        user_op0.calldata(Self::get_call_data(pool, &provider.clone(), to, value, currency).await?);
         if !user.deployed {
             user_op0.init_code(
-                SimpleAccountFactoryProvider::get_factory_address(provider),
+                SimpleAccountFactoryProvider::get_factory_address(provider.clone()),
                 SimpleAccountFactoryProvider::create_account(
-                    provider,
+                    &provider.clone(),
                     user.owner_address.parse().unwrap(),
                     U256::from(user.salt.to_u64().unwrap()),
                 )?,
@@ -66,7 +69,7 @@ impl TransferService {
         user_op0
             .paymaster_and_data(data.clone(), wallet_address.clone(), None)
             .nonce(
-                EntryPointProvider::get_nonce(provider, wallet_address)
+                EntryPointProvider::get_nonce(&provider.clone(), wallet_address)
                     .await?
                     .low_u64(),
             )
@@ -80,8 +83,13 @@ impl TransferService {
                 .to_vec(),
         ));
 
-        let singed_hash =
-            Self::get_signed_hash(provider, user_op0.clone(), valid_until, valid_after).await?;
+        let singed_hash = Self::get_signed_hash(
+            &provider.clone(),
+            user_op0.clone(),
+            valid_until,
+            valid_after,
+        )
+        .await?;
         user_op0.paymaster_and_data(
             data,
             CONFIG.get_chain().verifying_paymaster_address,
@@ -110,7 +118,7 @@ impl TransferService {
 
     pub async fn execute(
         pool: &Pool<Postgres>,
-        provider: &Web3Client,
+        provider: &Arc<Provider<Http>>,
         transaction_id: String,
         signature: Bytes,
         user: User,
@@ -229,7 +237,7 @@ impl TransferService {
     }
 
     async fn get_signed_hash(
-        provider: &Web3Client,
+        provider: &Arc<Provider<Http>>,
         user_op0: UserOperation,
         valid_until: u64,
         valid_after: u64,
@@ -252,7 +260,7 @@ impl TransferService {
 
     async fn get_call_data(
         pool: &Pool<Postgres>,
-        provider: &Web3Client,
+        provider: &Arc<Provider<Http>>,
         to: String,
         value: String,
         currency: String,
@@ -265,13 +273,13 @@ impl TransferService {
         .await?;
         match Currency::from_str(metadata[0].token_type.clone()) {
             Some(Currency::Erc20) => Ok(SimpleAccountProvider::execute(
-                provider,
+                &provider.clone(),
                 CONFIG.get_chain().usdc_address,
                 0.to_string(),
-                USDCProvider::transfer(provider, to.parse().unwrap(), value)?,
+                USDCProvider::transfer(&provider.clone(), to.parse().unwrap(), value)?,
             )?),
             Some(Currency::Native) => Ok(SimpleAccountProvider::execute(
-                provider,
+                &provider.clone(),
                 to.parse().unwrap(),
                 value,
                 Bytes::from(vec![]),

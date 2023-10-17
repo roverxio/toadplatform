@@ -5,7 +5,7 @@ use ethers::types::{Bytes, U256};
 use std::sync::Arc;
 
 use crate::errors::ProviderError;
-use crate::provider::Web3Client;
+use crate::provider::*;
 
 abigen!(SimpleAccountFactory, "abi/SimpleAccountFactory.json");
 
@@ -23,12 +23,11 @@ impl SimpleAccountFactoryProvider {
     }
 
     pub fn create_account(
-        client: &Web3Client,
+        client: &Arc<Provider<Http>>,
         owner: Address,
         salt: U256,
     ) -> Result<Bytes, ProviderError> {
-        let data = client
-            .get_factory_provider()
+        let data = Web3Client::get_factory_provider(client.clone())
             .create_account(owner, salt)
             .calldata();
         match data {
@@ -37,17 +36,16 @@ impl SimpleAccountFactoryProvider {
         }
     }
 
-    pub fn get_factory_address(client: &Web3Client) -> Address {
-        client.get_factory_provider().address()
+    pub fn get_factory_address(client: Arc<Provider<Http>>) -> Address {
+        Web3Client::get_factory_provider(client).address()
     }
 
     pub async fn get_address(
-        client: &Web3Client,
+        client: Arc<Provider<Http>>,
         owner: Address,
         salt: u64,
     ) -> Result<Address, ProviderError> {
-        let result = client
-            .get_factory_provider()
+        let result = Web3Client::get_factory_provider(client)
             .get_address(owner, U256::from(salt))
             .await;
         match result {

@@ -1,18 +1,19 @@
 use actix_web::web::{Data, Json, Path, Query};
 use actix_web::{HttpRequest, HttpResponse};
+use ethers::providers::{Http, Provider};
 use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 
 use crate::errors::AdminError;
 use crate::models::admin::{AddMetadataRequest, PaymasterTopup};
 use crate::models::response::BaseResponse;
 use crate::models::wallet::BalanceRequest;
 use crate::provider::helpers::get_user;
-use crate::provider::Web3Client;
 use crate::services::AdminService;
 use crate::CONFIG;
 
 pub async fn topup_paymaster_deposit(
-    provider: Data<Web3Client>,
+    provider: Data<Arc<Provider<Http>>>,
     body: Json<PaymasterTopup>,
     req: HttpRequest,
     paymaster: Path<String>,
@@ -32,7 +33,7 @@ pub async fn topup_paymaster_deposit(
 }
 
 pub async fn admin_get_balance(
-    provider: Data<Web3Client>,
+    provider: Data<Arc<Provider<Http>>>,
     body: Query<BalanceRequest>,
     req: HttpRequest,
     entity: Path<String>,

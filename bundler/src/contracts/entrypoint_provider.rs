@@ -5,7 +5,7 @@ use std::sync::Arc;
 
 use crate::errors::ProviderError;
 use crate::models::contract_interaction;
-use crate::provider::Web3Client;
+use crate::provider::*;
 
 abigen!(EntryPoint, "abi/Entrypoint.json");
 
@@ -18,9 +18,11 @@ impl EntryPointProvider {
         contract
     }
 
-    pub async fn get_nonce(client: &Web3Client, sender: Address) -> Result<U256, ProviderError> {
-        let result = client
-            .get_entrypoint_provider()
+    pub async fn get_nonce(
+        client: &Arc<Provider<Http>>,
+        sender: Address,
+    ) -> Result<U256, ProviderError> {
+        let result = Web3Client::get_entrypoint_provider(client.clone())
             .get_nonce(sender, U256::zero())
             .await;
         match result {
@@ -30,11 +32,10 @@ impl EntryPointProvider {
     }
 
     pub async fn add_deposit(
-        client: &Web3Client,
+        client: &Arc<Provider<Http>>,
         address: Address,
     ) -> Result<Bytes, ProviderError> {
-        let data = client
-            .get_entrypoint_provider()
+        let data = Web3Client::get_entrypoint_provider(client.clone())
             .deposit_to(address)
             .calldata();
         match data {
@@ -44,12 +45,11 @@ impl EntryPointProvider {
     }
 
     pub async fn handle_ops(
-        client: &Web3Client,
+        client: &Arc<Provider<Http>>,
         user_op: contract_interaction::UserOperation,
         beneficiary: Address,
     ) -> Result<Bytes, ProviderError> {
-        let data = client
-            .get_entrypoint_provider()
+        let data = Web3Client::get_entrypoint_provider(client.clone())
             .handle_ops(
                 vec![Self::get_entry_point_user_operation_payload(user_op)],
                 beneficiary,

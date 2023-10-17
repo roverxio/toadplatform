@@ -1,8 +1,10 @@
 use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, Zero};
+use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use log::info;
 use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 use std::time::SystemTime;
 
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
@@ -12,7 +14,6 @@ use crate::errors::{ProviderError, TransactionError, WalletError};
 use crate::models::transaction::Transaction;
 use crate::models::wallet::AddressResponse;
 use crate::provider::helpers::{contract_exists_at, get_hash};
-use crate::provider::Web3Client;
 use crate::services::MintService;
 use crate::CONFIG;
 
@@ -22,7 +23,7 @@ pub struct WalletService;
 impl WalletService {
     pub async fn get_wallet_address(
         pool: &Pool<Postgres>,
-        provider: &Web3Client,
+        provider: &Arc<Provider<Http>>,
         user: User,
         user_wallet: String,
     ) -> Result<AddressResponse, WalletError> {
@@ -62,7 +63,7 @@ impl WalletService {
     }
 
     async fn get_address(
-        provider: &Web3Client,
+        provider: &Arc<Provider<Http>>,
         external_user_id: &str,
         user_wallet: Address,
     ) -> Result<Wallet, ProviderError> {
@@ -74,7 +75,8 @@ impl WalletService {
             let user = external_user_id.to_string().clone() + suffix.as_str();
             salt = get_hash(user);
             contract_address =
-                SimpleAccountFactoryProvider::get_address(provider, user_wallet, salt).await?;
+                SimpleAccountFactoryProvider::get_address(provider.clone(), user_wallet, salt)
+                    .await?;
             if contract_exists_at(format!("{:?}", contract_address)).await {
                 info!("contract exists at {:?}", contract_address);
                 if Self::is_deployed_by_us(provider, contract_address).await? {
@@ -98,7 +100,7 @@ impl WalletService {
     }
 
     async fn is_deployed_by_us(
-        provider: &Web3Client,
+        provider: &Arc<Provider<Http>>,
         contract_address: Address,
     ) -> Result<bool, ProviderError> {
         let account_deployed_by =

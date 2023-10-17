@@ -1,17 +1,18 @@
 use actix_web::web::{Data, Json, ReqData};
 use actix_web::HttpResponse;
+use ethers::prelude::{Http, Provider};
 use sqlx::{Pool, Postgres};
+use std::sync::Arc;
 
 use crate::db::dao::User;
 use crate::errors::TransferError;
 use crate::models::response::BaseResponse;
 use crate::models::transfer::{TransferExecuteRequest, TransferRequest};
-use crate::provider::Web3Client;
 use crate::services::TransferService;
 
 pub async fn init_transfer(
     pool: Data<Pool<Postgres>>,
-    provider: Data<Web3Client>,
+    provider: Data<Arc<Provider<Http>>>,
     body: Json<TransferRequest>,
     user: ReqData<User>,
 ) -> Result<HttpResponse, TransferError> {
@@ -29,7 +30,7 @@ pub async fn init_transfer(
 
 pub async fn execute_transfer(
     pool: Data<Pool<Postgres>>,
-    provider: Data<Web3Client>,
+    provider: Data<Arc<Provider<Http>>>,
     body: Json<TransferExecuteRequest>,
     req: ReqData<User>,
 ) -> Result<HttpResponse, TransferError> {
