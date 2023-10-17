@@ -1,8 +1,6 @@
 use actix_web::web::{Data, Query, ReqData};
 use actix_web::{HttpRequest, HttpResponse};
-use ethers::providers::{Http, Provider};
 use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 
 use crate::db::dao::User;
 use crate::errors::{BalanceError, TransactionError, WalletError};
@@ -10,11 +8,12 @@ use crate::models::response::BaseResponse;
 use crate::models::transaction::{ListTransactionsParams, PollTransactionParams};
 use crate::models::wallet::BalanceRequest;
 use crate::provider::helpers::get_user_wallet;
+use crate::provider::Web3Client;
 use crate::services::{BalanceService, TransferService, WalletService};
 
 pub async fn get_address(
     pool: Data<Pool<Postgres>>,
-    provider: Data<Arc<Provider<Http>>>,
+    provider: Data<Web3Client>,
     user: ReqData<User>,
     req: HttpRequest,
 ) -> Result<HttpResponse, WalletError> {
@@ -30,7 +29,7 @@ pub async fn get_address(
 
 pub async fn get_balance(
     pool: Data<Pool<Postgres>>,
-    provider: Data<Arc<Provider<Http>>>,
+    provider: Data<Web3Client>,
     body: Query<BalanceRequest>,
     user: ReqData<User>,
 ) -> Result<HttpResponse, BalanceError> {

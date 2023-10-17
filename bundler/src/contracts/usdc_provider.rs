@@ -6,7 +6,7 @@ use log::error;
 use std::sync::Arc;
 
 use crate::errors::ProviderError;
-use crate::provider::*;
+use crate::provider::Web3Client;
 
 abigen!(ERC20, "abi/ERC20.json");
 
@@ -20,11 +20,12 @@ impl USDCProvider {
     }
 
     pub fn transfer(
-        client: &Arc<Provider<Http>>,
+        client: &Web3Client,
         to: Address,
         value: String,
     ) -> Result<Bytes, ProviderError> {
-        let data = Web3Client::get_usdc_provider(client.clone())
+        let data = client
+            .get_usdc_provider()
             .transfer(to, U256::from_dec_str(&value).unwrap())
             .calldata();
         match data {
@@ -33,8 +34,9 @@ impl USDCProvider {
         }
     }
 
-    pub fn mint(client: &Arc<Provider<Http>>, to: Address, value: String) -> Result<Bytes, String> {
-        let data = Web3Client::get_usdc_provider(client.clone())
+    pub fn mint(client: &Web3Client, to: Address, value: String) -> Result<Bytes, String> {
+        let data = client
+            .get_usdc_provider()
             .sudo_mint(to, U256::from_dec_str(&value).unwrap())
             .calldata();
         if data.is_none() {
@@ -44,13 +46,8 @@ impl USDCProvider {
         Ok(data.unwrap())
     }
 
-    pub async fn balance_of(
-        client: &Arc<Provider<Http>>,
-        address: Address,
-    ) -> Result<U256, ProviderError> {
-        let result = Web3Client::get_usdc_provider(client.clone())
-            .balance_of(address)
-            .await;
+    pub async fn balance_of(client: &Web3Client, address: Address) -> Result<U256, ProviderError> {
+        let result = client.get_usdc_provider().balance_of(address).await;
         match result {
             Ok(balance) => Ok(balance),
             Err(err) => {

@@ -5,7 +5,7 @@ use ethers::types::{Bytes, U256};
 use std::sync::Arc;
 
 use crate::errors::ProviderError;
-use crate::provider::*;
+use crate::provider::Web3Client;
 
 abigen!(SimpleAccount, "abi/SimpleAccount.json");
 
@@ -22,12 +22,13 @@ impl SimpleAccountProvider {
     }
 
     pub fn execute(
-        client: &Arc<Provider<Http>>,
+        client: &Web3Client,
         to: Address,
         value: String,
         data: Bytes,
     ) -> Result<Bytes, ProviderError> {
-        let data = Web3Client::get_scw_provider_by_address(client.clone(), Address::zero())
+        let data = client
+            .get_scw_provider_by_address(Address::zero())
             .execute(to, U256::from_dec_str(&value).unwrap(), data)
             .calldata();
         match data {
@@ -37,10 +38,11 @@ impl SimpleAccountProvider {
     }
 
     pub async fn get_deployer(
-        client: &Arc<Provider<Http>>,
+        client: &Web3Client,
         contract_address: Address,
     ) -> Result<String, ProviderError> {
-        let result = Web3Client::get_scw_provider_by_address(client.clone(), contract_address)
+        let result = client
+            .get_scw_provider_by_address(contract_address)
             .deployed_by()
             .call()
             .await;

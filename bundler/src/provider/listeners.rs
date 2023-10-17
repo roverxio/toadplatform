@@ -1,22 +1,20 @@
 use ethers::abi::RawLog;
-use ethers::prelude::{Http, Provider};
 use ethers::providers::Middleware;
 use ethers::types::{Filter, H256};
 use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 
 use crate::db::dao::TransactionDao;
 use crate::models::transfer::Status::{FAILED, SUCCESS};
-use crate::provider::*;
+use crate::provider::Web3Client;
 use crate::{CONFIG, PROVIDER};
 
 pub async fn user_op_event_listener(
     pool: Pool<Postgres>,
-    client: Arc<Provider<Http>>,
+    client: Web3Client,
     user_op_hash: [u8; 32],
     txn_id: String,
 ) -> Result<(), String> {
-    let provider = Web3Client::get_entrypoint_provider(client.clone());
+    let provider = client.get_entrypoint_provider();
     let event = provider
         .abi()
         .event("UserOperationEvent")

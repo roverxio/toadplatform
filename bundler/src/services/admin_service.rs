@@ -1,8 +1,6 @@
-use ethers::providers::{Http, Provider};
 use ethers::types::Address;
 use ethers::utils::parse_ether;
 use sqlx::{Pool, Postgres};
-use std::sync::Arc;
 
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -14,7 +12,7 @@ use crate::models::transfer::{Status, TransactionResponse, TransferResponse};
 use crate::models::wallet::{Balance, BalanceResponse};
 use crate::models::Metadata;
 use crate::provider::web3_provider::Web3Provider;
-use crate::provider::*;
+use crate::provider::Web3Client;
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -22,7 +20,7 @@ pub struct AdminService;
 
 impl AdminService {
     pub async fn topup_paymaster_deposit(
-        provider: &Arc<Provider<Http>>,
+        provider: &Web3Client,
         eth_value: String,
         paymaster: String,
         metadata: Metadata,
@@ -44,11 +42,11 @@ impl AdminService {
         )
         .await?;
         let response = Web3Provider::execute(
-            Web3Client::get_relayer_signer(provider.clone()),
+            provider.get_relayer_signer(),
             CONFIG.get_chain().entrypoint_address,
             value.to_string(),
             data,
-            Web3Client::get_entrypoint_provider(provider.clone()).abi(),
+            provider.get_entrypoint_provider().abi(),
         )
         .await;
         match response {
@@ -65,7 +63,7 @@ impl AdminService {
     }
 
     pub async fn get_balance(
-        provider: &Arc<Provider<Http>>,
+        provider: &Web3Client,
         entity: String,
         data: Balance,
     ) -> Result<BalanceResponse, AdminError> {
