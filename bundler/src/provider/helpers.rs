@@ -1,28 +1,13 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-
 use actix_web::http::header::HeaderName;
-use actix_web::web::Json;
 use actix_web::HttpRequest;
 use ethers::providers::Middleware;
 use ethers::types::Address;
 use rand::distributions::Alphanumeric;
 use rand::Rng;
-use serde::Serialize;
+use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
-use crate::errors::errors::ApiError;
-use crate::models::response::BaseResponse;
 use crate::{CONFIG, PROVIDER};
-
-pub fn respond_json<T>(data: T) -> Result<Json<BaseResponse<T>>, ApiError>
-where
-    T: Serialize,
-{
-    Ok(Json(BaseResponse {
-        data,
-        err: Default::default(),
-    }))
-}
 
 pub fn get_user(req: HttpRequest) -> String {
     req.headers()

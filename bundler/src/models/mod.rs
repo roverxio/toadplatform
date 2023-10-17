@@ -11,5 +11,6 @@ pub mod transfer;
 pub mod wallet;
 
 pub use currency::Currency;
+pub use hello_world::HelloWorld;
 pub use metadata::Metadata;
 pub use transaction_type::TransactionType;
