@@ -24,18 +24,41 @@ impl BalanceService {
         user: User,
     ) -> Result<BalanceResponse, BalanceError> {
         info!("Chain: {:?}", chain); // will be relevant when we add support for multiple chains
-        let balance: U256;
         if user.wallet_address.is_empty() {
             return Err(BalanceError::NotFound);
         }
         let wallet_address: Address = user.wallet_address.parse().unwrap();
+
+        let (balance, exponent) = Self::get_balance(
+            pool,
+            chain.to_string(),
+            currency.to_string(),
+            provider,
+            wallet_address,
+        )
+        .await?;
+
+        Ok(BalanceResponse {
+            balance: balance.to_string(),
+            address: user.wallet_address,
+            currency: currency.to_string(),
+            exponent,
+        })
+    }
+
+    pub async fn get_balance(
+        pool: &Pool<Postgres>,
+        chain: String,
+        currency: String,
+        provider: &Web3Client,
+        wallet_address: Address,
+    ) -> Result<(U256, i32), BalanceError> {
+        let balance: U256;
         let metadata =
-            TokenMetadataDao::get_metadata_for_chain(pool, chain.clone(), Some(currency.clone()))
-                .await?;
+            TokenMetadataDao::get_metadata_for_chain(pool, chain, Some(currency)).await?;
         if metadata.is_empty() {
             return Err(BalanceError::InvalidCurrency);
         }
-
         match Currency::from_str(metadata[0].token_type.clone()) {
             None => return Err(BalanceError::InvalidCurrency),
             Some(Currency::Erc20) => {
@@ -51,12 +74,6 @@ impl BalanceService {
                     })?;
             }
         }
-
-        Ok(BalanceResponse {
-            balance: balance.to_string(),
-            address: user.wallet_address,
-            currency: currency.to_string(),
-            exponent: metadata[0].exponent,
-        })
+        Ok((balance, metadata[0].exponent))
     }
 }

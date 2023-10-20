@@ -36,6 +36,7 @@ pub struct Chain {
     pub currency: String,
     pub entrypoint_address: Address,
     pub verifying_paymaster_address: Address,
+    pub bundler_url: String,
 }
 
 impl Server {

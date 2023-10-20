@@ -59,7 +59,7 @@ impl VerifyingPaymasterProvider {
             sender: user_op.sender,
             nonce: U256::from(user_op.nonce),
             init_code: user_op.init_code,
-            call_data: user_op.calldata,
+            call_data: user_op.call_data,
             call_gas_limit: U256::from(user_op.call_gas_limit),
             verification_gas_limit: U256::from(user_op.verification_gas_limit),
             pre_verification_gas: U256::from(user_op.pre_verification_gas),

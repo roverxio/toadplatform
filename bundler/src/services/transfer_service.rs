@@ -1,12 +1,13 @@
+use std::str::FromStr;
+
 use actix_web::rt::spawn;
 use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::Signer;
+use log::{error, info};
 use sqlx::{Pool, Postgres};
-use std::str::FromStr;
 
-use crate::bundler::Bundler;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::simple_account_factory_provider::SimpleAccountFactoryProvider;
 use crate::contracts::simple_account_provider::SimpleAccountProvider;
@@ -14,7 +15,6 @@ use crate::contracts::usdc_provider::USDCProvider;
 use crate::contracts::verifying_paymaster_provider::VerifyingPaymasterProvider;
 use crate::db::dao::{
     TokenMetadataDao, TransactionDao, TransactionMetadata, User, UserOperationDao, UserTransaction,
-    WalletDao,
 };
 use crate::errors::{ProviderError, TransactionError, TransferError};
 use crate::models::contract_interaction::UserOperation;
@@ -24,9 +24,11 @@ use crate::models::transfer::{
 };
 use crate::models::Currency;
 use crate::models::TransactionType;
+use crate::provider::bundler::{estimate_gas, submit_transaction};
 use crate::provider::helpers::{generate_txn_id, get_explorer_url};
 use crate::provider::listeners::user_op_event_listener;
 use crate::provider::Web3Client;
+use crate::services::BalanceService;
 use crate::CONFIG;
 
 #[derive(Clone)]
@@ -44,10 +46,12 @@ impl TransferService {
         if user.wallet_address.is_empty() {
             return Err(TransferError::NotFound);
         }
+        has_balance(pool, provider, &user, &currency, &value).await?;
+
         let user_txn =
             Self::get_user_transaction(&to, &value, &currency, user.wallet_address.clone());
         let mut user_op0 = UserOperation::new();
-        user_op0.calldata(Self::get_call_data(pool, provider, to, value, currency).await?);
+        user_op0.call_data(Self::get_call_data(pool, provider, to, value, currency).await?);
         if !user.deployed {
             user_op0.init_code(
                 SimpleAccountFactoryProvider::get_factory_address(provider),
@@ -64,7 +68,11 @@ impl TransferService {
         let valid_after: u64 = 4660;
         let data = encode(&vec![valid_until.into_token(), valid_after.into_token()]);
         user_op0
-            .paymaster_and_data(data.clone(), wallet_address.clone(), None)
+            .paymaster_and_data(
+                data.clone(),
+                CONFIG.get_chain().verifying_paymaster_address.clone(),
+                None,
+            )
             .nonce(
                 EntryPointProvider::get_nonce(provider, wallet_address)
                     .await?
@@ -79,6 +87,26 @@ impl TransferService {
                 .map_err(|err| TransferError::Provider(err.to_string()))?
                 .to_vec(),
         ));
+
+        let singed_hash =
+            Self::get_signed_hash(provider, user_op0.clone(), valid_until, valid_after).await?;
+        user_op0.paymaster_and_data(
+            data.clone(),
+            CONFIG.get_chain().verifying_paymaster_address,
+            Some(singed_hash),
+        );
+
+        let (gas_price, priority_fee) = provider.estimate_eip1559_fees().await?;
+        user_op0
+            .max_priority_fee_per_gas(priority_fee)
+            .max_fee_per_gas(gas_price);
+        let estimated_gas = estimate_gas(user_op0.clone()).await?;
+        info!("Estimated gas: {:?}", estimated_gas);
+
+        user_op0
+            .call_gas_limit(estimated_gas.call_gas_limit)
+            .verification_gas_limit(estimated_gas.verification_gas_limit)
+            .pre_verification_gas(estimated_gas.pre_verification_gas + 1000); // adding delta to avoid failures due to gas estimation. NOT an ideal solution, but the behaviour is not consistent
 
         let singed_hash =
             Self::get_signed_hash(provider, user_op0.clone(), valid_until, valid_after).await?;
@@ -133,38 +161,27 @@ impl TransferService {
         let mut user_operation = user_op.user_operation;
         user_operation.signature(signature);
 
-        let result = Bundler::submit(
-            provider,
-            user_operation.clone(),
-            CONFIG.run_config.account_owner,
-        )
-        .await;
-        let txn_hash;
-        match result {
-            Ok(hash) => txn_hash = hash,
-            Err(err) => {
-                TransactionDao::update_user_transaction(
-                    pool,
-                    transaction_id,
-                    None,
-                    Status::FAILED.to_string(),
-                )
-                .await?;
-                return Err(TransferError::from(err));
-            }
+        let result = submit_transaction(user_operation.clone()).await;
+        if result.is_err() {
+            TransactionDao::update_user_transaction(
+                pool,
+                transaction_id,
+                None,
+                Status::FAILED.to_string(),
+            )
+            .await?;
+            return Err(TransferError::Provider(
+                "Failed to submit transaction".to_string(),
+            ));
         }
+
         TransactionDao::update_user_transaction(
             pool,
             transaction_id.clone(),
             None,
-            Status::PENDING.to_string(),
+            Status::SUBMITTED.to_string(),
         )
         .await?;
-
-        if !user.deployed {
-            WalletDao::update_wallet_deployed(pool, user.external_user_id).await?;
-        }
-
         spawn(user_op_event_listener(
             pool.clone(),
             provider.clone(),
@@ -173,19 +190,15 @@ impl TransferService {
                 CONFIG.get_chain().chain_id,
             ),
             transaction_id.clone(),
+            user.deployed,
+            user.external_user_id,
         ));
-        UserOperationDao::update_user_operation_status(
-            pool,
-            transaction_id.clone(),
-            Status::SUCCESS.to_string(),
-        )
-        .await?;
 
         Ok(TransferResponse {
             transaction: TransactionResponse {
-                transaction_hash: txn_hash.clone(),
+                transaction_hash: "".to_string(),
                 status: Status::PENDING.to_string(),
-                explorer: get_explorer_url(&txn_hash),
+                explorer: get_explorer_url(""),
             },
             transaction_id,
         })
@@ -279,4 +292,40 @@ impl TransferService {
             None => Err(TransferError::InvalidCurrency),
         }
     }
+}
+
+async fn has_balance(
+    pool: &Pool<Postgres>,
+    provider: &Web3Client,
+    user: &User,
+    currency: &String,
+    value: &String,
+) -> Result<(), TransferError> {
+    if U256::from_str(value).unwrap() == U256::from(0) {
+        return Err(TransferError::InvalidAmount);
+    }
+
+    let balance = BalanceService::get_balance(
+        pool,
+        CONFIG.run_config.current_chain.clone(),
+        currency.clone(),
+        provider,
+        user.wallet_address.parse().unwrap(),
+    )
+    .await;
+    match balance {
+        Ok((bal, _)) => {
+            if bal < U256::from_str(&value).unwrap() {
+                error!("Insufficient balance");
+                return Err(TransferError::InsufficientBalance);
+            }
+        }
+        Err(error) => {
+            return Err(TransferError::Provider(String::from(format!(
+                "Error fetching balance {:?}",
+                error
+            ))));
+        }
+    }
+    Ok(())
 }

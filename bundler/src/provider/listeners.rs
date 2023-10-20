@@ -3,7 +3,7 @@ use ethers::providers::Middleware;
 use ethers::types::{Filter, H256};
 use sqlx::{Pool, Postgres};
 
-use crate::db::dao::TransactionDao;
+use crate::db::dao::{TransactionDao, UserOperationDao, WalletDao};
 use crate::models::transfer::Status::{FAILED, SUCCESS};
 use crate::provider::Web3Client;
 use crate::{CONFIG, PROVIDER};
@@ -13,6 +13,8 @@ pub async fn user_op_event_listener(
     client: Web3Client,
     user_op_hash: [u8; 32],
     txn_id: String,
+    wallet_deployed: bool,
+    external_user_id: String,
 ) -> Result<(), String> {
     let provider = client.get_entrypoint_provider();
     let event = provider
@@ -50,7 +52,23 @@ pub async fn user_op_event_listener(
 
     let status = if success { SUCCESS } else { FAILED };
 
-    TransactionDao::update_user_transaction(&pool, txn_id, Some(txn_hash), status.to_string())
+    TransactionDao::update_user_transaction(
+        &pool,
+        txn_id.clone(),
+        Some(txn_hash),
+        status.to_string(),
+    )
+    .await
+    .map_err(|_| String::from("Listener: Failed to update transaction"))?;
+
+    UserOperationDao::update_user_operation_status(&pool, txn_id, status.to_string())
         .await
-        .map_err(|_| String::from("Listener: Failed to update database"))
+        .map_err(|_| String::from("Listener: Failed to update user op"))?;
+
+    if success && !wallet_deployed {
+        WalletDao::update_wallet_deployed(&pool, external_user_id)
+            .await
+            .map_err(|_| String::from("Listener: Failed to update user state"))?;
+    }
+    Ok(())
 }
