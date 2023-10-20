@@ -1,4 +1,3 @@
-use ethers::types::U256;
 use log::error;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -72,9 +71,9 @@ pub struct Request<T> {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct EstimateResult {
-    pub pre_verification_gas: U256,
-    pub verification_gas_limit: U256,
-    pub call_gas_limit: U256,
+    pub pre_verification_gas: u128,
+    pub verification_gas_limit: u128,
+    pub call_gas_limit: u128,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

@@ -96,20 +96,20 @@ impl UserOperation {
     }
 
     /// Sets the call gas limit of the user operation
-    pub fn call_gas_limit(&mut self, call_gas_limit: U256) -> &mut UserOperation {
-        self.call_gas_limit = call_gas_limit;
+    pub fn call_gas_limit(&mut self, call_gas_limit: u128) -> &mut UserOperation {
+        self.call_gas_limit = U256::from(call_gas_limit);
         self
     }
 
     /// Sets the verification gas limit of the user operation
-    pub fn verification_gas_limit(&mut self, verification_gas_limit: U256) -> &mut UserOperation {
-        self.verification_gas_limit = verification_gas_limit;
+    pub fn verification_gas_limit(&mut self, verification_gas_limit: u128) -> &mut UserOperation {
+        self.verification_gas_limit = U256::from(verification_gas_limit);
         self
     }
 
     /// Sets the pre-verification gas of the user operation
-    pub fn pre_verification_gas(&mut self, pre_verification_gas: U256) -> &mut UserOperation {
-        self.pre_verification_gas = pre_verification_gas;
+    pub fn pre_verification_gas(&mut self, pre_verification_gas: u128) -> &mut UserOperation {
+        self.pre_verification_gas = U256::from(pre_verification_gas);
         self
     }
 

@@ -5,7 +5,7 @@ use bigdecimal::{BigDecimal, ToPrimitive};
 use ethers::abi::{encode, Tokenizable};
 use ethers::types::{Address, Bytes, U256};
 use ethers_signers::Signer;
-use log::error;
+use log::{error, info};
 use sqlx::{Pool, Postgres};
 
 use crate::contracts::entrypoint_provider::EntryPointProvider;
@@ -101,11 +101,12 @@ impl TransferService {
             .max_priority_fee_per_gas(priority_fee)
             .max_fee_per_gas(gas_price);
         let estimated_gas = estimate_gas(user_op0.clone()).await?;
+        info!("Estimated gas: {:?}", estimated_gas);
 
         user_op0
             .call_gas_limit(estimated_gas.call_gas_limit)
             .verification_gas_limit(estimated_gas.verification_gas_limit)
-            .pre_verification_gas(estimated_gas.pre_verification_gas);
+            .pre_verification_gas(estimated_gas.pre_verification_gas + 1000); // adding delta to avoid failures due to gas estimation. NOT an ideal solution, but the behaviour is not consistent
 
         let singed_hash =
             Self::get_signed_hash(provider, user_op0.clone(), valid_until, valid_after).await?;
