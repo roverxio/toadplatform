@@ -44,7 +44,7 @@ contract DeployLocal is Script {
         erc20 = new TestERC20{salt: bytes32(erc20Salt)}(18);
         console.log("=TestErC20 addr==", address(erc20));
 
-        paymaster = new VerifyingPaymaster{salt: bytes32(paymasterSalt)}(entryPoint, owner);
+        paymaster = new VerifyingPaymaster(entryPoint, owner);
         console.log("=VerifyingPaymaster addr==", address(paymaster));
 
         vm.stopBroadcast();

@@ -40,7 +40,7 @@ contract DeployOnChain is Script {
         factory = new SimpleAccountFactory{salt: bytes32(factorySalt)}(IEntryPoint(entryPoint));
         console.log("=SimpleAccountFactory addr==", address(factory));
 
-        paymaster = new VerifyingPaymaster{salt: bytes32(paymasterSalt)}(IEntryPoint(entryPoint), verifyingSigner);
+        paymaster = new VerifyingPaymaster(IEntryPoint(entryPoint), verifyingSigner);
         console.log("=VerifyingPaymaster addr==", address(paymaster));
 
         vm.stopBroadcast();

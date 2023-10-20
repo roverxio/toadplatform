@@ -1,3 +1,4 @@
+pub mod bundler;
 pub mod helpers;
 pub mod listeners;
 pub mod web3_client;

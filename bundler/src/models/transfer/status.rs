@@ -2,6 +2,7 @@ pub enum Status {
     FAILED,
     INITIATED,
     PENDING,
+    SUBMITTED,
     SUCCESS,
 }
 
@@ -11,6 +12,7 @@ impl Status {
             Status::FAILED => String::from("failed"),
             Status::INITIATED => String::from("initiated"),
             Status::PENDING => String::from("pending"),
+            Status::SUBMITTED => String::from("submitted"),
             Status::SUCCESS => String::from("success"),
         }
     }
