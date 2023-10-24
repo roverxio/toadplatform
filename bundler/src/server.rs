@@ -7,7 +7,7 @@ use log::info;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
-use crate::db::connection::DatabaseConnection;
+use crate::db::connection::{Connections, DatabaseConnection};
 use crate::models::config::server::Server;
 use crate::provider::Web3Client;
 use crate::routes::routes;
@@ -30,7 +30,7 @@ pub async fn init_services() -> ToadService {
     ToadService {
         hello_world_service: HelloWorldService {},
         web3_client: Web3Client::new(client.clone()),
-        db_pool: DatabaseConnection::init().await,
+        db_pool: DatabaseConnection::init().await.unwrap(),
     }
 }
 

@@ -5,7 +5,7 @@ use log::{error, info};
 use sqlx::{Pool, Postgres};
 
 use crate::contracts::usdc_provider::USDCProvider;
-use crate::db::dao::{TokenMetadataDao, User};
+use crate::db::dao::{TokenMetadataDao, TokenMetadataTrait, User};
 use crate::errors::BalanceError;
 use crate::models::wallet::BalanceResponse;
 use crate::models::Currency;
