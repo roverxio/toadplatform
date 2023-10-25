@@ -20,9 +20,10 @@ pub struct Web3Client {
     pub client: Arc<Provider<Http>>,
 }
 
+#[mockall::automock]
 impl Web3Client {
-    pub fn new(client: Arc<Provider<Http>>) -> Self {
-        Self { client }
+    pub fn init_client(client: Arc<Provider<Http>>) -> Web3Client {
+        Web3Client { client }
     }
 
     pub fn get_usdc_provider(&self) -> ERC20<Provider<Http>> {
@@ -77,5 +78,59 @@ impl Web3Client {
             .expect("VERIFYING_PAYMASTER_PRIVATE_KEY must be set")
             .parse::<LocalWallet>()
             .unwrap()
+    }
+}
+
+#[cfg(test)]
+pub mod tests {
+    use super::*;
+
+    use crate::provider::web3_provider::tests::setup_mock_provider;
+
+    pub fn setup_mock_client() -> Web3Client {
+        let provider = setup_mock_provider();
+        let mock_client = MockWeb3Client::init_client_context();
+        mock_client
+            .expect()
+            .returning(|client| Web3Client { client });
+
+        MockWeb3Client::init_client(Arc::new(provider.clone()))
+    }
+
+    #[tokio::test]
+    async fn test_new_client() {
+        let provider = setup_mock_provider();
+
+        let mock_client = MockWeb3Client::init_client_context();
+        mock_client
+            .expect()
+            .returning(|client| Web3Client { client });
+
+        let web3_client = MockWeb3Client::init_client(Arc::new(provider.clone()));
+
+        assert_eq!(
+            web3_client.client.url(),
+            Web3Client {
+                client: Arc::new(provider)
+            }
+            .client
+            .url()
+        )
+    }
+
+    #[tokio::test]
+    async fn test_usdc_provider() {
+        let provider = setup_mock_provider();
+
+        let mut client = MockWeb3Client::new();
+        let abi = USDCProvider::init_abi(Address::zero(), Arc::new(provider.clone()));
+
+        client
+            .expect_get_usdc_provider()
+            .returning(move || USDCProvider::init_abi(Address::zero(), Arc::new(provider.clone())));
+
+        let usdc_provider = client.get_usdc_provider();
+
+        assert_eq!(usdc_provider.address(), abi.address())
     }
 }
