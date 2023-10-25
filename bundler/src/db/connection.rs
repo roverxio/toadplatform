@@ -22,27 +22,13 @@ impl DatabaseConnection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use mockall::mock;
     use sqlx::{Pool, Postgres};
-    use std::future::Future;
 
-    mock! {
-        DatabaseConnection {
-            fn init() -> impl Future<Output = Result<Pool<Postgres>, Error>>;
-        }
-    }
-
-    #[tokio::test]
-    async fn test_init_success() {
+    #[sqlx::test]
+    async fn test_init_success(pool: Pool<Postgres>) {
         let mock_pool = MockDatabaseConnection::init_context();
 
-        mock_pool.expect().returning(|| {
-            Box::pin(async {
-                let db_url = std::env::var("DATABASE_URL").unwrap();
-                let pool = PgPool::connect(&db_url).await;
-                Ok(pool.unwrap())
-            })
-        });
+        mock_pool.expect().returning(move || Ok(pool.clone()));
 
         let result = MockDatabaseConnection::init().await;
 
@@ -54,9 +40,7 @@ mod tests {
     async fn test_init_failure() {
         let mock_pool = MockDatabaseConnection::init_context();
 
-        mock_pool
-            .expect()
-            .returning(|| Box::pin(async { Err(Error::PoolClosed) }));
+        mock_pool.expect().returning(|| Err(Error::PoolClosed));
 
         let result = MockDatabaseConnection::init().await;
 
