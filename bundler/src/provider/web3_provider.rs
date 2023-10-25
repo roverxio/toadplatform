@@ -17,8 +17,9 @@ use crate::PROVIDER;
 #[derive(Clone)]
 pub struct Web3Provider {}
 
+#[mockall::automock]
 impl Web3Provider {
-    pub fn new(chain_url: String) -> Provider<Http> {
+    pub fn init_provider(chain_url: String) -> Provider<Http> {
         let provider = Provider::try_from(chain_url).unwrap();
         provider
     }
@@ -158,5 +159,25 @@ impl Web3Provider {
                 }
             },
         };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_new_provider() {
+        let mock_provider = MockWeb3Provider::init_provider_context();
+        mock_provider.expect().returning(|chain| {
+            let provider: Provider<Http> = Provider::try_from(chain).unwrap();
+            return provider;
+        });
+
+        let provider = MockWeb3Provider::init_provider("http://localhost:8545".to_string());
+        assert_eq!(
+            provider.url(),
+            Provider::try_from("http://localhost:8545").unwrap().url()
+        )
     }
 }

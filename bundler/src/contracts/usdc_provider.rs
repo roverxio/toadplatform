@@ -13,6 +13,7 @@ abigen!(ERC20, "abi/ERC20.json");
 #[derive(Clone)]
 pub struct USDCProvider;
 
+#[mockall::automock]
 impl USDCProvider {
     pub fn init_abi(address: Address, client: Arc<Provider<Http>>) -> ERC20<Provider<Http>> {
         let contract: ERC20<Provider<Http>> = ERC20::new(address, client);
@@ -55,5 +56,88 @@ impl USDCProvider {
                 Err(ProviderError(String::from("Failed to get balance")))
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::provider::web3_client::MockWeb3Client;
+
+    use crate::provider::web3_provider::MockWeb3Provider;
+
+    #[tokio::test]
+    async fn test_init_abi() {
+        let mock_provider = MockWeb3Provider::init_provider_context();
+        mock_provider.expect().returning(|chain| {
+            let provider: Provider<Http> = Provider::try_from(chain).unwrap();
+            return provider;
+        });
+
+        let provider = MockWeb3Provider::init_provider("http://localhost:8545".to_string());
+        let mock_init = MockUSDCProvider::init_abi_context();
+
+        mock_init.expect().returning(|address, client| {
+            let contract: ERC20<Provider<Http>> = ERC20::new(address, client);
+            return contract;
+        });
+
+        let abi = MockUSDCProvider::init_abi(Address::zero(), Arc::new(provider.clone()));
+
+        assert_eq!(
+            abi.address(),
+            ERC20::new(Address::zero(), Arc::new(provider)).address()
+        )
+    }
+
+    #[tokio::test]
+    async fn test_balance_of_success() {
+        let mock_provider = MockWeb3Provider::init_provider_context();
+        mock_provider.expect().returning(|chain| {
+            let provider: Provider<Http> = Provider::try_from(chain).unwrap();
+            return provider;
+        });
+
+        let provider = MockWeb3Provider::init_provider("http://localhost:8545".to_string());
+        let mock_client = MockWeb3Client::init_client_context();
+        mock_client
+            .expect()
+            .returning(|client| Web3Client { client });
+
+        let web3_client = MockWeb3Client::init_client(Arc::new(provider.clone()));
+
+        let mock_balance = MockUSDCProvider::balance_of_context();
+        mock_balance.expect().returning(|_, _| Ok(U256::zero()));
+
+        let result = MockUSDCProvider::balance_of(&web3_client, Address::zero()).await;
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), U256::zero());
+    }
+
+    #[tokio::test]
+    async fn test_balance_of_failure() {
+        let mock_provider = MockWeb3Provider::init_provider_context();
+        mock_provider.expect().returning(|chain| {
+            let provider: Provider<Http> = Provider::try_from(chain).unwrap();
+            return provider;
+        });
+
+        let provider = MockWeb3Provider::init_provider("http://localhost:8545".to_string());
+        let mock_client = MockWeb3Client::init_client_context();
+        mock_client
+            .expect()
+            .returning(|client| Web3Client { client });
+
+        let web3_client = MockWeb3Client::init_client(Arc::new(provider.clone()));
+
+        let mock_balance = MockUSDCProvider::balance_of_context();
+        mock_balance
+            .expect()
+            .returning(|_, _| Err(ProviderError("failed to get balance".to_string())));
+
+        let result = MockUSDCProvider::balance_of(&web3_client, Address::zero()).await;
+
+        assert!(result.is_err());
     }
 }

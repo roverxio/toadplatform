@@ -29,7 +29,7 @@ pub async fn init_services() -> ToadService {
 
     ToadService {
         hello_world_service: HelloWorldService {},
-        web3_client: Web3Client::new(client.clone()),
+        web3_client: Web3Client::init_client(client.clone()),
         db_pool: DatabaseConnection::init().await.unwrap(),
     }
 }
