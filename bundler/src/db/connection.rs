@@ -1,18 +1,12 @@
-use async_trait::async_trait;
 use log::warn;
 use sqlx::{Error, PgPool, Pool, Postgres};
 use std::process::exit;
 
-#[mockall::automock]
-#[async_trait]
-pub trait Connections {
-    async fn init() -> Result<Pool<Postgres>, Error>;
-}
 pub struct DatabaseConnection;
 
-#[async_trait]
-impl Connections for DatabaseConnection {
-    async fn init() -> Result<Pool<Postgres>, Error> {
+#[mockall::automock]
+impl DatabaseConnection {
+    pub async fn init() -> Result<Pool<Postgres>, Error> {
         let database_url: String;
         match std::env::var("DATABASE_URL") {
             Ok(url) => database_url = url,
@@ -28,20 +22,45 @@ impl Connections for DatabaseConnection {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use sqlx::error::BoxDynError;
+    use mockall::mock;
+    use sqlx::{Pool, Postgres};
+    use std::future::Future;
+
+    mock! {
+        DatabaseConnection {
+            fn init() -> impl Future<Output = Result<Pool<Postgres>, Error>>;
+        }
+    }
 
     #[tokio::test]
-    async fn test_init_error() {
-        let mock_pool = MockConnections::init_context();
+    async fn test_init_success() {
+        let mock_pool = MockDatabaseConnection::init_context();
 
         mock_pool.expect().returning(|| {
-            Err(Error::Configuration(
-                BoxDynError::try_from("DATABASE_URL not set").unwrap(),
-            ))
+            Box::pin(async {
+                let db_url = std::env::var("DATABASE_URL").unwrap();
+                let pool = PgPool::connect(&db_url).await;
+                Ok(pool.unwrap())
+            })
         });
 
-        let result = MockConnections::init().await;
+        let result = MockDatabaseConnection::init().await;
 
-        assert!(result.is_err())
+        assert!(result.is_ok());
+        mock_pool.checkpoint();
+    }
+
+    #[tokio::test]
+    async fn test_init_failure() {
+        let mock_pool = MockDatabaseConnection::init_context();
+
+        mock_pool
+            .expect()
+            .returning(|| Box::pin(async { Err(Error::PoolClosed) }));
+
+        let result = MockDatabaseConnection::init().await;
+
+        assert!(result.is_err());
+        mock_pool.checkpoint();
     }
 }

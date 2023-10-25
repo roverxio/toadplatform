@@ -7,7 +7,7 @@ use log::info;
 use sqlx::{Pool, Postgres};
 use std::sync::Arc;
 
-use crate::db::connection::{Connections, DatabaseConnection};
+use crate::db::connection::DatabaseConnection;
 use crate::models::config::server::Server;
 use crate::provider::Web3Client;
 use crate::routes::routes;
