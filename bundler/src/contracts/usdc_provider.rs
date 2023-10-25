@@ -62,19 +62,13 @@ impl USDCProvider {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::provider::web3_client::MockWeb3Client;
 
-    use crate::provider::web3_provider::MockWeb3Provider;
+    use crate::provider::web3_client::tests::setup_mock_client;
+    use crate::provider::web3_provider::tests::setup_mock_provider;
 
     #[tokio::test]
     async fn test_init_abi() {
-        let mock_provider = MockWeb3Provider::init_provider_context();
-        mock_provider.expect().returning(|chain| {
-            let provider: Provider<Http> = Provider::try_from(chain).unwrap();
-            return provider;
-        });
-
-        let provider = MockWeb3Provider::init_provider("http://localhost:8545".to_string());
+        let provider = setup_mock_provider();
         let mock_init = MockUSDCProvider::init_abi_context();
 
         mock_init.expect().returning(|address, client| {
@@ -92,19 +86,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_balance_of_success() {
-        let mock_provider = MockWeb3Provider::init_provider_context();
-        mock_provider.expect().returning(|chain| {
-            let provider: Provider<Http> = Provider::try_from(chain).unwrap();
-            return provider;
-        });
-
-        let provider = MockWeb3Provider::init_provider("http://localhost:8545".to_string());
-        let mock_client = MockWeb3Client::init_client_context();
-        mock_client
-            .expect()
-            .returning(|client| Web3Client { client });
-
-        let web3_client = MockWeb3Client::init_client(Arc::new(provider.clone()));
+        let web3_client = setup_mock_client();
 
         let mock_balance = MockUSDCProvider::balance_of_context();
         mock_balance.expect().returning(|_, _| Ok(U256::zero()));
@@ -117,19 +99,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_balance_of_failure() {
-        let mock_provider = MockWeb3Provider::init_provider_context();
-        mock_provider.expect().returning(|chain| {
-            let provider: Provider<Http> = Provider::try_from(chain).unwrap();
-            return provider;
-        });
-
-        let provider = MockWeb3Provider::init_provider("http://localhost:8545".to_string());
-        let mock_client = MockWeb3Client::init_client_context();
-        mock_client
-            .expect()
-            .returning(|client| Web3Client { client });
-
-        let web3_client = MockWeb3Client::init_client(Arc::new(provider.clone()));
+        let web3_client = setup_mock_client();
 
         let mock_balance = MockUSDCProvider::balance_of_context();
         mock_balance

@@ -118,31 +118,20 @@ mod test {
     use super::*;
     use sqlx::{Pool, Postgres};
 
-    use crate::db::connection::MockDatabaseConnection;
-
     #[sqlx::test]
     async fn test_get_metadata_for_chain_no_records(pool: Pool<Postgres>) {
-        let pool_context = MockDatabaseConnection::init_context();
-        pool_context.expect().returning(move || Ok(pool.clone()));
-
-        let mock_pool = MockDatabaseConnection::init().await.unwrap();
         let context = MockTokenMetadataDao::get_metadata_for_chain_context();
 
         context.expect().returning(|_, _, _| Ok(vec![]));
 
         let result =
-            MockTokenMetadataDao::get_metadata_for_chain(&mock_pool, String::from("chain"), None)
-                .await;
+            MockTokenMetadataDao::get_metadata_for_chain(&pool, String::from("chain"), None).await;
 
         assert!(result.is_ok());
     }
 
     #[sqlx::test]
     async fn test_get_metadata_for_chain_one_record(pool: Pool<Postgres>) {
-        let pool_context = MockDatabaseConnection::init_context();
-        pool_context.expect().returning(move || Ok(pool.clone()));
-
-        let mock_pool = MockDatabaseConnection::init().await.unwrap();
         let context = MockTokenMetadataDao::get_metadata_for_chain_context();
 
         context
@@ -150,8 +139,7 @@ mod test {
             .returning(|_, _, _| Ok(vec![TokenMetadata::default()]));
 
         let result =
-            MockTokenMetadataDao::get_metadata_for_chain(&mock_pool, String::from("chain"), None)
-                .await;
+            MockTokenMetadataDao::get_metadata_for_chain(&pool, String::from("chain"), None).await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 1);
@@ -159,10 +147,6 @@ mod test {
 
     #[sqlx::test]
     async fn test_get_metadata_for_chain_failure(pool: Pool<Postgres>) {
-        let pool_context = MockDatabaseConnection::init_context();
-        pool_context.expect().returning(move || Ok(pool.clone()));
-
-        let mock_pool = MockDatabaseConnection::init().await.unwrap();
         let context = MockTokenMetadataDao::get_metadata_for_chain_context();
 
         context.expect().returning(|_, _, _| {
@@ -172,8 +156,7 @@ mod test {
         });
 
         let result =
-            MockTokenMetadataDao::get_metadata_for_chain(&mock_pool, String::from("chain"), None)
-                .await;
+            MockTokenMetadataDao::get_metadata_for_chain(&pool, String::from("chain"), None).await;
 
         assert!(result.is_err());
     }

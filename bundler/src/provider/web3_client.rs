@@ -82,20 +82,24 @@ impl Web3Client {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
-    use crate::provider::web3_provider::MockWeb3Provider;
+    use crate::provider::web3_provider::tests::setup_mock_provider;
+
+    pub fn setup_mock_client() -> Web3Client {
+        let provider = setup_mock_provider();
+        let mock_client = MockWeb3Client::init_client_context();
+        mock_client
+            .expect()
+            .returning(|client| Web3Client { client });
+
+        MockWeb3Client::init_client(Arc::new(provider.clone()))
+    }
 
     #[tokio::test]
     async fn test_new_client() {
-        let mock_provider = MockWeb3Provider::init_provider_context();
-        mock_provider.expect().returning(|chain| {
-            let provider: Provider<Http> = Provider::try_from(chain).unwrap();
-            return provider;
-        });
-
-        let provider = MockWeb3Provider::init_provider("http://localhost:8545".to_string());
+        let provider = setup_mock_provider();
 
         let mock_client = MockWeb3Client::init_client_context();
         mock_client
@@ -116,15 +120,9 @@ mod tests {
 
     #[tokio::test]
     async fn test_usdc_provider() {
-        let mock_provider = MockWeb3Provider::init_provider_context();
-        mock_provider.expect().returning(|chain| {
-            let provider: Provider<Http> = Provider::try_from(chain).unwrap();
-            return provider;
-        });
+        let provider = setup_mock_provider();
 
-        let provider = MockWeb3Provider::init_provider("http://localhost:8545".to_string());
-
-        let mut client = MockWeb3Client::default();
+        let mut client = MockWeb3Client::new();
         let abi = USDCProvider::init_abi(Address::zero(), Arc::new(provider.clone()));
 
         client

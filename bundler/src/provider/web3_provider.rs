@@ -163,9 +163,17 @@ impl Web3Provider {
 }
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use super::*;
 
+    pub fn setup_mock_provider() -> Provider<Http> {
+        let mock_provider = MockWeb3Provider::init_provider_context();
+        mock_provider.expect().returning(|chain| {
+            let provider: Provider<Http> = Provider::try_from(chain).unwrap();
+            return provider;
+        });
+        MockWeb3Provider::init_provider("http://localhost:8545".to_string())
+    }
     #[tokio::test]
     async fn test_new_provider() {
         let mock_provider = MockWeb3Provider::init_provider_context();

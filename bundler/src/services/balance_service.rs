@@ -15,6 +15,7 @@ use crate::PROVIDER;
 #[derive(Clone)]
 pub struct BalanceService;
 
+#[mockall::automock]
 impl BalanceService {
     pub async fn get_wallet_balance(
         pool: &Pool<Postgres>,
@@ -58,5 +59,38 @@ impl BalanceService {
             currency: currency.to_string(),
             exponent: metadata[0].exponent,
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use crate::provider::web3_client::tests::setup_mock_client;
+
+    #[sqlx::test]
+    async fn test_get_balance_usdc(pool: Pool<Postgres>) {
+        let web3_client = setup_mock_client();
+
+        let mock_balance = MockBalanceService::get_wallet_balance_context();
+        mock_balance.expect().returning(|_, _, _, currency, user| {
+            Ok(BalanceResponse::new(
+                "0".to_string(),
+                user.wallet_address,
+                currency.clone(),
+                18,
+            ))
+        });
+
+        let balance_result = MockBalanceService::get_wallet_balance(
+            &pool,
+            &web3_client,
+            &"chain".to_string(),
+            &"usdc".to_string(),
+            User::default(),
+        )
+        .await;
+
+        assert!(balance_result.is_ok());
     }
 }
