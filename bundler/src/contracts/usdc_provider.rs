@@ -3,6 +3,7 @@ use ethers::contract::abigen;
 use ethers::providers::{Http, Provider};
 use ethers::types::{Bytes, U256};
 use log::error;
+use mockall::automock;
 use std::sync::Arc;
 
 use crate::errors::ProviderError;
@@ -13,7 +14,7 @@ abigen!(ERC20, "abi/ERC20.json");
 #[derive(Clone)]
 pub struct USDCProvider;
 
-#[mockall::automock]
+#[automock]
 impl USDCProvider {
     pub fn init_abi(address: Address, client: Arc<Provider<Http>>) -> ERC20<Provider<Http>> {
         let contract: ERC20<Provider<Http>> = ERC20::new(address, client);
