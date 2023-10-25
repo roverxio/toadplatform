@@ -5,7 +5,7 @@ use sqlx::{Pool, Postgres};
 use crate::constants::Constants;
 use crate::contracts::entrypoint_provider::EntryPointProvider;
 use crate::contracts::verifying_paymaster_provider::VerifyingPaymasterProvider;
-use crate::db::dao::{TokenMetadataDao, TokenMetadataTrait};
+use crate::db::dao::TokenMetadataDao;
 use crate::errors::AdminError;
 use crate::models::admin::{AddMetadataRequest, MetadataResponse};
 use crate::models::transfer::{Status, TransactionResponse, TransferResponse};

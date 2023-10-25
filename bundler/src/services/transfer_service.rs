@@ -13,8 +13,8 @@ use crate::contracts::simple_account_provider::SimpleAccountProvider;
 use crate::contracts::usdc_provider::USDCProvider;
 use crate::contracts::verifying_paymaster_provider::VerifyingPaymasterProvider;
 use crate::db::dao::{
-    TokenMetadataDao, TokenMetadataTrait, TransactionDao, TransactionMetadata, User,
-    UserOperationDao, UserTransaction, WalletDao,
+    TokenMetadataDao, TransactionDao, TransactionMetadata, User, UserOperationDao, UserTransaction,
+    WalletDao,
 };
 use crate::errors::{ProviderError, TransactionError, TransferError};
 use crate::models::contract_interaction::UserOperation;

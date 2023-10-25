@@ -1,57 +1,12 @@
-use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use sqlx::{query, query_as, Error, Pool, Postgres};
 
 use crate::errors::DatabaseError;
 
-#[mockall::automock]
-#[async_trait]
-pub trait TokenMetadataTrait {
-    async fn get_metadata_for_chain(
-        pool: &Pool<Postgres>,
-        chain: String,
-        currency: Option<String>,
-    ) -> Result<Vec<TokenMetadata>, DatabaseError>;
-}
 #[derive(Clone)]
 pub struct TokenMetadataDao;
 
-#[async_trait]
-impl TokenMetadataTrait for TokenMetadataDao {
-    async fn get_metadata_for_chain(
-        pool: &Pool<Postgres>,
-        chain: String,
-        currency: Option<String>,
-    ) -> Result<Vec<TokenMetadata>, DatabaseError> {
-        let result: Result<Vec<TokenMetadata>, Error> = match currency {
-            None => {
-                let query = query_as!(
-                    TokenMetadata,
-                    "SELECT * FROM token_metadata WHERE lower(chain) = lower($1) and is_supported = true",
-                    chain
-                );
-                query.fetch_all(pool).await
-            }
-            Some(currency) => {
-                let query = query_as!(
-                    TokenMetadata,
-                    "SELECT * FROM token_metadata WHERE lower(chain) = lower($1) AND lower(symbol) = lower($2) and is_supported = true",
-                    chain,
-                    currency
-                );
-                query.fetch_all(pool).await
-            }
-        };
-        match result {
-            Ok(currencies) => Ok(currencies),
-            Err(err) => Err(DatabaseError::ServerError(format!(
-                "Failed to get currencies, err: {:?}",
-                err
-            ))),
-        }
-    }
-}
-
+#[mockall::automock]
 impl TokenMetadataDao {
     pub async fn add_metadata(
         pool: &Pool<Postgres>,
@@ -92,6 +47,39 @@ impl TokenMetadataDao {
         }
     }
 
+    pub async fn get_metadata_for_chain(
+        pool: &Pool<Postgres>,
+        chain: String,
+        currency: Option<String>,
+    ) -> Result<Vec<TokenMetadata>, DatabaseError> {
+        let result: Result<Vec<TokenMetadata>, Error> = match currency {
+            None => {
+                let query = query_as!(
+                    TokenMetadata,
+                    "SELECT * FROM token_metadata WHERE lower(chain) = lower($1) and is_supported = true",
+                    chain
+                );
+                query.fetch_all(pool).await
+            }
+            Some(currency) => {
+                let query = query_as!(
+                    TokenMetadata,
+                    "SELECT * FROM token_metadata WHERE lower(chain) = lower($1) AND lower(symbol) = lower($2) and is_supported = true",
+                    chain,
+                    currency
+                );
+                query.fetch_all(pool).await
+            }
+        };
+        match result {
+            Ok(currencies) => Ok(currencies),
+            Err(err) => Err(DatabaseError::ServerError(format!(
+                "Failed to get currencies, err: {:?}",
+                err
+            ))),
+        }
+    }
+
     pub async fn get_metadata(pool: &Pool<Postgres>) -> Result<Vec<TokenMetadata>, DatabaseError> {
         let query = query_as!(
             TokenMetadata,
@@ -128,36 +116,65 @@ pub struct TokenMetadata {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::db::connection::{Connections, DatabaseConnection};
+    use sqlx::{Pool, Postgres};
 
-    #[tokio::test]
-    async fn test_get_metadata_for_chain_no_records() {
-        let mock_pool = DatabaseConnection::init().await.unwrap();
-        let context = MockTokenMetadataTrait::get_metadata_for_chain_context();
+    use crate::db::connection::MockDatabaseConnection;
+
+    #[sqlx::test]
+    async fn test_get_metadata_for_chain_no_records(pool: Pool<Postgres>) {
+        let pool_context = MockDatabaseConnection::init_context();
+        pool_context.expect().returning(move || Ok(pool.clone()));
+
+        let mock_pool = MockDatabaseConnection::init().await.unwrap();
+        let context = MockTokenMetadataDao::get_metadata_for_chain_context();
 
         context.expect().returning(|_, _, _| Ok(vec![]));
 
         let result =
-            MockTokenMetadataTrait::get_metadata_for_chain(&mock_pool, String::from("chain"), None)
+            MockTokenMetadataDao::get_metadata_for_chain(&mock_pool, String::from("chain"), None)
                 .await;
 
         assert!(result.is_ok());
     }
 
-    #[tokio::test]
-    async fn test_get_metadata_for_chain_one_records() {
-        let mock_pool = DatabaseConnection::init().await.unwrap();
-        let context = MockTokenMetadataTrait::get_metadata_for_chain_context();
+    #[sqlx::test]
+    async fn test_get_metadata_for_chain_one_record(pool: Pool<Postgres>) {
+        let pool_context = MockDatabaseConnection::init_context();
+        pool_context.expect().returning(move || Ok(pool.clone()));
+
+        let mock_pool = MockDatabaseConnection::init().await.unwrap();
+        let context = MockTokenMetadataDao::get_metadata_for_chain_context();
 
         context
             .expect()
             .returning(|_, _, _| Ok(vec![TokenMetadata::default()]));
 
         let result =
-            MockTokenMetadataTrait::get_metadata_for_chain(&mock_pool, String::from("chain"), None)
+            MockTokenMetadataDao::get_metadata_for_chain(&mock_pool, String::from("chain"), None)
                 .await;
 
         assert!(result.is_ok());
         assert_eq!(result.unwrap().len(), 1);
+    }
+
+    #[sqlx::test]
+    async fn test_get_metadata_for_chain_failure(pool: Pool<Postgres>) {
+        let pool_context = MockDatabaseConnection::init_context();
+        pool_context.expect().returning(move || Ok(pool.clone()));
+
+        let mock_pool = MockDatabaseConnection::init().await.unwrap();
+        let context = MockTokenMetadataDao::get_metadata_for_chain_context();
+
+        context.expect().returning(|_, _, _| {
+            Err(DatabaseError::ServerError(String::from(
+                "Failed to get currencies",
+            )))
+        });
+
+        let result =
+            MockTokenMetadataDao::get_metadata_for_chain(&mock_pool, String::from("chain"), None)
+                .await;
+
+        assert!(result.is_err());
     }
 }

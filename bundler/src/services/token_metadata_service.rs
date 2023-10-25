@@ -1,6 +1,6 @@
 use sqlx::{Pool, Postgres};
 
-use crate::db::dao::{TokenMetadataDao, TokenMetadataTrait};
+use crate::db::dao::TokenMetadataDao;
 use crate::errors::MetadataError;
 use crate::models::admin::{MetadataResponse, MetadataResponseV2};
 use crate::CONFIG;
